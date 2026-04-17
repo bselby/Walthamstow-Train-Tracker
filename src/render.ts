@@ -1,6 +1,7 @@
 import type { BridgeEvent } from './bridge';
 import type { FreshnessState } from './freshness';
 import { formatCountdown, formatAge } from './display';
+import { renderStrip } from './strip';
 
 export interface ViewModel {
   north?: BridgeEvent;
@@ -13,7 +14,13 @@ export interface ViewModel {
 }
 
 export function render(root: HTMLElement, vm: ViewModel): void {
-  root.innerHTML = '';
+  // Preserve the strip across renders; rebuild the error / empty / rows / footer.
+  const existingStrip = root.querySelector<HTMLElement>('.strip');
+
+  // Remove everything EXCEPT the strip
+  Array.from(root.children).forEach((child) => {
+    if (child !== existingStrip) root.removeChild(child);
+  });
 
   if (vm.freshness.state === 'no-data' && vm.error) {
     const err = document.createElement('div');
@@ -35,6 +42,12 @@ export function render(root: HTMLElement, vm: ViewModel): void {
     root.appendChild(renderDirection('→ Chingford', vm.north));
     root.appendChild(renderDirection('← Walthamstow Central', vm.south));
   }
+
+  renderStrip(root, {
+    northPos: vm.northPos,
+    southPos: vm.southPos,
+    celebrate: vm.celebrate,
+  });
 
   const footer = document.createElement('div');
   footer.className = `footer ${vm.freshness.state}`;
