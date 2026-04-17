@@ -75,6 +75,10 @@ export function render(root: HTMLElement, vm: ViewModel): void {
   root.appendChild(footer);
 }
 
+// Remember each direction's last-rendered value text so we can animate ONLY on change.
+// Keyed by direction label so both north and south rows track independently.
+const previousValueText: Record<string, string> = {};
+
 function renderDirection(label: string, event: BridgeEvent | undefined): HTMLElement {
   const row = document.createElement('section');
   row.className = 'row';
@@ -87,14 +91,21 @@ function renderDirection(label: string, event: BridgeEvent | undefined): HTMLEle
   const valueEl = document.createElement('div');
   valueEl.className = 'value';
 
+  let currentText: string;
   if (!event) {
     valueEl.classList.add('sleeping');
-    valueEl.textContent = 'No trains for a while';
+    currentText = 'No trains for a while';
   } else {
     const countdown = formatCountdown(event.bridgeTimeSeconds);
     valueEl.classList.add(countdown.kind);
-    valueEl.textContent = countdown.text;
+    currentText = countdown.text;
   }
+  valueEl.textContent = currentText;
+
+  if (previousValueText[label] !== currentText) {
+    valueEl.classList.add('ticking');
+  }
+  previousValueText[label] = currentText;
 
   row.appendChild(valueEl);
   return row;

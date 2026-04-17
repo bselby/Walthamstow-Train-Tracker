@@ -9,6 +9,13 @@ import { estimatePosition } from './trainPosition';
 import { WALTHAMSTOW_CENTRAL_STOPPOINT_ID, POLL_INTERVAL_MS } from './constants';
 import type { Direction } from './direction';
 
+// A small hello for anyone peeking at devtools. One console log, no overhead.
+console.log(
+  '%c🚂 Walthamstow Train Tracker\n%cBuilt for watching trains with a toddler on the East Avenue bridge.\nSource: github.com/bselby/Walthamstow-Train-Tracker',
+  'font: 700 16px system-ui; color: #EE7C0E;',
+  'font: 500 12px system-ui; color: #1a2840; line-height: 1.6;'
+);
+
 const root = document.getElementById('app')!;
 
 const DIRECTIONS: readonly Direction[] = ['north', 'south'];

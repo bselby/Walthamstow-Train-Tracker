@@ -324,13 +324,50 @@ html, body {
   100% { transform: scale(1); }
 }
 
+/* Station pip "visiting" pulse — fires once when the train glides past a stop. */
+.strip-pip.pulsing .strip-pip-dot {
+  animation: pip-pulse 650ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes pip-pulse {
+  0% {
+    background: var(--bg);
+    border-color: var(--ink);
+    transform: scale(1);
+  }
+  35% {
+    background: var(--overground);
+    border-color: var(--overground);
+    transform: scale(1.8);
+  }
+  100% {
+    background: var(--bg);
+    border-color: var(--ink);
+    transform: scale(1);
+  }
+}
+
+/* Countdown tick — the Solari-board feel. The `.ticking` class is applied by
+   the renderer when the value text has changed since the previous render, so
+   every minute-down / second-down / kind-flip gets a brief fade-in. */
+.value.ticking {
+  animation: value-tick 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes value-tick {
+  0%   { transform: translateY(6px); opacity: 0.4; filter: blur(1.5px); }
+  100% { transform: translateY(0);   opacity: 1;   filter: blur(0); }
+}
+
 /* Respect user motion preferences. */
 @media (prefers-reduced-motion: reduce) {
   .strip-train {
     transition: none;
   }
   .strip-bridge.celebrating .strip-bridge-svg,
-  .value.now {
+  .strip-pip.pulsing .strip-pip-dot,
+  .value.now,
+  .value.ticking {
     animation: none;
   }
 }

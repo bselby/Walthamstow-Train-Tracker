@@ -41,13 +41,42 @@ const TRAIN_SVG = `
  * node so CSS transitions survive between renders). The caller is responsible
  * for appending the returned element to the correct parent.
  */
+const previousPos: Partial<Record<Direction, number>> = {};
+
 export function renderDirectionStrip(
   el: HTMLElement | null,
   model: DirectionStripModel
 ): HTMLElement {
   const strip = el ?? buildSkeleton(model.direction);
   updateDynamic(strip, model);
+
+  // Pulse any station pips the train crossed since the last render — a small
+  // toddler-delight so you can see the train "visiting" each stop.
+  const prev = previousPos[model.direction];
+  if (prev !== undefined && model.pos !== null && prev !== model.pos) {
+    const lo = Math.min(prev, model.pos);
+    const hi = Math.max(prev, model.pos);
+    for (let i = Math.ceil(lo); i <= Math.floor(hi); i++) {
+      pulsePip(strip, i);
+    }
+  }
+  if (model.pos !== null) {
+    previousPos[model.direction] = model.pos;
+  } else {
+    delete previousPos[model.direction];
+  }
+
   return strip;
+}
+
+function pulsePip(strip: HTMLElement, index: number): void {
+  const pips = strip.querySelectorAll<HTMLElement>('.strip-pip');
+  const pip = pips[index];
+  if (!pip) return;
+  pip.classList.remove('pulsing');
+  // Force a reflow so the animation restarts even if the class was just removed.
+  void pip.offsetWidth;
+  pip.classList.add('pulsing');
 }
 
 function buildSkeleton(direction: Direction): HTMLElement {
