@@ -1,0 +1,74 @@
+import { describe, it, expect } from 'vitest';
+import { estimatePosition } from '../src/trainPosition';
+
+describe('estimatePosition', () => {
+  it('returns 5 (WC) for tts=0 regardless of direction', () => {
+    expect(estimatePosition(0, 'north')).toBe(5);
+    expect(estimatePosition(0, 'south')).toBe(5);
+  });
+
+  describe('southbound (train approaching WC from the north)', () => {
+    it('tts=120 → position 6 (Wood Street, one segment north)', () => {
+      expect(estimatePosition(120, 'south')).toBe(6);
+    });
+
+    it('tts=180 → position 6.5 (halfway between Wds and Hig)', () => {
+      expect(estimatePosition(180, 'south')).toBe(6.5);
+    });
+
+    it('tts=300 → position ≈7.33 (one-third into Hig↔Chg segment)', () => {
+      const pos = estimatePosition(300, 'south');
+      expect(pos).not.toBeNull();
+      expect(pos!).toBeCloseTo(7.333, 2);
+    });
+
+    it('tts=420 → position 8 (Chingford, end of modelled range)', () => {
+      expect(estimatePosition(420, 'south')).toBe(8);
+    });
+
+    it('tts=600 → position 8 (clamped to Chingford — beyond modelled segments)', () => {
+      expect(estimatePosition(600, 'south')).toBe(8);
+    });
+  });
+
+  describe('northbound (train approaching WC from the south)', () => {
+    it('tts=120 → position 4 (St James Street, one segment south of WC)', () => {
+      expect(estimatePosition(120, 'north')).toBe(4);
+    });
+
+    it('tts=300 → position 3 (Clapton, exactly at station)', () => {
+      expect(estimatePosition(300, 'north')).toBe(3);
+    });
+
+    it('tts=510 → position 1.5 (halfway between Bethnal Green and Hackney Downs)', () => {
+      expect(estimatePosition(510, 'north')).toBe(1.5);
+    });
+
+    it('tts=680 → position ≈0.33 (two-thirds from Liverpool Street toward Bethnal Green)', () => {
+      const pos = estimatePosition(680, 'north');
+      expect(pos).not.toBeNull();
+      expect(pos!).toBeCloseTo(0.333, 2);
+    });
+
+    it('tts=1000 → position 0 (clamped to Liverpool Street — beyond modelled segments)', () => {
+      expect(estimatePosition(1000, 'north')).toBe(0);
+    });
+  });
+
+  describe('out-of-range inputs return null', () => {
+    it('tts < 0 → null', () => {
+      expect(estimatePosition(-1, 'north')).toBeNull();
+      expect(estimatePosition(-1, 'south')).toBeNull();
+    });
+
+    it('tts > 30 minutes → null', () => {
+      expect(estimatePosition(30 * 60 + 1, 'north')).toBeNull();
+      expect(estimatePosition(30 * 60 + 1, 'south')).toBeNull();
+    });
+
+    it('tts = exactly 30 minutes → clamped terminus (not null)', () => {
+      expect(estimatePosition(30 * 60, 'north')).toBe(0);
+      expect(estimatePosition(30 * 60, 'south')).toBe(8);
+    });
+  });
+});
