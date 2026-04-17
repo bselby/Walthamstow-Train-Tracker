@@ -9,27 +9,35 @@ export interface StripModel {
 
 const BRIDGE_SVG = `
 <svg class="strip-bridge-svg" viewBox="0 0 28 16" aria-hidden="true">
-  <path d="M2 13 L2 10 Q2 4 14 4 Q26 4 26 10 L26 13 Z" fill="currentColor"/>
-  <rect x="2" y="13" width="24" height="1.5" fill="currentColor"/>
+  <path d="M2 13 L2 10 Q2 3 14 3 Q26 3 26 10 L26 13 Z" fill="currentColor"/>
+  <rect x="0" y="13" width="28" height="2" fill="currentColor"/>
 </svg>
 `;
 
+// Stylised London Overground Class 710 Aventra — side profile with raked cab nose.
+// Uses named classes so CSS colours the parts: body (cream), livery/doors (overground orange),
+// windows/cab/bogies (ink navy). Mirrors cleanly via scaleX(-1) for southbound.
 const TRAIN_SVG = `
-<svg class="strip-train-svg" viewBox="0 0 40 24" aria-hidden="true">
-  <g class="strip-train-body">
-    <rect x="4" y="4" width="32" height="12" rx="3" fill="currentColor"/>
-    <rect x="28" y="1" width="5" height="5" rx="1" fill="currentColor"/>
-    <rect x="9" y="7" width="6" height="5" rx="1" fill="#0a0a0f"/>
-    <circle cx="12" cy="9.5" r="0.6" fill="currentColor"/>
-    <path d="M11 10.5 Q12 11.5 13 10.5" stroke="currentColor" stroke-width="0.6" fill="none" stroke-linecap="round"/>
-    <circle cx="11" cy="17.5" r="2.5" fill="#0a0a0f" stroke="currentColor" stroke-width="1"/>
-    <circle cx="29" cy="17.5" r="2.5" fill="#0a0a0f" stroke="currentColor" stroke-width="1"/>
-  </g>
-  <g class="strip-smoke">
-    <circle class="strip-smoke-puff" cx="30" cy="-2" r="1.5" fill="currentColor"/>
-    <circle class="strip-smoke-puff strip-smoke-puff-b" cx="30" cy="-2" r="1.5" fill="currentColor"/>
-    <circle class="strip-smoke-puff strip-smoke-puff-c" cx="30" cy="-2" r="1.5" fill="currentColor"/>
-  </g>
+<svg class="strip-train-svg" viewBox="0 0 52 22" aria-hidden="true">
+  <!-- Body: boxy mid-section with raked nose on the leading (right) end -->
+  <path class="train-body" d="M1 4 L42 4 L50 8 L50 17 L1 17 Z"/>
+  <!-- Orange livery stripe along bottom edge (Overground brand stripe) -->
+  <rect class="train-livery" x="1" y="15" width="49" height="2"/>
+  <!-- Side windows (5 equal rectangles) -->
+  <rect class="train-window" x="4" y="6.5" width="4.5" height="4.5" rx="0.5"/>
+  <rect class="train-window" x="11" y="6.5" width="4.5" height="4.5" rx="0.5"/>
+  <rect class="train-window" x="18" y="6.5" width="4.5" height="4.5" rx="0.5"/>
+  <rect class="train-window" x="25" y="6.5" width="4.5" height="4.5" rx="0.5"/>
+  <rect class="train-window" x="32" y="6.5" width="4.5" height="4.5" rx="0.5"/>
+  <!-- Orange sliding doors (3 visible) -->
+  <rect class="train-door" x="9" y="5" width="1.8" height="10.5"/>
+  <rect class="train-door" x="23" y="5" width="1.8" height="10.5"/>
+  <rect class="train-door" x="37" y="5" width="1.8" height="10.5"/>
+  <!-- Cab window at the raked nose -->
+  <path class="train-cab" d="M40 6 L48 9 L48 12.5 L40 12.5 Z"/>
+  <!-- Bogies (wheel groupings) -->
+  <rect class="train-bogie" x="5" y="17" width="9" height="3" rx="0.5"/>
+  <rect class="train-bogie" x="33" y="17" width="9" height="3" rx="0.5"/>
 </svg>
 `;
 
