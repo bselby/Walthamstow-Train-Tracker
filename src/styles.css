@@ -1,3 +1,114 @@
-:root { color-scheme: dark; }
-html, body { margin: 0; padding: 0; background: #0a0a0f; color: #fff; font-family: system-ui, sans-serif; }
-#app { padding: 2rem; font-size: 1.5rem; }
+:root {
+  color-scheme: dark;
+  --bg: #0a0a0f;
+  --fg: #f4f4f7;
+  --dim: #8a8a96;
+  --accent: #7dd3fc;
+  --now: #4ade80;
+  --warn: #fbbf24;
+  --error: #f87171;
+  --gap: clamp(1rem, 3vw, 2rem);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  height: 100%;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--gap);
+  min-height: 100dvh;
+  padding: calc(var(--gap) + env(safe-area-inset-top)) var(--gap) calc(var(--gap) + env(safe-area-inset-bottom));
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label {
+  font-size: 1.25rem;
+  color: var(--dim);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.value {
+  font-size: clamp(3.5rem, 14vw, 6rem);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.value.now {
+  color: var(--now);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.value.just-crossed {
+  color: var(--dim);
+  font-size: clamp(1.5rem, 6vw, 2.5rem);
+  font-weight: 500;
+}
+
+.value.sleeping {
+  color: var(--dim);
+  font-size: clamp(1rem, 4vw, 1.5rem);
+  font-weight: 400;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.footer {
+  margin-top: auto;
+  font-size: 0.875rem;
+  color: var(--dim);
+  text-align: center;
+}
+
+.footer.stale {
+  color: var(--warn);
+}
+
+.footer.stale::before {
+  content: '⚠ ';
+}
+
+.footer.no-data {
+  color: var(--dim);
+}
+
+.empty {
+  text-align: center;
+  color: var(--dim);
+  font-size: 1.25rem;
+}
+
+.empty a {
+  color: var(--accent);
+  display: inline-block;
+  margin-top: 1rem;
+}
+
+.error {
+  color: var(--error);
+  font-size: 1.25rem;
+  text-align: center;
+}
