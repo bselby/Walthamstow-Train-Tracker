@@ -192,6 +192,32 @@ html, body {
 }
 
 .strip-train {
-  /* Trains get CSS in Task 5. For now they exist invisibly. */
-  display: none;
+  position: absolute;
+  top: 50%;
+  left: calc(var(--pos) * (100% - 32px) / 8 + 16px);
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 24px;
+  color: var(--accent);
+  pointer-events: none;
+  z-index: 3;
+  transition: left 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.strip-train.hidden {
+  visibility: hidden;
+}
+
+.strip-train-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+/* Northbound (→ Chingford): faces right = SVG as authored.
+   Southbound (← Liverpool Street): mirror horizontally.
+   Inner transform on the SVG composes cleanly with the outer translate(-50%, -50%). */
+.strip-train-south .strip-train-svg {
+  transform: scaleX(-1);
 }
