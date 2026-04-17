@@ -253,7 +253,7 @@ html, body {
 
 .strip-bridge-label {
   position: absolute;
-  top: 18px;
+  bottom: 18px;
   font-family: 'Big Shoulders Text', sans-serif;
   font-size: 0.75rem;
   font-weight: 800;
