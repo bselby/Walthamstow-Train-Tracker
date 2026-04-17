@@ -38,6 +38,29 @@ html, body {
   gap: clamp(0.5rem, 2vw, 1rem);
   min-height: 100dvh;
   padding: calc(var(--gap) + env(safe-area-inset-top)) var(--gap) calc(var(--gap) + env(safe-area-inset-bottom));
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.page-header {
+  font-family: 'Big Shoulders Text', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--dim);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  padding-bottom: 0.25rem;
+  /* Pull to the top — the rows below centre themselves. */
+  margin-bottom: auto;
+}
+
+.page-header::before,
+.page-header::after {
+  content: '·';
+  display: inline-block;
+  margin: 0 0.6em;
+  color: var(--overground);
 }
 
 .row {
@@ -107,8 +130,9 @@ html, body {
 
 .footer {
   margin-top: auto;
+  padding-top: 0.5rem;
   font-family: 'Big Shoulders Text', sans-serif;
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--dim);
   text-align: center;
@@ -197,9 +221,9 @@ html, body {
 
 .strip-pip-label {
   position: absolute;
-  top: 14px;
+  top: 16px;
   font-family: 'Big Shoulders Text', sans-serif;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--dim);
   letter-spacing: 0.08em;
@@ -229,9 +253,9 @@ html, body {
 
 .strip-bridge-label {
   position: absolute;
-  top: 16px;
+  top: 18px;
   font-family: 'Big Shoulders Text', sans-serif;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   font-weight: 800;
   color: var(--overground);
   letter-spacing: 0.1em;
@@ -250,7 +274,6 @@ html, body {
   pointer-events: none;
   z-index: 3;
   transition: left 1.5s cubic-bezier(0.4, 0, 0.2, 1);
-  filter: drop-shadow(0 1px 2px oklch(28% 0.12 265 / 0.15));
 }
 
 .strip-train.hidden {
@@ -291,17 +314,14 @@ html, body {
 /* ───── Strip animations ───── */
 
 .strip-bridge.celebrating .strip-bridge-svg {
-  animation: bridge-jiggle 1s ease-in-out;
+  animation: bridge-celebrate 900ms cubic-bezier(0.22, 1, 0.36, 1);
   transform-origin: center bottom;
 }
 
-@keyframes bridge-jiggle {
-  0%   { transform: rotate(0deg) translateY(0); }
-  15%  { transform: rotate(-4deg) translateY(-1px); }
-  35%  { transform: rotate(4deg) translateY(-1px); }
-  55%  { transform: rotate(-3deg) translateY(0); }
-  75%  { transform: rotate(2deg) translateY(0); }
-  100% { transform: rotate(0deg) translateY(0); }
+@keyframes bridge-celebrate {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.24); }
+  100% { transform: scale(1); }
 }
 
 /* Respect user motion preferences. */

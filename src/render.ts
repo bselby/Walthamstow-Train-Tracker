@@ -14,17 +14,23 @@ export interface ViewModel {
 }
 
 export function render(root: HTMLElement, vm: ViewModel): void {
-  // Preserve existing strip elements across renders so CSS transitions survive.
+  // Preserve static header and strips across renders so the header stays put
+  // and the strips keep their CSS transitions alive between state updates.
   // Everything else (rows, footer, error, empty) is rebuilt each tick.
+  const existingHeader = root.querySelector<HTMLElement>('.page-header');
   const existingStripN = root.querySelector<HTMLElement>('.strip-north');
   const existingStripS = root.querySelector<HTMLElement>('.strip-south');
   const preserved = new Set<Element>();
+  if (existingHeader) preserved.add(existingHeader);
   if (existingStripN) preserved.add(existingStripN);
   if (existingStripS) preserved.add(existingStripS);
 
   Array.from(root.children).forEach((child) => {
     if (!preserved.has(child)) root.removeChild(child);
   });
+
+  // Always re-append the header first so it sits at the top of the flex column.
+  if (existingHeader) root.appendChild(existingHeader);
 
   if (vm.freshness.state === 'no-data' && vm.error) {
     const err = document.createElement('div');
@@ -83,7 +89,7 @@ function renderDirection(label: string, event: BridgeEvent | undefined): HTMLEle
 
   if (!event) {
     valueEl.classList.add('sleeping');
-    valueEl.textContent = '— no trains for a while 💤';
+    valueEl.textContent = 'No trains for a while';
   } else {
     const countdown = formatCountdown(event.bridgeTimeSeconds);
     valueEl.classList.add(countdown.kind);
