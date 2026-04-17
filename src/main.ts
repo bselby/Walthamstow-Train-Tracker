@@ -67,13 +67,13 @@ function buildViewModel(): ViewModel {
     previousKind[dir] = currentKind;
   }
 
-  // Active celebration (1 second window after a 'now' edge).
-  let celebrate: ViewModel['celebrate'] = null;
+  // Active celebration (1 second window after each direction's 'now' edge).
+  // Each direction celebrates independently — both bridges can jiggle at once.
+  const celebrate: ViewModel['celebrate'] = { north: false, south: false };
   for (const dir of DIRECTIONS) {
     const setAt = celebrateSetAt[dir];
     if (setAt !== undefined && now - setAt < CELEBRATE_DURATION_MS) {
-      celebrate = { direction: dir };
-      break;
+      celebrate[dir] = true;
     }
   }
 

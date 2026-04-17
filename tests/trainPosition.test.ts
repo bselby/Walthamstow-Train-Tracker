@@ -55,12 +55,35 @@ describe('estimatePosition', () => {
     });
   });
 
-  describe('out-of-range inputs return null', () => {
-    it('tts < 0 → null', () => {
-      expect(estimatePosition(-1, 'north')).toBeNull();
-      expect(estimatePosition(-1, 'south')).toBeNull();
+  describe('northbound post-WC (train continuing past Walthamstow Central)', () => {
+    it('tts=-60 → position 5.5 (halfway between WC and Wds, approaching bridge)', () => {
+      expect(estimatePosition(-60, 'north')).toBe(5.5);
     });
 
+    it('tts=-120 → position 6 (at Wood Street, end of post-WC model)', () => {
+      expect(estimatePosition(-120, 'north')).toBe(6);
+    });
+
+    it('tts=-121 → null (beyond post-WC model)', () => {
+      expect(estimatePosition(-121, 'north')).toBeNull();
+    });
+  });
+
+  describe('southbound post-WC (brief window after arriving at WC)', () => {
+    it('tts=-5 → position 5 (parked at WC)', () => {
+      expect(estimatePosition(-5, 'south')).toBe(5);
+    });
+
+    it('tts=-30 → position 5 (parked at WC, edge of window)', () => {
+      expect(estimatePosition(-30, 'south')).toBe(5);
+    });
+
+    it('tts=-31 → null (beyond southbound post-WC window)', () => {
+      expect(estimatePosition(-31, 'south')).toBeNull();
+    });
+  });
+
+  describe('out-of-range inputs return null', () => {
     it('tts > 30 minutes → null', () => {
       expect(estimatePosition(30 * 60 + 1, 'north')).toBeNull();
       expect(estimatePosition(30 * 60 + 1, 'south')).toBeNull();

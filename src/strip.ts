@@ -1,10 +1,10 @@
 import { STOPS } from './stops';
 import type { Direction } from './direction';
 
-export interface StripModel {
-  northPos: number | null;
-  southPos: number | null;
-  celebrate: { direction: Direction } | null;
+export interface DirectionStripModel {
+  direction: Direction;
+  pos: number | null;
+  celebrate: boolean;
 }
 
 const BRIDGE_SVG = `
@@ -19,43 +19,46 @@ const BRIDGE_SVG = `
 // windows/cab/bogies (ink navy). Mirrors cleanly via scaleX(-1) for southbound.
 const TRAIN_SVG = `
 <svg class="strip-train-svg" viewBox="0 0 52 22" aria-hidden="true">
-  <!-- Body: boxy mid-section with raked nose on the leading (right) end -->
   <path class="train-body" d="M1 4 L42 4 L50 8 L50 17 L1 17 Z"/>
-  <!-- Orange livery stripe along bottom edge (Overground brand stripe) -->
   <rect class="train-livery" x="1" y="15" width="49" height="2"/>
-  <!-- Side windows (5 equal rectangles) -->
   <rect class="train-window" x="4" y="6.5" width="4.5" height="4.5" rx="0.5"/>
   <rect class="train-window" x="11" y="6.5" width="4.5" height="4.5" rx="0.5"/>
   <rect class="train-window" x="18" y="6.5" width="4.5" height="4.5" rx="0.5"/>
   <rect class="train-window" x="25" y="6.5" width="4.5" height="4.5" rx="0.5"/>
   <rect class="train-window" x="32" y="6.5" width="4.5" height="4.5" rx="0.5"/>
-  <!-- Orange sliding doors (3 visible) -->
   <rect class="train-door" x="9" y="5" width="1.8" height="10.5"/>
   <rect class="train-door" x="23" y="5" width="1.8" height="10.5"/>
   <rect class="train-door" x="37" y="5" width="1.8" height="10.5"/>
-  <!-- Cab window at the raked nose -->
   <path class="train-cab" d="M40 6 L48 9 L48 12.5 L40 12.5 Z"/>
-  <!-- Bogies (wheel groupings) -->
   <rect class="train-bogie" x="5" y="17" width="9" height="3" rx="0.5"/>
   <rect class="train-bogie" x="33" y="17" width="9" height="3" rx="0.5"/>
 </svg>
 `;
 
-export function renderStrip(root: HTMLElement, model: StripModel): void {
-  let container = root.querySelector<HTMLElement>('.strip');
-
-  if (!container) {
-    container = buildSkeleton();
-    root.appendChild(container);
-  }
-
-  updateDynamic(container, model);
+/**
+ * Render a single direction's strip. If `el` is null, builds a new skeleton and
+ * returns it; otherwise updates the existing one in place (preserving the DOM
+ * node so CSS transitions survive between renders). The caller is responsible
+ * for appending the returned element to the correct parent.
+ */
+export function renderDirectionStrip(
+  el: HTMLElement | null,
+  model: DirectionStripModel
+): HTMLElement {
+  const strip = el ?? buildSkeleton(model.direction);
+  updateDynamic(strip, model);
+  return strip;
 }
 
-function buildSkeleton(): HTMLElement {
+function buildSkeleton(direction: Direction): HTMLElement {
   const container = document.createElement('section');
-  container.className = 'strip';
-  container.setAttribute('aria-label', 'Train positions on the Weaver line');
+  container.className = `strip strip-${direction}`;
+  container.setAttribute(
+    'aria-label',
+    direction === 'north'
+      ? 'Northbound train position on the Weaver line'
+      : 'Southbound train position on the Weaver line'
+  );
 
   const line = document.createElement('div');
   line.className = 'strip-line';
@@ -84,30 +87,22 @@ function buildSkeleton(): HTMLElement {
   bridge.innerHTML = `${BRIDGE_SVG}<span class="strip-bridge-label">East Av</span>`;
   container.appendChild(bridge);
 
-  const trainN = document.createElement('div');
-  trainN.className = 'strip-train strip-train-north';
-  trainN.style.setProperty('--pos', '0');
-  trainN.innerHTML = TRAIN_SVG;
-  container.appendChild(trainN);
-
-  const trainS = document.createElement('div');
-  trainS.className = 'strip-train strip-train-south';
-  trainS.style.setProperty('--pos', '8');
-  trainS.innerHTML = TRAIN_SVG;
-  container.appendChild(trainS);
+  const train = document.createElement('div');
+  train.className = 'strip-train';
+  // Start the train off-strip so the first real position change transitions in.
+  train.style.setProperty('--pos', direction === 'north' ? '0' : '8');
+  train.innerHTML = TRAIN_SVG;
+  container.appendChild(train);
 
   return container;
 }
 
-function updateDynamic(container: HTMLElement, model: StripModel): void {
-  const trainN = container.querySelector<HTMLElement>('.strip-train-north')!;
-  const trainS = container.querySelector<HTMLElement>('.strip-train-south')!;
+function updateDynamic(container: HTMLElement, model: DirectionStripModel): void {
+  const train = container.querySelector<HTMLElement>('.strip-train')!;
   const bridge = container.querySelector<HTMLElement>('.strip-bridge')!;
 
-  setTrain(trainN, model.northPos);
-  setTrain(trainS, model.southPos);
-
-  bridge.classList.toggle('celebrating', model.celebrate !== null);
+  setTrain(train, model.pos);
+  bridge.classList.toggle('celebrating', model.celebrate);
 }
 
 function setTrain(el: HTMLElement, pos: number | null): void {

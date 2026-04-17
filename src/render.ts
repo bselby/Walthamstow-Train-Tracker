@@ -1,7 +1,7 @@
 import type { BridgeEvent } from './bridge';
 import type { FreshnessState } from './freshness';
 import { formatCountdown, formatAge } from './display';
-import { renderStrip } from './strip';
+import { renderDirectionStrip } from './strip';
 
 export interface ViewModel {
   north?: BridgeEvent;
@@ -10,16 +10,20 @@ export interface ViewModel {
   error?: string;
   northPos: number | null;
   southPos: number | null;
-  celebrate: { direction: 'north' | 'south' } | null;
+  celebrate: { north: boolean; south: boolean };
 }
 
 export function render(root: HTMLElement, vm: ViewModel): void {
-  // Preserve the strip across renders; rebuild the error / empty / rows / footer.
-  const existingStrip = root.querySelector<HTMLElement>('.strip');
+  // Preserve existing strip elements across renders so CSS transitions survive.
+  // Everything else (rows, footer, error, empty) is rebuilt each tick.
+  const existingStripN = root.querySelector<HTMLElement>('.strip-north');
+  const existingStripS = root.querySelector<HTMLElement>('.strip-south');
+  const preserved = new Set<Element>();
+  if (existingStripN) preserved.add(existingStripN);
+  if (existingStripS) preserved.add(existingStripS);
 
-  // Remove everything EXCEPT the strip
   Array.from(root.children).forEach((child) => {
-    if (child !== existingStrip) root.removeChild(child);
+    if (!preserved.has(child)) root.removeChild(child);
   });
 
   if (vm.freshness.state === 'no-data' && vm.error) {
@@ -39,15 +43,23 @@ export function render(root: HTMLElement, vm: ViewModel): void {
     `;
     root.appendChild(empty);
   } else {
+    // Interleave: row-north, strip-north, row-south, strip-south
     root.appendChild(renderDirection('→ Chingford', vm.north));
-    root.appendChild(renderDirection('← Walthamstow Central', vm.south));
-  }
+    const stripN = renderDirectionStrip(existingStripN, {
+      direction: 'north',
+      pos: vm.northPos,
+      celebrate: vm.celebrate.north,
+    });
+    root.appendChild(stripN); // appendChild moves the node if it was already in the tree
 
-  renderStrip(root, {
-    northPos: vm.northPos,
-    southPos: vm.southPos,
-    celebrate: vm.celebrate,
-  });
+    root.appendChild(renderDirection('← Walthamstow Central', vm.south));
+    const stripS = renderDirectionStrip(existingStripS, {
+      direction: 'south',
+      pos: vm.southPos,
+      celebrate: vm.celebrate.south,
+    });
+    root.appendChild(stripS);
+  }
 
   const footer = document.createElement('div');
   footer.className = `footer ${vm.freshness.state}`;
