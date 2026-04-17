@@ -7,6 +7,9 @@ export interface ViewModel {
   south?: BridgeEvent;
   freshness: FreshnessState;
   error?: string;
+  northPos: number | null;
+  southPos: number | null;
+  celebrate: { direction: 'north' | 'south' } | null;
 }
 
 export function render(root: HTMLElement, vm: ViewModel): void {
