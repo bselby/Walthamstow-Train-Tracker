@@ -1,0 +1,30 @@
+{
+  "name": "walthamstow-train-tracker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "generate-icons": "pwa-assets-generator --preset minimal-2023 public/icon.svg"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@vite-pwa/assets-generator": "^1.0.2",
+    "jsdom": "^29.0.2",
+    "typescript": "^6.0.3",
+    "vite": "^7.3.2",
+    "vite-plugin-pwa": "^1.2.0",
+    "vitest": "^4.1.4"
+  }
+}
