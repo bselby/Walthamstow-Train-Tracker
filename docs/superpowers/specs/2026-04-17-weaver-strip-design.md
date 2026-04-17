@@ -13,7 +13,7 @@ Add a single horizontal strip to the live Walthamstow Train Tracker PWA showing 
 ### In scope
 
 - Horizontal strip showing **all 9 stops** of the Chingford branch (Liverpool Street → Chingford), labelled with 3-letter abbreviations.
-- **Walthamstow Central** visibly marked as "home" with a small bridge icon.
+- **East Avenue bridge** shown as its own landmark on the line, sitting *between* Walthamstow Central (index 5) and Wood Street (index 6) — this is the emotional focal point of the strip and the whole point of the app.
 - **Two cartoon SVG trains** — one for the single next northbound arrival, one for the single next southbound arrival. No multi-train clutter.
 - Train position driven by the `currentLocation` field of the TfL Arrivals response we already fetch — zero new network calls.
 - **Smooth glide** animation when a train moves between positions on each 20s poll (1.5s ease).
@@ -48,7 +48,7 @@ Ordered southbound-to-northbound, with 3-letter abbreviations used on the strip:
 | 7 | Highams Park | **Hig** |
 | 8 | Chingford | **Chg** |
 
-Walthamstow Central sits at index 5. East Avenue bridge lies between index 5 and index 6 — visually represented by a small bridge glyph attached to the WC label on the strip.
+Walthamstow Central sits at index 5. East Avenue bridge lies between index 5 and index 6 — rendered as its own standalone landmark on the line at position **5.25** (closer to WC, because the bridge physically meets the track just outside the WC platform). The bridge is not a station: no pip, no abbreviation; just a small arch-bridge SVG sitting on the line with an "East Av" caption below. Visually distinct from the stations around it (filled in `var(--accent)` to match the trains, while stations are outlined circles in `var(--dim)`).
 
 ### Train direction and position
 
@@ -142,13 +142,17 @@ rerender() (every 1s)
 
 This means the train glides *continuously* between polls, not just in jumps. Feels more alive.
 
-The **renderer must not rebuild** the strip each second. On first render, `renderStrip()` creates the static markup (9 station pips, 2 train SVGs, bridge glyph) and appends it. On subsequent renders, it only updates the two trains' CSS custom properties (`--pos` as a number 0-8) and visibility. This preserves CSS transitions so the trains glide smoothly rather than jump.
+The **renderer must not rebuild** the strip each second. On first render, `renderStrip()` creates the static markup (9 station pips, the East Ave bridge landmark, and 2 train SVGs) and appends it. On subsequent renders, it only updates the two trains' CSS custom properties (`--pos` as a number 0-8), visibility, and the bridge's `celebrate` class. This preserves CSS transitions so the trains glide smoothly rather than jump.
 
 ## Visuals
 
 ### Stop pips
 
-Small circles on a thin horizontal line. Walthamstow Central pip is slightly larger with a bridge glyph (🌉 or a simple SVG bridge) attached above it. Station abbreviations sit below the pips in the existing `var(--dim)` colour, small.
+Small outlined circles on a thin horizontal line, one per station. Station abbreviations sit below the pips in `var(--dim)`, small. Walthamstow Central is the same size and weight as the other stations — it's just a stop on the line; the bridge carries the emotional weight, not WC.
+
+### East Avenue bridge landmark
+
+A small SVG arch-bridge shape sitting directly on the line at position 5.25, filled in `var(--accent)` cyan so it pops against the dim station pips. Caption "East Av" directly below in accent colour. Slightly larger than a station pip so the eye lands on it first. This is where the user's attention should go — it's where the drama happens.
 
 ### Train cartoon (SVG)
 
