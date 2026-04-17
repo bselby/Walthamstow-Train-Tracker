@@ -15,11 +15,11 @@ Add a single horizontal strip to the live Walthamstow Train Tracker PWA showing 
 - Horizontal strip showing **all 9 stops** of the Chingford branch (Liverpool Street → Chingford), labelled with 3-letter abbreviations.
 - **East Avenue bridge** shown as its own landmark on the line, sitting *between* Walthamstow Central (index 5) and Wood Street (index 6) — this is the emotional focal point of the strip and the whole point of the app.
 - **Two cartoon SVG trains** — one for the single next northbound arrival, one for the single next southbound arrival. No multi-train clutter.
-- Train position driven by the `currentLocation` field of the TfL Arrivals response we already fetch — zero new network calls.
-- **Smooth glide** animation when a train moves between positions on each 20s poll (1.5s ease).
+- Train position estimated from the `timeToStation` field already in the TfL response, using a hardcoded inter-station travel-time table (see *Estimating train position* below) — zero new network calls.
+- **Smooth glide** animation: every second, we re-estimate position against a locally-decremented timeToStation so the train appears to move continuously rather than jumping every 20s.
 - **Subtle smoke animation** from the train's smokestack.
-- **Subtle bridge jiggle** when a tracked train is in the countdown's "NOW" state.
-- Gracefully hide a train when its direction has no imminent arrival, or when `currentLocation` can't be parsed.
+- **Subtle bridge jiggle** when a tracked direction's countdown transitions into the "NOW" state.
+- Gracefully hide a train when its direction has no imminent arrival or the estimate falls outside the modelled range.
 
 ### Out of scope
 
@@ -48,7 +48,14 @@ Ordered southbound-to-northbound, with 3-letter abbreviations used on the strip:
 | 7 | Highams Park | **Hig** |
 | 8 | Chingford | **Chg** |
 
-Walthamstow Central sits at index 5. East Avenue bridge lies between index 5 and index 6 — rendered as its own standalone landmark on the line at position **5.25** (closer to WC, because the bridge physically meets the track just outside the WC platform). The bridge is not a station: no pip, no abbreviation; just a small arch-bridge SVG sitting on the line with an "East Av" caption below. Visually distinct from the stations around it (filled in `var(--accent)` to match the trains, while stations are outlined circles in `var(--dim)`).
+Walthamstow Central sits at index 5. East Avenue bridge lies between index 5 and index 6 — rendered as its own standalone landmark on the line visually placed **halfway between the WC and Wds pips** (CSS `left: calc((100% / 8) * 5.5)` if using the same positioning formula as trains). The bridge is *not* a model position — the train-position math stays on integer stop indices `0–8`. The bridge is a pure visual element. It's drawn as a small arch-bridge SVG sitting on the line with an "East Av" caption below, filled in `var(--accent)` to match the trains, while stations are outlined circles in `var(--dim)`.
+
+**Why the bridge isn't a model position:** a northbound train's tracked countdown ends at `timeToStation = 0` (arrival at WC platform), but its bridge-crossing happens ~90s *after* that (when `timeToStation` is already negative and the train has filtered out of our `pickNextPerDirection` selection once `bridgeTimeSeconds < -30`). Modelling post-WC travel would require extra complexity for minimal toddler benefit. We accept that:
+
+- **Southbound trains** visibly glide past the bridge's CSS position as they approach WC (position decreases from >5.5 toward 5).
+- **Northbound trains** visibly reach WC (position 5) and disappear; the bridge celebration still fires when the countdown hits NOW, even though no train is on the strip at that moment.
+
+The bridge's emotional role is to mark "home" and to celebrate crossings via the jiggle — it doesn't need a train sitting on it at the moment of celebration.
 
 ### Train direction and position
 
@@ -152,7 +159,7 @@ Small outlined circles on a thin horizontal line, one per station. Station abbre
 
 ### East Avenue bridge landmark
 
-A small SVG arch-bridge shape sitting directly on the line at position 5.25, filled in `var(--accent)` cyan so it pops against the dim station pips. Caption "East Av" directly below in accent colour. Slightly larger than a station pip so the eye lands on it first. This is where the user's attention should go — it's where the drama happens.
+A small SVG arch-bridge shape sitting directly on the line visually centred between the WC and Wds pips (CSS-positioned at the 5.5 mark using the same formula as trains: `left: calc((100% / 8) * 5.5)`). Filled in `var(--accent)` cyan so it pops against the dim station pips. Caption "East Av" directly below in accent colour. Slightly larger than a station pip so the eye lands on it first. This is where the user's attention should go — it's where the drama happens.
 
 ### Train cartoon (SVG)
 
@@ -176,11 +183,14 @@ Northbound version is the same SVG mirrored via CSS `transform: scaleX(-1)` — 
 The strip is a flex container, width `100%`, centred:
 
 ```
-┌───────────────────────────────────────────────────────────┐
-│ ── ● ── ● ── ● ── ● ── ● ── ●🌉── ● ── ● ── ● ──           │
-│    Liv Bth Hck Clp StJ  WC  Wds Hig Chg                   │
-└───────────────────────────────────────────────────────────┘
-           ↑ trains position absolute, with CSS transitions
+┌────────────────────────────────────────────────────────────┐
+│ ─── ● ─── ● ─── ● ─── ● ─── ● ─── ● ─🌉─ ● ─── ● ─── ● ─── │
+│     Liv   Bth   Hck   Clp   StJ   WC     Wds   Hig   Chg   │
+│                                    East Av                 │
+│                              ▲                   ▲         │
+│                              🚂 (N, pos ≈ 4.2)   🚂 (S, pos ≈ 7.3) │
+└────────────────────────────────────────────────────────────┘
+           ↑ trains and bridge positioned absolute, trains have CSS transitions
 ```
 
 Trains sit in an absolutely-positioned layer above the line. `left: calc(var(--pos) * (100% / 8))` positions index 0 at the left edge and index 8 at the right edge.
@@ -214,7 +224,6 @@ On narrow screens (< 360px), the abbreviations remain readable but the pips shri
   - Northbound with `tts = 510` → position = 1.5 (halfway between Bethnal Green and Hackney Downs)
   - Northbound with `tts = 680` → position ≈ 0.33 (two-thirds of the way from Liverpool Street toward Bethnal Green)
   - Northbound with `tts = 1000` → position = 0 (clamped to Liverpool Street — beyond modelled segments but within 30 min)
-  - Southbound with `tts = 600` → position = 8 (clamped to Chingford)
   - `tts < 0` → `null`
   - `tts > 30 * 60` → `null`
 
