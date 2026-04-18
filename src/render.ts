@@ -20,6 +20,7 @@ export interface ViewModel {
 
 export interface RenderOptions {
   onEnableWalkingTime: () => void;
+  onDisableWalkingTime: () => void;
 }
 
 export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions): void {
@@ -44,7 +45,7 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
   // Walking-time row immediately below the header (only when we're showing rows,
   // not in the error-only state — same treatment as the rows themselves).
   if (vm.freshness.state !== 'no-data' || !vm.error) {
-    root.appendChild(renderWalkingTime(vm.walkingLabel, options.onEnableWalkingTime));
+    root.appendChild(renderWalkingTime(vm.walkingLabel, options.onEnableWalkingTime, options.onDisableWalkingTime));
   }
 
   if (vm.freshness.state === 'no-data' && vm.error) {
@@ -130,7 +131,11 @@ const previousValueText: Record<string, string> = {};
 
 const PIN_SVG = '<svg class="walking-icon" viewBox="0 0 10 13" aria-hidden="true"><path d="M5 0C2 0 0 2 0 5c0 3 5 8 5 8s5-5 5-8c0-3-2-5-5-5Zm0 6.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z" fill="currentColor"/></svg>';
 
-function renderWalkingTime(label: string | null, onEnable: () => void): HTMLElement {
+function renderWalkingTime(
+  label: string | null,
+  onEnable: () => void,
+  onDisable: () => void
+): HTMLElement {
   const el = document.createElement('div');
   el.className = 'walking-time';
 
@@ -147,7 +152,17 @@ function renderWalkingTime(label: string | null, onEnable: () => void): HTMLElem
       }
     });
   } else {
+    // Label + small "off" button so the feature can be disabled (also useful for QA:
+    // disable → refresh → re-enable to exercise the full opt-in flow).
     el.innerHTML = `${PIN_SVG}<span>${escapeHtml(label)}</span>`;
+
+    const off = document.createElement('button');
+    off.type = 'button';
+    off.className = 'walking-time-off';
+    off.textContent = 'off';
+    off.setAttribute('aria-label', 'Disable walking time');
+    off.addEventListener('click', onDisable);
+    el.appendChild(off);
   }
 
   return el;

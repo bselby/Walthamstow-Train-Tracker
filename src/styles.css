@@ -461,3 +461,36 @@ html, body {
   color: var(--overground);
   display: block;
 }
+
+/* Small "off" button next to the active walking-time label. Subtle so it doesn't
+   compete with the data, but tappable enough for fingers. */
+.walking-time-off {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 2px 6px;
+  margin-left: 0.15rem;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--dim);
+  opacity: 0.55;
+  cursor: pointer;
+  text-transform: lowercase;
+  border-radius: 3px;
+}
+
+.walking-time-off:hover,
+.walking-time-off:focus-visible {
+  opacity: 1;
+  color: var(--overground);
+  outline: none;
+}
+
+.walking-time-off::before {
+  content: '·';
+  margin-right: 0.4em;
+  color: var(--dim);
+  opacity: 0.7;
+}

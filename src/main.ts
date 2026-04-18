@@ -36,6 +36,21 @@ let lastError: string | undefined;
 const previousKind: Partial<Record<Direction, string>> = {};
 
 const WALKING_STORAGE_KEY = 'wtt_walking_enabled';
+
+// QA / debugging: visiting `?reset=walking` clears the walkingEnabled flag so
+// the opt-in row reappears on next load. The param is stripped from the URL
+// after reading so a normal refresh doesn't keep resetting.
+try {
+  const url = new URL(window.location.href);
+  if (url.searchParams.get('reset') === 'walking' && typeof localStorage !== 'undefined') {
+    localStorage.removeItem(WALKING_STORAGE_KEY);
+    url.searchParams.delete('reset');
+    window.history.replaceState({}, '', url.toString());
+  }
+} catch {
+  /* no-op: URL / localStorage may be unavailable in exotic environments */
+}
+
 let walkingEnabled = typeof localStorage !== 'undefined' && localStorage.getItem(WALKING_STORAGE_KEY) === '1';
 const celebrateSetAt: Partial<Record<Direction, number>> = {};
 
@@ -45,6 +60,14 @@ export function enableWalkingTime(): void {
     localStorage.setItem(WALKING_STORAGE_KEY, '1');
   }
   startLocation();
+}
+
+export function disableWalkingTime(): void {
+  walkingEnabled = false;
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem(WALKING_STORAGE_KEY);
+  }
+  stopLocation();
 }
 
 function computeWalkingLabel(): string | null {
@@ -132,7 +155,10 @@ function buildViewModel(): ViewModel {
 }
 
 function rerender(): void {
-  render(root, buildViewModel(), { onEnableWalkingTime: enableWalkingTime });
+  render(root, buildViewModel(), {
+    onEnableWalkingTime: enableWalkingTime,
+    onDisableWalkingTime: disableWalkingTime,
+  });
 }
 
 async function tick(): Promise<void> {
