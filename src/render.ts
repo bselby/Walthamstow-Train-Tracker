@@ -54,15 +54,18 @@ export function render(root: HTMLElement, vm: ViewModel): void {
     `;
     root.appendChild(empty);
   } else {
-    // Interleave: row-north, strip-north, row-south, strip-south
+    // Northbound: row, strip, ticker
     root.appendChild(renderDirection('→ Chingford', vm.north));
     const stripN = renderDirectionStrip(existingStripN, {
       direction: 'north',
       pos: vm.northPos,
       celebrate: vm.celebrate.north,
     });
-    root.appendChild(stripN); // appendChild moves the node if it was already in the tree
+    root.appendChild(stripN);
+    const tickerN = renderTicker(vm.northTicker);
+    if (tickerN) root.appendChild(tickerN);
 
+    // Southbound: row, strip, ticker
     root.appendChild(renderDirection('← Walthamstow Central', vm.south));
     const stripS = renderDirectionStrip(existingStripS, {
       direction: 'south',
@@ -70,6 +73,8 @@ export function render(root: HTMLElement, vm: ViewModel): void {
       celebrate: vm.celebrate.south,
     });
     root.appendChild(stripS);
+    const tickerS = renderTicker(vm.southTicker);
+    if (tickerS) root.appendChild(tickerS);
   }
 
   const footer = document.createElement('div');
@@ -78,6 +83,35 @@ export function render(root: HTMLElement, vm: ViewModel): void {
     ? 'connecting…'
     : formatAge(vm.freshness.ageMs);
   root.appendChild(footer);
+}
+
+function renderTicker(events: BridgeEvent[]): HTMLElement | null {
+  if (events.length === 0) return null;
+
+  const row = document.createElement('div');
+  row.className = 'ticker';
+
+  const prefix = document.createElement('span');
+  prefix.className = 'ticker-prefix';
+  prefix.textContent = 'Then';
+  row.appendChild(prefix);
+
+  events.forEach((ev, i) => {
+    if (i > 0) {
+      const sep = document.createElement('span');
+      sep.className = 'ticker-sep';
+      sep.textContent = '·';
+      row.appendChild(sep);
+    }
+    const val = document.createElement('span');
+    val.className = 'ticker-value';
+    const mins = Math.max(0, Math.floor(ev.bridgeTimeSeconds / 60));
+    // Only the LAST value gets the "min" suffix so the row doesn't shout "MIN · MIN · MIN".
+    val.textContent = i === events.length - 1 ? `${mins} min` : `${mins}`;
+    row.appendChild(val);
+  });
+
+  return row;
 }
 
 // Remember each direction's last-rendered value text so we can animate ONLY on change.

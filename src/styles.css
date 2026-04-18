@@ -371,3 +371,37 @@ html, body {
     animation: none;
   }
 }
+
+/* ───── Ticker rows ───── */
+
+.ticker {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding-top: 0.2rem;
+  font-family: 'Big Shoulders Text', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ticker-prefix {
+  color: var(--overground);
+  font-weight: 800;
+}
+
+.ticker-sep {
+  color: var(--overground);
+}
+
+/* Tighter vertical rhythm so strip → ticker reads as one unit */
+.strip + .ticker {
+  margin-top: -0.25rem;
+}
+.ticker + .row {
+  margin-top: clamp(0.75rem, 3vw, 1.75rem);
+}
