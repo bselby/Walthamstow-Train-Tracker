@@ -1,6 +1,7 @@
 import { STOPS } from './stops';
 import type { Direction } from './direction';
 import { currentTheme, type Theme } from './season';
+import { toot } from './toot';
 
 export interface DirectionStripModel {
   direction: Direction;
@@ -143,6 +144,15 @@ function createTrainElement(direction: Direction, theme: Theme): HTMLElement {
   inner.innerHTML = svg;
 
   el.appendChild(inner);
+
+  // Tap to toot — emits a synth honk and triggers the wobble animation.
+  el.addEventListener('click', () => {
+    toot();
+    el.classList.remove('tooting');
+    void el.offsetWidth; // force reflow so the animation restarts
+    el.classList.add('tooting');
+  });
+
   return el;
 }
 
