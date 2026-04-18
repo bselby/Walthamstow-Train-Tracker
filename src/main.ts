@@ -7,8 +7,10 @@ import { render, type ViewModel } from './render';
 import { formatCountdown } from './display';
 import { estimatePosition } from './trainPosition';
 import { currentTheme } from './season';
-import { WALTHAMSTOW_CENTRAL_STOPPOINT_ID, POLL_INTERVAL_MS } from './constants';
+import { WALTHAMSTOW_CENTRAL_STOPPOINT_ID, POLL_INTERVAL_MS, EAST_AVE_BRIDGE } from './constants';
 import type { Direction } from './direction';
+import { subscribe as subscribeLocation, start as startLocation, stop as stopLocation, getState as getLocationState } from './geolocation';
+import { walkingEstimate, formatWalkingLabel } from './walkingTime';
 
 // A small hello for anyone peeking at devtools. One console log, no overhead.
 console.log(
@@ -32,7 +34,28 @@ let snapshots: Partial<Record<Direction, DirectionSnapshots>> = {};
 let lastFetchMs: number | null = null;
 let lastError: string | undefined;
 const previousKind: Partial<Record<Direction, string>> = {};
+
+const WALKING_STORAGE_KEY = 'wtt_walking_enabled';
+let walkingEnabled = typeof localStorage !== 'undefined' && localStorage.getItem(WALKING_STORAGE_KEY) === '1';
 const celebrateSetAt: Partial<Record<Direction, number>> = {};
+
+export function enableWalkingTime(): void {
+  walkingEnabled = true;
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(WALKING_STORAGE_KEY, '1');
+  }
+  startLocation();
+}
+
+function computeWalkingLabel(): string | null {
+  if (!walkingEnabled) return null;
+  const { status, position } = getLocationState();
+  if (status === 'unavailable') return null;
+  if (status === 'denied') return 'Location unavailable';
+  if (status === 'locating' || position === null) return 'Locating…';
+  const est = walkingEstimate(position, EAST_AVE_BRIDGE);
+  return formatWalkingLabel(est);
+}
 
 /** Decrement snapshot[index]'s bridgeTimeSeconds by elapsed seconds since it was fetched. */
 function liveEvent(snap: DirectionSnapshots, index: number, nowMs: number): BridgeEvent | undefined {
@@ -103,13 +126,13 @@ function buildViewModel(): ViewModel {
     celebrate,
     northTicker: tickers.north,
     southTicker: tickers.south,
-    walkingLabel: null,            // wired up in Task 8
+    walkingLabel: computeWalkingLabel(),
     theme: currentTheme(new Date()),
   };
 }
 
 function rerender(): void {
-  render(root, buildViewModel());
+  render(root, buildViewModel(), { onEnableWalkingTime: enableWalkingTime });
 }
 
 async function tick(): Promise<void> {
@@ -128,6 +151,19 @@ async function tick(): Promise<void> {
   }
   rerender();
 }
+
+if (walkingEnabled) startLocation();
+
+// Re-render whenever the geolocation state changes so the walking label
+// reflects locating → granted → position transitions.
+subscribeLocation(() => rerender());
+
+// Pause location watching when the tab is hidden; restart when visible.
+document.addEventListener('visibilitychange', () => {
+  if (!walkingEnabled) return;
+  if (document.visibilityState === 'visible') startLocation();
+  else stopLocation();
+});
 
 setInterval(rerender, 1000);
 startPoller(tick, POLL_INTERVAL_MS);

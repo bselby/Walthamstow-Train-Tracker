@@ -18,7 +18,11 @@ export interface ViewModel {
   theme: Theme;
 }
 
-export function render(root: HTMLElement, vm: ViewModel): void {
+export interface RenderOptions {
+  onEnableWalkingTime: () => void;
+}
+
+export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions): void {
   // Preserve static header and strips across renders so the header stays put
   // and the strips keep their CSS transitions alive between state updates.
   // Everything else (rows, footer, error, empty) is rebuilt each tick.
@@ -36,6 +40,12 @@ export function render(root: HTMLElement, vm: ViewModel): void {
 
   // Always re-append the header first so it sits at the top of the flex column.
   if (existingHeader) root.appendChild(existingHeader);
+
+  // Walking-time row immediately below the header (only when we're showing rows,
+  // not in the error-only state — same treatment as the rows themselves).
+  if (vm.freshness.state !== 'no-data' || !vm.error) {
+    root.appendChild(renderWalkingTime(vm.walkingLabel, options.onEnableWalkingTime));
+  }
 
   if (vm.freshness.state === 'no-data' && vm.error) {
     const err = document.createElement('div');
@@ -117,6 +127,35 @@ function renderTicker(events: BridgeEvent[]): HTMLElement | null {
 // Remember each direction's last-rendered value text so we can animate ONLY on change.
 // Keyed by direction label so both north and south rows track independently.
 const previousValueText: Record<string, string> = {};
+
+const PIN_SVG = '<svg class="walking-icon" viewBox="0 0 10 13" aria-hidden="true"><path d="M5 0C2 0 0 2 0 5c0 3 5 8 5 8s5-5 5-8c0-3-2-5-5-5Zm0 6.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z" fill="currentColor"/></svg>';
+
+function renderWalkingTime(label: string | null, onEnable: () => void): HTMLElement {
+  const el = document.createElement('div');
+  el.className = 'walking-time';
+
+  if (label === null) {
+    el.classList.add('walking-time-enable');
+    el.innerHTML = `${PIN_SVG}<span>Enable walking time</span>`;
+    el.setAttribute('role', 'button');
+    el.setAttribute('tabindex', '0');
+    el.addEventListener('click', onEnable);
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        onEnable();
+      }
+    });
+  } else {
+    el.innerHTML = `${PIN_SVG}<span>${escapeHtml(label)}</span>`;
+  }
+
+  return el;
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]!));
+}
 
 function renderDirection(label: string, event: BridgeEvent | undefined): HTMLElement {
   const row = document.createElement('section');

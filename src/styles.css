@@ -425,3 +425,39 @@ html, body {
   35%  { transform: scale(1.14); }
   100% { transform: scale(1); }
 }
+
+/* ───── Walking time row ───── */
+
+.walking-time {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding-bottom: 0.25rem;
+  font-family: 'Big Shoulders Text', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.walking-time-enable {
+  color: var(--overground);
+  cursor: pointer;
+  user-select: none;
+}
+
+.walking-time-enable:focus-visible {
+  outline: 2px solid var(--overground);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.walking-icon {
+  width: 9px;
+  height: 12px;
+  flex-shrink: 0;
+  color: var(--overground);
+  display: block;
+}
