@@ -1,5 +1,6 @@
 import type { BridgeEvent } from './bridge';
 import type { FreshnessState } from './freshness';
+import type { Theme } from './season';
 import { formatCountdown, formatAge } from './display';
 import { renderDirectionStrip } from './strip';
 
@@ -11,6 +12,10 @@ export interface ViewModel {
   northPos: number | null;
   southPos: number | null;
   celebrate: { north: boolean; south: boolean };
+  northTicker: BridgeEvent[];   // entries 1..n (hero is north)
+  southTicker: BridgeEvent[];
+  walkingLabel: string | null;  // null = feature disabled / not yet available
+  theme: Theme;
 }
 
 export function render(root: HTMLElement, vm: ViewModel): void {
