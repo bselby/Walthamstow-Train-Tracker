@@ -24,14 +24,22 @@ function toEvent(arrival: Arrival): BridgeEvent {
   };
 }
 
-export function pickNextPerDirection(arrivals: Arrival[]): { north?: BridgeEvent; south?: BridgeEvent } {
+export function pickNextNPerDirection(
+  arrivals: Arrival[],
+  n: number
+): { north: BridgeEvent[]; south: BridgeEvent[] } {
   const events = arrivals
     .map(toEvent)
     .filter((e) => e.bridgeTimeSeconds >= JUST_CROSSED_WINDOW_SECONDS)
     .sort((a, b) => a.bridgeTimeSeconds - b.bridgeTimeSeconds);
 
   return {
-    north: events.find((e) => e.direction === 'north'),
-    south: events.find((e) => e.direction === 'south')
+    north: events.filter((e) => e.direction === 'north').slice(0, n),
+    south: events.filter((e) => e.direction === 'south').slice(0, n),
   };
+}
+
+export function pickNextPerDirection(arrivals: Arrival[]): { north?: BridgeEvent; south?: BridgeEvent } {
+  const nexts = pickNextNPerDirection(arrivals, 1);
+  return { north: nexts.north[0], south: nexts.south[0] };
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeBridgeTime, pickNextPerDirection } from '../src/bridge';
+import { computeBridgeTime, pickNextPerDirection, pickNextNPerDirection } from '../src/bridge';
 import type { Arrival } from '../src/tfl';
 
 function arrival(destinationName: string, timeToStation: number, id = 'x'): Arrival {
@@ -79,5 +79,47 @@ describe('pickNextPerDirection', () => {
 
     expect(result.north?.arrival.id).toBe('n1');
     expect(result.south).toBeUndefined();
+  });
+});
+
+describe('pickNextNPerDirection', () => {
+  it('returns up to n entries per direction, sorted ascending by bridge time', () => {
+    const arrivals = [
+      arrival('Chingford', 300, 'n1'),
+      arrival('Chingford', 60, 'n2'),
+      arrival('Chingford', 600, 'n3'),
+      arrival('Liverpool Street', 200, 's1'),
+      arrival('Liverpool Street', 500, 's2'),
+    ];
+    const result = pickNextNPerDirection(arrivals, 3);
+    expect(result.north.map((e) => e.arrival.id)).toEqual(['n2', 'n1', 'n3']);
+    expect(result.south.map((e) => e.arrival.id)).toEqual(['s1', 's2']);
+  });
+
+  it('caps at n even if more arrivals exist', () => {
+    const arrivals = [
+      arrival('Chingford', 60, 'n1'),
+      arrival('Chingford', 120, 'n2'),
+      arrival('Chingford', 180, 'n3'),
+      arrival('Chingford', 240, 'n4'),
+      arrival('Chingford', 300, 'n5'),
+    ];
+    expect(pickNextNPerDirection(arrivals, 3).north).toHaveLength(3);
+  });
+
+  it('returns empty arrays when direction has no arrivals', () => {
+    const arrivals = [arrival('Chingford', 120, 'n1')];
+    const result = pickNextNPerDirection(arrivals, 4);
+    expect(result.north).toHaveLength(1);
+    expect(result.south).toHaveLength(0);
+  });
+
+  it('respects the JUST_CROSSED_WINDOW filter', () => {
+    const arrivals = [
+      arrival('Liverpool Street', -100, 's-gone'),
+      arrival('Liverpool Street', 300, 's-ok'),
+    ];
+    const result = pickNextNPerDirection(arrivals, 3);
+    expect(result.south.map((e) => e.arrival.id)).toEqual(['s-ok']);
   });
 });
