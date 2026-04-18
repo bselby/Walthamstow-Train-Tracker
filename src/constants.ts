@@ -12,3 +12,10 @@ export const SOUTHBOUND_OFFSET_SECONDS = -20;
 export const POLL_INTERVAL_MS = 20_000;
 export const STALE_THRESHOLD_MS = 60_000;
 export const NO_TRAINS_WINDOW_SECONDS = 30 * 60; // 30 minutes
+
+// East Avenue bridge over the Weaver line, between Walthamstow Central and Wood Street.
+// Initial best-guess pin; adjust if the "AT THE BRIDGE" state fires in the wrong place.
+export const EAST_AVE_BRIDGE = {
+  lat: 51.58775,
+  lng: -0.01645,
+} as const;
