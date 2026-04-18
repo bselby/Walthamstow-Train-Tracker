@@ -51,7 +51,10 @@ export function start(): void {
         err.code === err.PERMISSION_DENIED ? 'denied' : 'locating';
       emit({ status, position: currentState.position });
     },
-    { enableHighAccuracy: false, maximumAge: 20_000, timeout: 15_000 }
+    // enableHighAccuracy: true forces GPS-grade updates so the label actually
+    // moves as the user walks. Without this the browser returns a coarse WiFi /
+    // cell-tower fix that doesn't update over short walking distances.
+    { enableHighAccuracy: true, maximumAge: 5_000, timeout: 20_000 }
   );
 }
 
