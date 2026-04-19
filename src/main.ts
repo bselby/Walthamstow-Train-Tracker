@@ -37,36 +37,60 @@ const previousKind: Partial<Record<Direction, string>> = {};
 
 const WALKING_STORAGE_KEY = 'wtt_walking_enabled';
 
+// Safe wrappers around localStorage. In Safari private browsing `localStorage`
+// exists but `setItem` / `removeItem` throw; in other hardened browsers either
+// op can fail. The feature works for the session even if persistence fails —
+// the user just has to re-enable on next load.
+function safeLocalRead(key: string): string | null {
+  try {
+    return typeof localStorage !== 'undefined' ? localStorage.getItem(key) : null;
+  } catch {
+    return null;
+  }
+}
+
+function safeLocalWrite(key: string, value: string): void {
+  try {
+    if (typeof localStorage !== 'undefined') localStorage.setItem(key, value);
+  } catch {
+    /* storage full / private mode / blocked — swallow, feature still works in-session */
+  }
+}
+
+function safeLocalRemove(key: string): void {
+  try {
+    if (typeof localStorage !== 'undefined') localStorage.removeItem(key);
+  } catch {
+    /* same as above */
+  }
+}
+
 // QA / debugging: visiting `?reset=walking` clears the walkingEnabled flag so
 // the opt-in row reappears on next load. The param is stripped from the URL
 // after reading so a normal refresh doesn't keep resetting.
 try {
   const url = new URL(window.location.href);
-  if (url.searchParams.get('reset') === 'walking' && typeof localStorage !== 'undefined') {
-    localStorage.removeItem(WALKING_STORAGE_KEY);
+  if (url.searchParams.get('reset') === 'walking') {
+    safeLocalRemove(WALKING_STORAGE_KEY);
     url.searchParams.delete('reset');
     window.history.replaceState({}, '', url.toString());
   }
 } catch {
-  /* no-op: URL / localStorage may be unavailable in exotic environments */
+  /* no-op: URL / history API may be unavailable in exotic environments */
 }
 
-let walkingEnabled = typeof localStorage !== 'undefined' && localStorage.getItem(WALKING_STORAGE_KEY) === '1';
+let walkingEnabled = safeLocalRead(WALKING_STORAGE_KEY) === '1';
 const celebrateSetAt: Partial<Record<Direction, number>> = {};
 
 export function enableWalkingTime(): void {
   walkingEnabled = true;
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem(WALKING_STORAGE_KEY, '1');
-  }
+  safeLocalWrite(WALKING_STORAGE_KEY, '1');
   startLocation();
 }
 
 export function disableWalkingTime(): void {
   walkingEnabled = false;
-  if (typeof localStorage !== 'undefined') {
-    localStorage.removeItem(WALKING_STORAGE_KEY);
-  }
+  safeLocalRemove(WALKING_STORAGE_KEY);
   stopLocation();
 }
 

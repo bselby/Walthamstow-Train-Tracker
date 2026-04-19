@@ -271,10 +271,21 @@ html, body {
   width: 52px;
   height: 22px;
   color: var(--overground);
-  pointer-events: none;
+  /* pointer-events:auto explicitly — the train is the ONLY interactive element
+     on the strip (tap to toot). Was briefly set to `none` which silently broke
+     the click handler. */
+  pointer-events: auto;
   z-index: 3;
   transition: left 1.5s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
+}
+
+/* Route SVG-child pointer events to the listener on .strip-train itself.
+   Without this, taps landing on empty SVG space inside the train bounding box
+   might get swallowed by non-interactive children in some browsers. */
+.strip-train > .strip-train-inner,
+.strip-train svg {
+  pointer-events: none;
 }
 
 .strip-train.hidden {
