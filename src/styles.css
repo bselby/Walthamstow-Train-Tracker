@@ -602,3 +602,22 @@ html, body {
     transition: none;
   }
 }
+
+/* ───── Arrow emphasis (last-minute countdown) ───── */
+
+.row-imminent .label::first-letter {
+  display: inline-block;
+  animation: arrow-pulse 1s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes arrow-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.18); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row-imminent .label::first-letter {
+    animation: none;
+  }
+}

@@ -273,6 +273,12 @@ function renderDirection(
     const countdown = formatCountdown(event.bridgeTimeSeconds);
     valueEl.classList.add(countdown.kind);
     currentText = countdown.text;
+    // Cue the eye to the arrow in the last 11–59 s before NOW, when the user
+    // is actively waiting. The .now state has its own celebration, so we stop
+    // the pulse once the countdown transitions.
+    if (countdown.kind === 'seconds') {
+      row.classList.add('row-imminent');
+    }
   }
   valueEl.textContent = currentText;
 
