@@ -16,6 +16,12 @@ export interface ViewModel {
   southTicker: BridgeEvent[];
   walkingLabel: string | null;  // null = feature disabled / not yet available
   theme: Theme;
+  // New this round — confidence for each direction (1.0 = fully trusted) and the
+  // currently-displayed fact line. Fact is always a string; ring is hidden when
+  // confidence is >= 0.7 so the default of 1.0 keeps the ring invisible.
+  northConfidence: number;
+  southConfidence: number;
+  fact: string;
 }
 
 export interface RenderOptions {

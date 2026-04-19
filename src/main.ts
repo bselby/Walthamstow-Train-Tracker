@@ -11,6 +11,8 @@ import { WALTHAMSTOW_CENTRAL_STOPPOINT_ID, POLL_INTERVAL_MS, EAST_AVE_BRIDGE } f
 import type { Direction } from './direction';
 import { subscribe as subscribeLocation, start as startLocation, stop as stopLocation, getState as getLocationState } from './geolocation';
 import { walkingEstimate, formatWalkingLabel } from './walkingTime';
+import { computeConfidence, type PredictionSample } from './confidence';
+import { factAt } from './facts';
 
 // A small hello for anyone peeking at devtools. One console log, no overhead.
 console.log(
@@ -81,6 +83,43 @@ try {
 
 let walkingEnabled = safeLocalRead(WALKING_STORAGE_KEY) === '1';
 const celebrateSetAt: Partial<Record<Direction, number>> = {};
+
+// Per-direction ring buffer of the last N prediction samples for the hero train.
+// Used by confidence.computeStability to detect when TfL is reshuffling the schedule.
+const PREDICTION_SAMPLES_KEEP = 3;
+const predictionSamples: Record<Direction, PredictionSample[]> = { north: [], south: [] };
+
+function recordPredictionSample(dir: Direction, ev: BridgeEvent, fetchedAtMs: number): void {
+  const sample: PredictionSample = {
+    vehicleId: ev.arrival.id,
+    timeToStation: ev.arrival.timeToStation,
+    fetchedAtMs,
+  };
+  const buf = predictionSamples[dir];
+  // If the hero's vehicle changed (the previous train left and a new one was
+  // promoted), the history is irrelevant — reset the buffer so we cold-start
+  // stability back at 1.0.
+  if (buf.length > 0 && buf[buf.length - 1].vehicleId !== sample.vehicleId) {
+    buf.length = 0;
+  }
+  buf.push(sample);
+  while (buf.length > PREDICTION_SAMPLES_KEEP) buf.shift();
+}
+
+// Facts rotation — persist a monotonically-increasing index in localStorage so the
+// user doesn't always see the same fact first on each app open. Advance once per
+// successful TfL poll.
+const FACT_STORAGE_KEY = 'wtt_fact_index';
+let factIndex = (() => {
+  const raw = safeLocalRead(FACT_STORAGE_KEY);
+  const parsed = raw === null ? 0 : parseInt(raw, 10);
+  return Number.isFinite(parsed) ? parsed : 0;
+})();
+
+function advanceFact(): void {
+  factIndex += 1;
+  safeLocalWrite(FACT_STORAGE_KEY, String(factIndex));
+}
 
 export function enableWalkingTime(): void {
   walkingEnabled = true;
@@ -167,6 +206,8 @@ function buildViewModel(): ViewModel {
     }
   }
 
+  const ageMs = lastFetchMs === null ? 0 : now - lastFetchMs;
+
   return {
     north: heroes.north,
     south: heroes.south,
@@ -179,6 +220,9 @@ function buildViewModel(): ViewModel {
     southTicker: tickers.south,
     walkingLabel: computeWalkingLabel(),
     theme: currentTheme(new Date()),
+    northConfidence: heroes.north ? computeConfidence(ageMs, predictionSamples.north) : 1,
+    southConfidence: heroes.south ? computeConfidence(ageMs, predictionSamples.south) : 1,
+    fact: factAt(factIndex),
   };
 }
 
@@ -194,12 +238,17 @@ async function tick(): Promise<void> {
     const arrivals = await fetchArrivals(WALTHAMSTOW_CENTRAL_STOPPOINT_ID);
     const picked = pickNextNPerDirection(arrivals, TICKER_SIZE);
     const now = Date.now();
+    // Record samples BEFORE reassigning snapshots so the buffer sees the hero
+    // we're actually about to display.
+    if (picked.north[0]) recordPredictionSample('north', picked.north[0], now);
+    if (picked.south[0]) recordPredictionSample('south', picked.south[0], now);
     snapshots = {
       north: picked.north.length > 0 ? { events: picked.north, snapshottedAtMs: now } : undefined,
       south: picked.south.length > 0 ? { events: picked.south, snapshottedAtMs: now } : undefined,
     };
     lastFetchMs = now;
     lastError = undefined;
+    advanceFact();
   } catch (err) {
     lastError = err instanceof Error ? err.message : 'Network error — check connection';
   }
