@@ -101,6 +101,11 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
     : formatAge(vm.freshness.ageMs);
   root.appendChild(footer);
 
+  // Quiet rotating line of verified Weaver-line trivia, below the "updated Xs ago"
+  // footer and above the About/Privacy/Terms links. Never competes with the data.
+  const factLine = renderFactLine(vm.fact);
+  if (factLine) root.appendChild(factLine);
+
   const docs = document.createElement('nav');
   docs.className = 'doc-links';
   docs.setAttribute('aria-label', 'Site information');
@@ -140,6 +145,21 @@ function renderTicker(events: BridgeEvent[]): HTMLElement | null {
   });
 
   return row;
+}
+
+// Memo of the last-rendered fact so we can animate a fade only on change.
+let previousFactText: string | null = null;
+
+function renderFactLine(fact: string): HTMLElement | null {
+  if (!fact) return null;
+  const el = document.createElement('div');
+  el.className = 'fact-line';
+  el.textContent = fact;
+  if (previousFactText !== fact) {
+    el.classList.add('fact-enter');
+  }
+  previousFactText = fact;
+  return el;
 }
 
 // Remember each direction's last-rendered value text so we can animate ONLY on change.
