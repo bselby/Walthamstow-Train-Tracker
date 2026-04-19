@@ -72,7 +72,7 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
     root.appendChild(empty);
   } else {
     // Northbound: row, strip, ticker
-    root.appendChild(renderDirection('→ Chingford', vm.north, 'Next train to Chingford'));
+    root.appendChild(renderDirection('→ Chingford', vm.north, 'Next train to Chingford', vm.northConfidence));
     const stripN = renderDirectionStrip(existingStripN, {
       direction: 'north',
       pos: vm.northPos,
@@ -83,7 +83,7 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
     if (tickerN) root.appendChild(tickerN);
 
     // Southbound: row, strip, ticker
-    root.appendChild(renderDirection('← Walthamstow Central', vm.south, 'Next train to Walthamstow Central'));
+    root.appendChild(renderDirection('← Walthamstow Central', vm.south, 'Next train to Walthamstow Central', vm.southConfidence));
     const stripS = renderDirectionStrip(existingStripS, {
       direction: 'south',
       pos: vm.southPos,
@@ -189,21 +189,58 @@ function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]!));
 }
 
+const CONFIDENCE_RING_VISIBLE_THRESHOLD = 0.7;
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function buildConfidenceRing(confidence: number): SVGElement {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('class', 'value-ring');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('viewBox', '0 0 100 100');
+  svg.setAttribute('preserveAspectRatio', 'none');
+
+  const rect = document.createElementNS(SVG_NS, 'rect');
+  rect.setAttribute('x', '2');
+  rect.setAttribute('y', '2');
+  rect.setAttribute('width', '96');
+  rect.setAttribute('height', '96');
+  rect.setAttribute('rx', '14');
+  rect.setAttribute('ry', '14');
+  rect.setAttribute('fill', 'none');
+  rect.setAttribute('stroke', 'currentColor');
+  rect.setAttribute('stroke-width', '2.5');
+  rect.setAttribute('stroke-linecap', 'round');
+  rect.setAttribute('pathLength', '100');
+
+  // The ring is invisible at full confidence. Below the visible threshold the
+  // arc length grows proportionally with lost confidence.
+  const visible = confidence < CONFIDENCE_RING_VISIBLE_THRESHOLD;
+  const arcFrac = visible ? Math.min(100, (1 - confidence) * 100) : 0;
+  rect.setAttribute('stroke-dasharray', `${arcFrac} 100`);
+
+  svg.appendChild(rect);
+  return svg;
+}
+
 function renderDirection(
   label: string,
   event: BridgeEvent | undefined,
-  ariaLabel: string
+  ariaLabel: string,
+  confidence: number
 ): HTMLElement {
   const row = document.createElement('section');
   row.className = 'row';
-  // A <section> needs an accessible name to be a valid landmark. Without it some
-  // screen readers announce "Unnamed Section" per direction.
   row.setAttribute('aria-label', ariaLabel);
 
   const labelEl = document.createElement('div');
   labelEl.className = 'label';
   labelEl.textContent = label;
   row.appendChild(labelEl);
+
+  // Wrap the value in a positioning context so the confidence ring can overlay it.
+  const wrap = document.createElement('div');
+  wrap.className = 'value-wrap';
+  wrap.appendChild(buildConfidenceRing(confidence));
 
   const valueEl = document.createElement('div');
   valueEl.className = 'value';
@@ -224,6 +261,7 @@ function renderDirection(
   }
   previousValueText[label] = currentText;
 
-  row.appendChild(valueEl);
+  wrap.appendChild(valueEl);
+  row.appendChild(wrap);
   return row;
 }

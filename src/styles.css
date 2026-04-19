@@ -541,3 +541,31 @@ html, body {
   color: var(--overground);
   opacity: 0.6;
 }
+
+/* ───── Confidence ring (only visible when confidence < 0.7) ───── */
+
+.value-wrap {
+  position: relative;
+  display: inline-block;
+  padding: 4px 8px;
+}
+
+.value-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  color: var(--warn);
+  opacity: 0.9;
+}
+
+.value-ring rect {
+  transition: stroke-dasharray 400ms ease, opacity 400ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .value-ring rect {
+    transition: none;
+  }
+}
