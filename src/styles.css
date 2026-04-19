@@ -602,36 +602,3 @@ html, body {
     transition: none;
   }
 }
-
-/* ───── Rotating fact line ───── */
-
-.fact-line {
-  font-family: 'Big Shoulders Text', sans-serif;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--dim);
-  text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  opacity: 0.6;
-  padding-top: 0.25rem;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fact-line.fact-enter {
-  animation: fact-fade 420ms ease;
-}
-
-@keyframes fact-fade {
-  from { opacity: 0; transform: translateY(2px); }
-  to   { opacity: 0.6; transform: translateY(0); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fact-line.fact-enter {
-    animation: none;
-  }
-}
