@@ -494,3 +494,39 @@ html, body {
   color: var(--dim);
   opacity: 0.7;
 }
+
+/* ───── Footer doc links (About · Privacy · Terms) ───── */
+
+.doc-links {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0.5em;
+  padding-top: 0.4rem;
+  font-family: 'Big Shoulders Text', sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--dim);
+  opacity: 0.65;
+}
+
+.doc-links a {
+  color: inherit;
+  text-decoration: none;
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
+.doc-links a:hover,
+.doc-links a:focus-visible {
+  color: var(--overground);
+  outline: none;
+  opacity: 1;
+}
+
+.doc-links span {
+  color: var(--overground);
+  opacity: 0.6;
+}

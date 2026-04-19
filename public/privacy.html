@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#f6efdf" />
+    <title>Privacy · Walthamstow Train Tracker</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@900&family=Big+Shoulders+Text:wght@500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/docs.css" />
+  </head>
+  <body>
+    <main>
+      <a class="back" href="/">Back to trains</a>
+      <h1>Privacy</h1>
+      <p>
+        There is <strong>no server</strong>. This app is a handful of static
+        files served from a CDN. Nothing you do in the app is sent to me, and
+        I don't run analytics, advertising, or tracking of any kind.
+      </p>
+
+      <h2>What's stored on your device</h2>
+      <ul>
+        <li>
+          A single <code>localStorage</code> flag
+          (<code>wtt_walking_enabled</code>) that remembers whether you've
+          turned the walking-time feature on. That's it. No other storage.
+        </li>
+        <li>
+          The PWA's service worker caches the app shell (HTML, CSS, JS, icons)
+          so the app works offline. None of this is shared with me.
+        </li>
+      </ul>
+
+      <h2>Geolocation</h2>
+      <p>
+        If you opt into the walking-time feature, your browser hands your
+        latitude/longitude to this app's JavaScript code. Those coordinates
+        are used client-side only — to compute distance to the East Avenue
+        bridge — and are <strong>never transmitted anywhere</strong>. They
+        are not stored, logged, or sent.
+      </p>
+      <p>
+        You can turn the feature off at any time using the small
+        <strong>off</strong> link next to the walking label, which stops the
+        location watch and removes the localStorage flag.
+      </p>
+
+      <h2>Third parties your browser talks to</h2>
+      <p>
+        Because the app runs entirely in your browser, a few network requests
+        go to third parties. I don't see any of these, but they may log your
+        IP and user agent on their own servers:
+      </p>
+      <ul>
+        <li>
+          <strong>TfL Unified API</strong> (<code>api.tfl.gov.uk</code>) — for
+          live train arrivals. TfL's own
+          <a href="https://tfl.gov.uk/corporate/privacy-and-cookies" target="_blank" rel="noopener">privacy policy</a>
+          covers what they do with their logs.
+        </li>
+        <li>
+          <strong>Google Fonts</strong> (<code>fonts.googleapis.com</code> and
+          <code>fonts.gstatic.com</code>) — to load the Big Shoulders
+          typeface.
+        </li>
+        <li>
+          <strong>Netlify</strong> — the CDN that serves this site. Netlify
+          logs requests as part of hosting the site.
+        </li>
+      </ul>
+
+      <h2>What I don't do</h2>
+      <ul>
+        <li>No analytics, tracking pixels, or fingerprinting.</li>
+        <li>No advertising and no ad-network code.</li>
+        <li>No account, login, or sign-up.</li>
+        <li>No cookies set by this site itself.</li>
+      </ul>
+
+      <h2>Contact</h2>
+      <p>
+        Questions or corrections? Open an issue at
+        <a href="https://github.com/bselby/Walthamstow-Train-Tracker/issues" target="_blank" rel="noopener">github.com/bselby/Walthamstow-Train-Tracker/issues</a>.
+      </p>
+
+      <p class="meta">Last updated 19 April 2026</p>
+    </main>
+  </body>
+</html>

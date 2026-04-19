@@ -1,0 +1,133 @@
+/* Shared styles for the static policy pages (about, privacy, terms).
+   Matches the main app's cream + navy + Overground-orange palette so the
+   typography and feel is consistent when users click through from the footer. */
+
+:root {
+  color-scheme: light;
+  --bg:          oklch(97% 0.012 85);
+  --ink:         oklch(28% 0.12 265);
+  --dim:         oklch(50% 0.02 85);
+  --overground:  oklch(70% 0.175 55);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Big Shoulders Text', 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 500;
+  line-height: 1.55;
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+  font-kerning: normal;
+}
+
+main {
+  max-width: 620px;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 5vw, 3rem) clamp(1rem, 5vw, 2rem) clamp(3rem, 7vw, 5rem);
+}
+
+h1 {
+  font-family: 'Big Shoulders Display', 'Helvetica Neue', Impact, sans-serif;
+  font-weight: 900;
+  font-size: clamp(2.5rem, 9vw, 4rem);
+  line-height: 1;
+  margin: 0 0 1.5rem;
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-family: 'Big Shoulders Display', 'Helvetica Neue', Impact, sans-serif;
+  font-weight: 900;
+  font-size: clamp(1.25rem, 4vw, 1.5rem);
+  line-height: 1.1;
+  margin: 2.25rem 0 0.5rem;
+  letter-spacing: -0.005em;
+}
+
+p {
+  margin: 0 0 1rem;
+  max-width: 58ch;
+}
+
+ul {
+  padding-left: 1.2rem;
+  margin: 0 0 1rem;
+}
+
+li {
+  margin: 0.4rem 0;
+  max-width: 58ch;
+}
+
+strong {
+  color: var(--overground);
+  font-weight: 700;
+}
+
+em {
+  color: var(--ink);
+  font-style: italic;
+}
+
+code {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 0.9em;
+  background: color-mix(in oklch, var(--overground) 12%, var(--bg));
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+a {
+  color: var(--overground);
+  text-decoration: none;
+  border-bottom: 2px solid var(--overground);
+  padding-bottom: 1px;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+
+a:hover,
+a:focus-visible {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+  outline: none;
+}
+
+.back {
+  display: inline-block;
+  font-family: 'Big Shoulders Text', sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.8rem;
+  color: var(--dim);
+  border: none;
+  padding: 0;
+  margin-bottom: 2rem;
+}
+
+.back::before {
+  content: '← ';
+  color: var(--overground);
+}
+
+.back:hover,
+.back:focus-visible {
+  color: var(--overground);
+}
+
+.meta {
+  color: var(--dim);
+  font-family: 'Big Shoulders Text', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid color-mix(in oklch, var(--dim) 30%, transparent);
+}

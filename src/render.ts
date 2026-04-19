@@ -94,6 +94,17 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
     ? 'connecting…'
     : formatAge(vm.freshness.ageMs);
   root.appendChild(footer);
+
+  const docs = document.createElement('nav');
+  docs.className = 'doc-links';
+  docs.setAttribute('aria-label', 'Site information');
+  docs.innerHTML =
+    '<a href="/about.html">About</a>' +
+    '<span aria-hidden="true">·</span>' +
+    '<a href="/privacy.html">Privacy</a>' +
+    '<span aria-hidden="true">·</span>' +
+    '<a href="/terms.html">Terms</a>';
+  root.appendChild(docs);
 }
 
 function renderTicker(events: BridgeEvent[]): HTMLElement | null {
