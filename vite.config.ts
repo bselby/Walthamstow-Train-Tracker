@@ -12,7 +12,9 @@ export default defineConfig({
         description: 'Live Weaver-line arrivals over the East Avenue bridge',
         theme_color: '#f6efdf',
         background_color: '#f6efdf',
-        display: 'fullscreen',
+        // standalone (not fullscreen) so Android keeps the status bar visible
+        // — the parent still needs their clock, battery, and signal while walking.
+        display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
         icons: [
@@ -29,6 +31,23 @@ export default defineConfig({
           {
             urlPattern: ({ url }) => url.origin === 'https://api.tfl.gov.uk',
             handler: 'NetworkOnly'
+          },
+          {
+            // Google Fonts CSS — occasionally re-fetched so updated font revisions flow through.
+            urlPattern: ({ url }) => url.origin === 'https://fonts.googleapis.com',
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'google-fonts-stylesheets' }
+          },
+          {
+            // Actual font files — content-hashed by Google, safe to cache for a year.
+            // Without this the app falls back to Impact/Arial offline, which breaks the look.
+            urlPattern: ({ url }) => url.origin === 'https://fonts.gstatic.com',
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-webfonts',
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] }
+            }
           }
         ]
       }

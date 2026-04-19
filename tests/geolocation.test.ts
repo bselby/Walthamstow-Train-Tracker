@@ -97,6 +97,48 @@ describe('geolocation module', () => {
     expect(states.at(-1)!.status).toBe('denied');
   });
 
+  it('emits no-signal (not locating) when the GPS times out or position is unavailable', async () => {
+    const { calls } = mockGeolocation();
+    const mod = await import('../src/geolocation');
+    const states: Array<{ status: string }> = [];
+    mod.subscribe((s) => states.push(s));
+
+    mod.start();
+    const error = calls[0].error;
+    error({
+      code: 3, // TIMEOUT
+      message: 'timeout',
+      PERMISSION_DENIED: 1,
+      POSITION_UNAVAILABLE: 2,
+      TIMEOUT: 3,
+    } as GeolocationPositionError);
+
+    expect(states.at(-1)!.status).toBe('no-signal');
+  });
+
+  it('stop() emits idle but preserves the last known position so the UI can keep showing the estimate during hide/restart', async () => {
+    const { calls } = mockGeolocation();
+    const mod = await import('../src/geolocation');
+    const states: Array<{ status: string; position: unknown }> = [];
+    mod.subscribe((s) => states.push(s));
+
+    mod.start();
+    calls[0].success({
+      coords: {
+        latitude: 51.5, longitude: -0.1, accuracy: 10,
+        altitude: null, altitudeAccuracy: null, heading: null, speed: null,
+        toJSON: () => ({}),
+      },
+      timestamp: Date.now(),
+      toJSON: () => ({}),
+    } as GeolocationPosition);
+    mod.stop();
+
+    const last = states.at(-1)!;
+    expect(last.status).toBe('idle');
+    expect(last.position).toEqual({ lat: 51.5, lng: -0.1 });
+  });
+
   it('updates state on subsequent position callbacks (proves the watch keeps firing)', async () => {
     const { calls } = mockGeolocation();
     const mod = await import('../src/geolocation');

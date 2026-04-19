@@ -1,6 +1,12 @@
 import type { LatLng } from './walkingTime';
 
-export type GeolocationStatus = 'idle' | 'locating' | 'granted' | 'denied' | 'unavailable';
+export type GeolocationStatus =
+  | 'idle'          // feature not started
+  | 'locating'      // waiting for first fix
+  | 'granted'       // we have a position
+  | 'denied'        // user refused permission
+  | 'unavailable'   // browser has no Geolocation API at all
+  | 'no-signal';    // permission granted but GPS can't get a fix right now
 
 export interface GeolocationState {
   status: GeolocationStatus;
@@ -47,8 +53,12 @@ export function start(): void {
       });
     },
     (err) => {
-      const status: GeolocationStatus =
-        err.code === err.PERMISSION_DENIED ? 'denied' : 'locating';
+      // Distinguish permission refusal from "can't get a fix right now" so the
+      // UI can say something specific. Without this, timeouts silently looked
+      // like the app was still locating forever.
+      let status: GeolocationStatus;
+      if (err.code === err.PERMISSION_DENIED) status = 'denied';
+      else status = 'no-signal'; // POSITION_UNAVAILABLE or TIMEOUT
       emit({ status, position: currentState.position });
     },
     // enableHighAccuracy: true forces GPS-grade updates so the label actually
@@ -58,10 +68,14 @@ export function start(): void {
   );
 }
 
-/** Stop watching. Safe to call multiple times. */
+/** Stop watching. Safe to call multiple times. Emits 'idle' but keeps the last
+ *  known position so the UI can keep showing a (slightly stale) walking estimate
+ *  during a hide/restart cycle — GPS reacquire after `start()` can take
+ *  5-20 s with high accuracy, and "Locating…" during that gap would be a regression. */
 export function stop(): void {
   if (watchId !== null && 'geolocation' in navigator) {
     navigator.geolocation.clearWatch(watchId);
   }
   watchId = null;
+  emit({ status: 'idle', position: currentState.position });
 }

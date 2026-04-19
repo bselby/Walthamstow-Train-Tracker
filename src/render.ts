@@ -66,7 +66,7 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
     root.appendChild(empty);
   } else {
     // Northbound: row, strip, ticker
-    root.appendChild(renderDirection('→ Chingford', vm.north));
+    root.appendChild(renderDirection('→ Chingford', vm.north, 'Next train to Chingford'));
     const stripN = renderDirectionStrip(existingStripN, {
       direction: 'north',
       pos: vm.northPos,
@@ -77,7 +77,7 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
     if (tickerN) root.appendChild(tickerN);
 
     // Southbound: row, strip, ticker
-    root.appendChild(renderDirection('← Walthamstow Central', vm.south));
+    root.appendChild(renderDirection('← Walthamstow Central', vm.south, 'Next train to Walthamstow Central'));
     const stripS = renderDirectionStrip(existingStripS, {
       direction: 'south',
       pos: vm.southPos,
@@ -183,9 +183,16 @@ function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]!));
 }
 
-function renderDirection(label: string, event: BridgeEvent | undefined): HTMLElement {
+function renderDirection(
+  label: string,
+  event: BridgeEvent | undefined,
+  ariaLabel: string
+): HTMLElement {
   const row = document.createElement('section');
   row.className = 'row';
+  // A <section> needs an accessible name to be a valid landmark. Without it some
+  // screen readers announce "Unnamed Section" per direction.
+  row.setAttribute('aria-label', ariaLabel);
 
   const labelEl = document.createElement('div');
   labelEl.className = 'label';

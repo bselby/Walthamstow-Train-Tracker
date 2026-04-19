@@ -55,12 +55,28 @@ describe('estimatePosition', () => {
     });
   });
 
-  describe('northbound post-WC (train continuing past Walthamstow Central)', () => {
-    it('tts=-60 → position 5.5 (halfway between WC and Wds, approaching bridge)', () => {
-      expect(estimatePosition(-60, 'north')).toBe(5.5);
+  describe('northbound post-WC with dwell model (train parks at WC, then travels to bridge, then to Wds)', () => {
+    it('tts=-10 → position 5 (still dwelling at WC, within 30s dwell)', () => {
+      expect(estimatePosition(-10, 'north')).toBe(5);
     });
 
-    it('tts=-120 → position 6 (at Wood Street, end of post-WC model)', () => {
+    it('tts=-30 → position 5 (end of dwell, about to depart WC)', () => {
+      expect(estimatePosition(-30, 'north')).toBe(5);
+    });
+
+    it('tts=-60 → position 5.25 (30s into the 60s WC→bridge travel)', () => {
+      expect(estimatePosition(-60, 'north')).toBe(5.25);
+    });
+
+    it('tts=-90 → position 5.5 (at the bridge — bridgeTime=0, NOW celebration moment)', () => {
+      expect(estimatePosition(-90, 'north')).toBe(5.5);
+    });
+
+    it('tts=-105 → position 5.75 (halfway from bridge to Wds)', () => {
+      expect(estimatePosition(-105, 'north')).toBe(5.75);
+    });
+
+    it('tts=-120 → position 6 (at Wood Street, end of tracking window)', () => {
       expect(estimatePosition(-120, 'north')).toBe(6);
     });
 

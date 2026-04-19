@@ -11,14 +11,11 @@ export const SOUTHBOUND_OFFSET_SECONDS = -20;
 
 export const POLL_INTERVAL_MS = 20_000;
 export const STALE_THRESHOLD_MS = 60_000;
-export const NO_TRAINS_WINDOW_SECONDS = 30 * 60; // 30 minutes
 
 // East Avenue bridge over the Weaver line, between Walthamstow Central and Wood Street.
-// Authoritative pin from OpenStreetMap: way tagged bridge=yes, name=East Avenue,
-// midpoint of the bridge deck. Confirmed by Overpass query against the Walthamstow
-// bounding box — this is THE railway bridge carrying East Avenue over the Chingford
-// branch of the Weaver line.
+// Pin confirmed by the user from Google Maps (the bridge deck they walk across),
+// accurate to ~5 m. Previous OSM-midpoint was about 20 m off.
 export const EAST_AVE_BRIDGE = {
-  lat: 51.58367,
-  lng: -0.01470,
+  lat: 51.583486,
+  lng: -0.014564,
 } as const;

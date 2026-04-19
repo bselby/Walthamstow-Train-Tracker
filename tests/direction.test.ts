@@ -35,4 +35,19 @@ describe('classifyDirection', () => {
   it('classifies empty destination as south (safe default — show it and let the user see)', () => {
     expect(classifyDirection(arrival(''))).toBe('south');
   });
+
+  describe('TfL direction field takes priority over destinationName parsing', () => {
+    it('outbound → north even when destination is an engineering-works shuttle (e.g. Wood Street)', () => {
+      expect(classifyDirection({ ...arrival('Wood Street Rail Station'), direction: 'outbound' })).toBe('north');
+    });
+
+    it('inbound → south even with a Chingford destination (TfL is authoritative)', () => {
+      // Unlikely pairing, but confirms the priority order.
+      expect(classifyDirection({ ...arrival('Chingford Rail Station'), direction: 'inbound' })).toBe('south');
+    });
+
+    it('falls back to destination parsing when direction is missing', () => {
+      expect(classifyDirection({ ...arrival('Chingford Rail Station'), direction: undefined })).toBe('north');
+    });
+  });
 });

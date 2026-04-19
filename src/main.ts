@@ -97,9 +97,13 @@ export function disableWalkingTime(): void {
 function computeWalkingLabel(): string | null {
   if (!walkingEnabled) return null;
   const { status, position } = getLocationState();
-  if (status === 'unavailable') return null;
-  if (status === 'denied') return 'Location unavailable';
-  if (status === 'locating' || position === null) return 'Locating…';
+  if (status === 'unavailable') return null;                 // API missing — hide feature
+  if (status === 'denied') return 'Location unavailable';    // user refused
+  if (status === 'no-signal') return 'No GPS signal';        // granted but can't lock
+  // If we have a position from a previous fix we can keep showing the estimate
+  // even while the watch is paused (tab-hidden → visible, or between reacquires).
+  // Only fall back to "Locating…" when we truly have nothing yet.
+  if (position === null) return 'Locating…';
   const est = walkingEstimate(position, EAST_AVE_BRIDGE);
   return formatWalkingLabel(est);
 }
@@ -144,7 +148,7 @@ function buildViewModel(): ViewModel {
   for (const dir of DIRECTIONS) {
     const ev = heroes[dir];
     if (!ev) {
-      previousKind[dir] = undefined;
+      delete previousKind[dir];
       continue;
     }
     const currentKind = formatCountdown(ev.bridgeTimeSeconds).kind;
@@ -208,12 +212,31 @@ if (walkingEnabled) startLocation();
 // reflects locating → granted → position transitions.
 subscribeLocation(() => rerender());
 
-// Pause location watching when the tab is hidden; restart when visible.
+// Visibility-aware rerender loop — pause when hidden so we don't run the 1s
+// tick in background (browser throttles it anyway, but this makes intent
+// explicit and frees a timer slot). Also pauses location watching.
+let renderIntervalId: ReturnType<typeof setInterval> | null = null;
+function startRenderLoop(): void {
+  if (renderIntervalId !== null) return;
+  rerender();
+  renderIntervalId = setInterval(rerender, 1000);
+}
+function stopRenderLoop(): void {
+  if (renderIntervalId !== null) {
+    clearInterval(renderIntervalId);
+    renderIntervalId = null;
+  }
+}
+
 document.addEventListener('visibilitychange', () => {
-  if (!walkingEnabled) return;
-  if (document.visibilityState === 'visible') startLocation();
-  else stopLocation();
+  if (document.visibilityState === 'visible') {
+    startRenderLoop();
+    if (walkingEnabled) startLocation();
+  } else {
+    stopRenderLoop();
+    if (walkingEnabled) stopLocation();
+  }
 });
 
-setInterval(rerender, 1000);
+startRenderLoop();
 startPoller(tick, POLL_INTERVAL_MS);

@@ -9,6 +9,12 @@ export interface Arrival {
   expectedArrival: string; // ISO 8601
   modeName: string;
   platformName: string;
+  /** TfL's authoritative travel direction — "outbound" = towards Chingford (northbound
+   *  past our bridge), "inbound" = towards Liverpool Street (southbound past our bridge).
+   *  Preferred over parsing destinationName because destinations change during
+   *  engineering works (shuttles to Wood Street or Highams Park don't contain
+   *  "Chingford" but are still northbound). */
+  direction?: string;
 }
 
 export async function fetchArrivals(stopPointId: string): Promise<Arrival[]> {

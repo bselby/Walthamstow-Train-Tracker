@@ -126,22 +126,22 @@ const THEME_OVERLAYS: Record<NonNullTheme, string> = {
   `,
 };
 
+function themedTrainSvg(theme: Theme): string {
+  if (theme === null) return TRAIN_SVG;
+  return TRAIN_SVG.replace('</svg>', `${THEME_OVERLAYS[theme]}</svg>`);
+}
+
 function createTrainElement(direction: Direction, theme: Theme): HTMLElement {
   const el = document.createElement('div');
   el.className = `strip-train strip-train-${direction}`;
   el.style.setProperty('--pos', direction === 'north' ? '0' : '8');
+  el.dataset.theme = theme ?? '';
 
   // Inner wrapper so we can animate a toot-wobble scale (in Task 7) without
   // overwriting the outer translate positioning.
   const inner = document.createElement('div');
   inner.className = 'strip-train-inner';
-
-  let svg = TRAIN_SVG;
-  if (theme !== null) {
-    // Inject the overlay right before the closing </svg> tag.
-    svg = svg.replace('</svg>', `${THEME_OVERLAYS[theme]}</svg>`);
-  }
-  inner.innerHTML = svg;
+  inner.innerHTML = themedTrainSvg(theme);
 
   el.appendChild(inner);
 
@@ -154,6 +154,18 @@ function createTrainElement(direction: Direction, theme: Theme): HTMLElement {
   });
 
   return el;
+}
+
+/** Swap the seasonal overlay on an already-built train when the date-based
+ *  theme rolls over (e.g. Halloween → Bonfire at midnight). Preserves the
+ *  outer `.strip-train` node so CSS transitions and the click listener survive. */
+function refreshTrainTheme(strip: HTMLElement, theme: Theme): void {
+  strip.querySelectorAll<HTMLElement>('.strip-train').forEach((train) => {
+    if (train.dataset.theme === (theme ?? '')) return;
+    train.dataset.theme = theme ?? '';
+    const inner = train.querySelector<HTMLElement>('.strip-train-inner');
+    if (inner) inner.innerHTML = themedTrainSvg(theme);
+  });
 }
 
 /**
@@ -169,6 +181,9 @@ export function renderDirectionStrip(
   model: DirectionStripModel
 ): HTMLElement {
   const strip = el ?? buildSkeleton(model.direction);
+  // Check for a theme rollover on every render so a session open across midnight
+  // (e.g. Halloween 31st → Bonfire 1st) swaps the train overlay automatically.
+  refreshTrainTheme(strip, currentTheme(new Date()));
   updateDynamic(strip, model);
 
   // Pulse any station pips the train crossed since the last render — a small

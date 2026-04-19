@@ -29,4 +29,9 @@ export function toot(): void {
     osc.start(now);
     osc.stop(now + 0.36);
   }
+
+  // Disconnect the gain node once the envelope is done. Without this the audio
+  // graph accumulates orphan GainNodes on every tap — fine for one session but
+  // sloppy when a toddler spam-taps the train 50+ times.
+  setTimeout(() => gain.disconnect(), 400);
 }

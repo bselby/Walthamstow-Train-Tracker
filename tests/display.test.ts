@@ -8,7 +8,7 @@ describe('formatCountdown', () => {
     expect(formatCountdown(5)).toEqual<CountdownLabel>({ kind: 'now', text: 'NOW' });
   });
 
-  it('shows "just crossed" for 0 down to -30s', () => {
+  it('shows "just crossed" for negative values (train has already passed the bridge)', () => {
     expect(formatCountdown(-5)).toEqual<CountdownLabel>({ kind: 'just-crossed', text: 'just crossed' });
     expect(formatCountdown(-30)).toEqual<CountdownLabel>({ kind: 'just-crossed', text: 'just crossed' });
   });
