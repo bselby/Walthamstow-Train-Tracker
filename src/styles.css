@@ -496,7 +496,11 @@ html, body {
 .walking-time-off:focus-visible {
   opacity: 1;
   color: var(--overground);
-  outline: none;
+}
+
+.walking-time-off:focus-visible {
+  outline: 2px solid var(--overground);
+  outline-offset: 2px;
 }
 
 /* ───── Rotating fact line ───── */
@@ -566,8 +570,12 @@ html, body {
 .doc-links a:hover,
 .doc-links a:focus-visible {
   color: var(--overground);
-  outline: none;
   opacity: 1;
+}
+
+.doc-links a:focus-visible {
+  outline: 2px solid var(--overground);
+  outline-offset: 2px;
 }
 
 .doc-links span {
@@ -593,15 +601,9 @@ html, body {
   opacity: 0.9;
 }
 
-.value-ring rect {
-  transition: stroke-dasharray 400ms ease, opacity 400ms ease;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .value-ring rect {
-    transition: none;
-  }
-}
+/* No transition on `.value-ring rect` — the SVG is rebuilt every render tick
+   so a CSS transition never gets a before/after pair to animate between. If
+   we want an actual fade one day, preserve the element across renders instead. */
 
 /* ───── Arrow emphasis (last-minute countdown) ───── */
 

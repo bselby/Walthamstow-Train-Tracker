@@ -4,6 +4,8 @@ import { currentTheme } from '../src/season';
 const d = (y: number, m: number, day: number) => new Date(y, m - 1, day);
 
 describe('currentTheme — boundary dates for every transition', () => {
+  it('Jan 1 → new-year', () => expect(currentTheme(d(2026, 1, 1))).toBe('new-year'));
+  it('Jan 2 → winter-ski', () => expect(currentTheme(d(2026, 1, 2))).toBe('winter-ski'));
   it('Jan 15 → winter-ski', () => expect(currentTheme(d(2026, 1, 15))).toBe('winter-ski'));
   it('Feb 28 → winter-ski', () => expect(currentTheme(d(2026, 2, 28))).toBe('winter-ski'));
   it('Feb 29 (leap) → winter-ski', () => expect(currentTheme(d(2024, 2, 29))).toBe('winter-ski'));

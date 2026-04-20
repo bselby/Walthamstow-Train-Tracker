@@ -21,7 +21,7 @@ export function currentTheme(date: Date): Theme {
   const day = date.getDate();
 
   // Specific calendar windows — take priority over the broader seasons below.
-  if (month === 12 && day === 31) return 'new-year';
+  if ((month === 12 && day === 31) || (month === 1 && day === 1)) return 'new-year';
   if (month === 10 && day >= 24) return 'halloween';
   if (month === 11 && day <= 10) return 'bonfire';
   if (month === 3 && day <= 10) return 'world-book-day';

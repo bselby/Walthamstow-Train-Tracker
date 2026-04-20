@@ -1,6 +1,5 @@
 import type { BridgeEvent } from './bridge';
 import type { FreshnessState } from './freshness';
-import type { Theme } from './season';
 import { formatCountdown, formatAge } from './display';
 import { renderDirectionStrip } from './strip';
 
@@ -15,11 +14,7 @@ export interface ViewModel {
   northTicker: BridgeEvent[];   // entries 1..n (hero is north)
   southTicker: BridgeEvent[];
   walkingLabel: string | null;  // null = feature disabled / not yet available
-  theme: Theme;
-  // New this round — confidence for each direction (1.0 = fully trusted) and the
-  // currently-displayed fact line. Fact is always a string; ring is hidden when
-  // confidence is >= 0.7 so the default of 1.0 keeps the ring invisible.
-  northConfidence: number;
+  northConfidence: number;      // 1.0 = fully trusted; ring hidden at >= 0.7
   southConfidence: number;
   fact: string;
 }
@@ -62,7 +57,14 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
     return;
   }
 
-  if (!vm.north && !vm.south) {
+  // First paint fires before the initial TfL fetch resolves — show a connecting
+  // state instead of the (misleading) "No trains right now" empty state.
+  if (vm.freshness.state === 'no-data') {
+    const connecting = document.createElement('div');
+    connecting.className = 'empty';
+    connecting.innerHTML = '<p>Connecting to TfL…</p>';
+    root.appendChild(connecting);
+  } else if (!vm.north && !vm.south) {
     const empty = document.createElement('div');
     empty.className = 'empty';
     empty.innerHTML = `
@@ -232,10 +234,10 @@ function buildConfidenceRing(confidence: number): SVGElement {
   rect.setAttribute('stroke-linecap', 'round');
   rect.setAttribute('pathLength', '100');
 
-  // The ring is invisible at full confidence. Below the visible threshold the
-  // arc length grows proportionally with lost confidence.
-  const visible = confidence < CONFIDENCE_RING_VISIBLE_THRESHOLD;
-  const arcFrac = visible ? Math.min(100, (1 - confidence) * 100) : 0;
+  // The ring is invisible at full confidence and grows continuously as
+  // confidence drops toward 0. Mapping (1 - confidence/threshold) keeps the
+  // arc smooth across the 0.7 boundary — no visual pop as it appears.
+  const arcFrac = Math.max(0, Math.min(100, (1 - confidence / CONFIDENCE_RING_VISIBLE_THRESHOLD) * 100));
   rect.setAttribute('stroke-dasharray', `${arcFrac} 100`);
 
   svg.appendChild(rect);

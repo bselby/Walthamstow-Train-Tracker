@@ -15,6 +15,11 @@ export interface Arrival {
    *  engineering works (shuttles to Wood Street or Highams Park don't contain
    *  "Chingford" but are still northbound). */
   direction?: string;
+  /** Stable identifier for the physical train. TfL reuses `id` (the prediction
+   *  row's key) across polls, but a new prediction for the same vehicle yields a
+   *  fresh `id` — so only `vehicleId` lets us detect whether the hero is still
+   *  the same train when scoring stability. */
+  vehicleId?: string;
 }
 
 export async function fetchArrivals(stopPointId: string): Promise<Arrival[]> {

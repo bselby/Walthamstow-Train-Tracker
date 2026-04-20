@@ -6,7 +6,6 @@ import { startPoller } from './poller';
 import { render, type ViewModel } from './render';
 import { formatCountdown } from './display';
 import { estimatePosition } from './trainPosition';
-import { currentTheme } from './season';
 import { WALTHAMSTOW_CENTRAL_STOPPOINT_ID, POLL_INTERVAL_MS, EAST_AVE_BRIDGE } from './constants';
 import type { Direction } from './direction';
 import { subscribe as subscribeLocation, start as startLocation, stop as stopLocation, getState as getLocationState } from './geolocation';
@@ -90,8 +89,12 @@ const PREDICTION_SAMPLES_KEEP = 3;
 const predictionSamples: Record<Direction, PredictionSample[]> = { north: [], south: [] };
 
 function recordPredictionSample(dir: Direction, ev: BridgeEvent, fetchedAtMs: number): void {
+  // Fall back to the prediction id if TfL doesn't ship a vehicleId for this
+  // arrival (shouldn't happen in prod — the real feed always sets it — but
+  // test fixtures and edge cases might). The stability score just degrades
+  // gracefully in that case: the buffer resets on every poll, stability stays 1.0.
   const sample: PredictionSample = {
-    vehicleId: ev.arrival.id,
+    vehicleId: ev.arrival.vehicleId ?? ev.arrival.id,
     timeToStation: ev.arrival.timeToStation,
     fetchedAtMs,
   };
@@ -219,7 +222,6 @@ function buildViewModel(): ViewModel {
     northTicker: tickers.north,
     southTicker: tickers.south,
     walkingLabel: computeWalkingLabel(),
-    theme: currentTheme(new Date()),
     northConfidence: heroes.north ? computeConfidence(ageMs, predictionSamples.north) : 1,
     southConfidence: heroes.south ? computeConfidence(ageMs, predictionSamples.south) : 1,
     fact: factAt(factIndex),
