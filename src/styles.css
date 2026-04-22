@@ -709,26 +709,48 @@ html, body {
   appearance: none;
   border: none;
   background: transparent;
-  padding: 0.6rem 1rem;
+  /* Side padding generous enough to clear the absolutely-positioned chevron */
+  padding: 0.55rem 3rem;
   margin: 0;
   font: inherit;
   cursor: pointer;
 
-  /* Typography matches the old .page-header */
   font-family: 'Big Shoulders Display', sans-serif;
-  font-weight: 900;
-  font-size: 1.4rem;
-  letter-spacing: 0.02em;
+  font-size: 1.3rem;
   text-align: center;
   color: var(--line-color);
 
+  position: relative;      /* anchor for the absolute chevron */
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: center;
-  gap: 0.4em;
 
   transition: transform 180ms cubic-bezier(0.25, 1, 0.5, 1),
               opacity 180ms ease;
+}
+
+/* Two-line stacked label: subtle line-name above, bold viewpoint name below */
+.switcher-header-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.05em;
+}
+
+.switcher-header-line {
+  font-size: 0.58em;        /* ~0.75rem — readable but clearly secondary */
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.5;
+  line-height: 1;
+}
+
+.switcher-header-name {
+  font-size: 1em;           /* 1.3rem — primary identity */
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
 }
 
 .switcher-header:hover { opacity: 0.9; }
@@ -743,12 +765,20 @@ html, body {
 }
 
 .switcher-header-chevron {
-  font-size: 0.75em;
-  transition: transform 220ms cubic-bezier(0.25, 1, 0.5, 1);
-  display: inline-block;
+  /* Float to the right edge, out of the centring flow entirely */
+  position: absolute;
+  right: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7em;
+  opacity: 0.5;
+  transition: transform 220ms cubic-bezier(0.25, 1, 0.5, 1),
+              opacity 220ms ease;
 }
 .switcher-header[aria-expanded="true"] .switcher-header-chevron {
-  transform: rotate(180deg);
+  /* Preserve the vertical centering while rotating */
+  transform: translateY(-50%) rotate(180deg);
+  opacity: 0.8;
 }
 
 /* Sheet — grid-rows 0fr → 1fr animation. The inner wrapper has

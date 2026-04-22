@@ -82,9 +82,12 @@ function closeSheet(root: HTMLElement): void {
 function updateDynamic(root: HTMLElement, model: SwitcherModel): void {
   const { activeViewpoint, favouriteViewpointId, onSwitch, onSetFavourite } = model;
 
-  // Header label: "Weaver · East Ave bridge"
+  // Header label: line name above as a small subtitle, viewpoint name below as the main title.
   const label = root.querySelector<HTMLElement>('.switcher-header-label')!;
-  label.textContent = `${activeViewpoint.lineName} · ${activeViewpoint.name}`;
+  label.innerHTML = `
+    <span class="switcher-header-line">${escapeHtml(activeViewpoint.lineName)}</span>
+    <span class="switcher-header-name">${escapeHtml(activeViewpoint.name)}</span>
+  `;
 
   // Rebuild the sheet inner content each render — cheap and keeps favourite/
   // active highlights in sync.
