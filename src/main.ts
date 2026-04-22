@@ -165,10 +165,14 @@ export function switchToViewpoint(id: string): void {
   const next = getViewpointById(id);
   if (!next || next.id === activeViewpoint.id) return;
   activeViewpoint = next;
-  // Clear snapshots so the UI shows "Connecting to TfL…" until the next
-  // poll resolves against the new stoppoint. Also reset prediction samples
-  // since they're keyed on the old vehicleIds.
+  // Clear snapshots AND lastFetchMs so the freshness state flips to 'no-data'
+  // and the UI shows "Connecting to TfL…" — otherwise the previous viewpoint's
+  // fresh poll satisfies classifyFreshness and we flash "No trains right now"
+  // for up to a few hundred ms until the new tick resolves. Also reset
+  // prediction samples since they're keyed on the old vehicleIds.
   snapshots = {};
+  lastFetchMs = null;
+  lastError = undefined;
   predictionSamples.north.length = 0;
   predictionSamples.south.length = 0;
   // Update the document title to reflect the new viewpoint.
@@ -294,7 +298,7 @@ function rerender(): void {
 
 async function tick(): Promise<void> {
   try {
-    const arrivals = await fetchArrivals(activeViewpoint.stopPointId);
+    const arrivals = await fetchArrivals(activeViewpoint.stopPointId, activeViewpoint.lineId);
     const picked = pickNextNPerDirection(arrivals, TICKER_SIZE, activeViewpoint);
     const now = Date.now();
     // Record samples BEFORE reassigning snapshots so the buffer sees the hero

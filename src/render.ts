@@ -34,14 +34,27 @@ export interface RenderOptions {
   onSetFavouriteViewpoint: (id: string) => void;
 }
 
+// Track the viewpoint id from the last render so we can invalidate preserved
+// strips when the user switches viewpoint — otherwise stale strips (with the
+// wrong stops + bridge glyph) linger at the top of the DOM while the switcher
+// gets re-appended below them. Also blanks previous-value memos keyed on the
+// old viewpoint's direction labels, which would otherwise suppress the
+// "ticking" animation on the first paint of the new viewpoint.
+let lastRenderedViewpointId: string | null = null;
+
 export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions): void {
+  const viewpointChanged = lastRenderedViewpointId !== null
+    && lastRenderedViewpointId !== vm.viewpoint.id;
+  lastRenderedViewpointId = vm.viewpoint.id;
+
   // Preserve the switcher and strips across renders so the switcher keeps its
   // open/closed state + listeners, and the strips keep their CSS transitions
   // alive between state updates. Everything else (rows, footer, error, empty)
-  // is rebuilt each tick.
+  // is rebuilt each tick. Strips are NOT preserved across a viewpoint switch —
+  // they need fresh stops + anchorIndex + bridge config.
   const existingSwitcher = root.querySelector<HTMLElement>('.switcher');
-  const existingStripN = root.querySelector<HTMLElement>('.strip-north');
-  const existingStripS = root.querySelector<HTMLElement>('.strip-south');
+  const existingStripN = viewpointChanged ? null : root.querySelector<HTMLElement>('.strip-north');
+  const existingStripS = viewpointChanged ? null : root.querySelector<HTMLElement>('.strip-south');
   const preserved = new Set<Element>();
   if (existingSwitcher) preserved.add(existingSwitcher);
   if (existingStripN) preserved.add(existingStripN);
@@ -50,6 +63,12 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
   Array.from(root.children).forEach((child) => {
     if (!preserved.has(child)) root.removeChild(child);
   });
+
+  if (viewpointChanged) {
+    // Clear the previous-value memo so the new viewpoint's direction rows
+    // don't inherit a "no change" state from the old viewpoint's labels.
+    for (const key of Object.keys(previousValueText)) delete previousValueText[key];
+  }
 
   // Always (re-)append the switcher first so it sits at the top of the flex column.
   const switcher = renderSwitcher(existingSwitcher, {

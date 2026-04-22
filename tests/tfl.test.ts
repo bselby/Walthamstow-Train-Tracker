@@ -30,7 +30,7 @@ describe('fetchArrivals', () => {
       json: async () => payload
     });
 
-    const result = await fetchArrivals('STOPID');
+    const result = await fetchArrivals('STOPID', 'weaver');
 
     expect(result).toHaveLength(1);
     expect(result[0].destinationName).toBe('Chingford');
@@ -46,10 +46,10 @@ describe('fetchArrivals', () => {
       status: 503
     });
 
-    await expect(fetchArrivals('STOPID')).rejects.toThrow(/503/);
+    await expect(fetchArrivals('STOPID', 'weaver')).rejects.toThrow(/503/);
   });
 
-  it('filters out arrivals without a lineId of weaver', async () => {
+  it('filters out arrivals that are not on the requested line', async () => {
     const payload = [
       { id: '1', lineId: 'weaver', destinationName: 'Chingford', timeToStation: 60, expectedArrival: 'x', modeName: 'overground', platformName: 'P1', stationName: 'WC' },
       { id: '2', lineId: 'victoria', destinationName: 'Brixton', timeToStation: 30, expectedArrival: 'y', modeName: 'tube', platformName: 'P2', stationName: 'WC' }
@@ -59,9 +59,25 @@ describe('fetchArrivals', () => {
       json: async () => payload
     });
 
-    const result = await fetchArrivals('STOPID');
+    const result = await fetchArrivals('STOPID', 'weaver');
 
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('1');
+  });
+
+  it('filters by a non-weaver line id (Suffragette viewpoint)', async () => {
+    const payload = [
+      { id: '1', lineId: 'weaver', destinationName: 'Chingford', timeToStation: 60, expectedArrival: 'x', modeName: 'overground', platformName: 'P1', stationName: 'WC' },
+      { id: '2', lineId: 'suffragette', destinationName: 'Barking Riverside', timeToStation: 90, expectedArrival: 'y', modeName: 'overground', platformName: 'P2', stationName: 'WQR' }
+    ];
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: async () => payload
+    });
+
+    const result = await fetchArrivals('STOPID', 'suffragette');
+
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('2');
   });
 });
