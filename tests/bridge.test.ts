@@ -96,4 +96,23 @@ describe('pickNextNPerDirection', () => {
     expect(result.north.map((e) => e.arrival.id)).toEqual(['n1', 'n2']);
     expect(result.south.map((e) => e.arrival.id)).toEqual(['s1', 's2']);
   });
+
+  it('caps at n even if more arrivals exist', () => {
+    const arrivals = [
+      arrival('Chingford', 60, 'n1'),
+      arrival('Chingford', 300, 'n2'),
+      arrival('Chingford', 500, 'n3'),
+      arrival('Chingford', 700, 'n4'),
+    ];
+    const result = pickNextNPerDirection(arrivals, 2, EAST_AVE);
+    expect(result.north).toHaveLength(2);
+    expect(result.north.map((e) => e.arrival.id)).toEqual(['n1', 'n2']);
+  });
+
+  it('returns empty arrays when a direction has no arrivals', () => {
+    const arrivals = [arrival('Chingford', 120, 'n1')];
+    const result = pickNextNPerDirection(arrivals, 3, EAST_AVE);
+    expect(result.north).toHaveLength(1);
+    expect(result.south).toEqual([]);
+  });
 });

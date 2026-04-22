@@ -31,6 +31,12 @@ describe('classifyDirection — East Ave', () => {
     expect(classifyDirection(arrival('Wood Street', 'outbound'), EAST_AVE)).toBe('north');
   });
 
+  it('prefers TfL inbound over a north-terminus destination name', () => {
+    // TfL is authoritative: an arrival marked inbound is southbound even if the
+    // destination still reads "Chingford" (briefly, during a schedule update).
+    expect(classifyDirection(arrival('Chingford', 'inbound'), EAST_AVE)).toBe('south');
+  });
+
   it('falls back to destination-name match when TfL direction is missing', () => {
     expect(classifyDirection(arrival('Chingford'), EAST_AVE)).toBe('north');
     expect(classifyDirection(arrival('Liverpool Street'), EAST_AVE)).toBe('south');
@@ -45,5 +51,11 @@ describe('classifyDirection — Queens Road', () => {
 
   it('falls back to destination-name match for north terminus', () => {
     expect(classifyDirection(arrival('Barking Riverside'), QUEENS_ROAD)).toBe('north');
+  });
+});
+
+describe('classifyDirection — fallback edge cases', () => {
+  it('empty destination falls through to south (safe default; train is still shown)', () => {
+    expect(classifyDirection(arrival(''), EAST_AVE)).toBe('south');
   });
 });
