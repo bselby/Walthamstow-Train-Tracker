@@ -170,7 +170,7 @@ function livePosition(snap: DirectionSnapshots, index: number, nowMs: number): n
   if (!ev) return null;
   const elapsedSeconds = (nowMs - snap.snapshottedAtMs) / 1000;
   const currentTts = ev.arrival.timeToStation - elapsedSeconds;
-  return estimatePosition(currentTts, ev.direction);
+  return estimatePosition(currentTts, ev.direction, activeViewpoint);
 }
 
 function buildViewModel(): ViewModel {
