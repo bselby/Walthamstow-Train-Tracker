@@ -503,22 +503,42 @@ html, body {
   outline-offset: 2px;
 }
 
-/* ───── Rotating fact line ───── */
+/* ───── Rotating fact line ─────
+   Sits between the "updated Xs ago" footer and the doc-links row. Styled as
+   an editorial line (sentence case, navy text) rather than metadata, with a
+   small roundel-with-"?" icon to signal "did you know" at a glance. Needs to
+   read differently from the uppercase grey metadata directly above it. */
 
 .fact-line {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.4em;
   font-family: 'Big Shoulders Text', sans-serif;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--dim);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--navy);
   text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  opacity: 0.6;
-  padding-top: 0.25rem;
+  letter-spacing: 0;
+  opacity: 0.82;
+  padding-top: 0.75rem;
   max-width: 100%;
+}
+
+.fact-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;         /* lets flex item actually shrink + ellipsise */
+}
+
+.fact-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex-shrink: 0;
+  color: var(--overground);  /* currentColor feeds the SVG strokes/fill */
+  opacity: 0.9;
+  transform: translateY(-0.5px);  /* optical centring against text x-height */
 }
 
 .fact-line.fact-enter {
@@ -527,7 +547,7 @@ html, body {
 
 @keyframes fact-fade {
   from { opacity: 0; transform: translateY(2px); }
-  to   { opacity: 0.6; transform: translateY(0); }
+  to   { opacity: 0.82; transform: translateY(0); }
 }
 
 @media (prefers-reduced-motion: reduce) {

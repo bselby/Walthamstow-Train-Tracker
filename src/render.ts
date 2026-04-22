@@ -152,11 +152,27 @@ function renderTicker(events: BridgeEvent[]): HTMLElement | null {
 // Memo of the last-rendered fact so we can animate a fade only on change.
 let previousFactText: string | null = null;
 
+// A small roundel-with-"?" lockup that prefixes the fact. Uses `currentColor`
+// for both ring and glyph so the whole mark inherits the overground-orange
+// colour from .fact-icon, keeping the colour source in one place (CSS).
+const FACT_ICON_SVG =
+  '<svg class="fact-icon" viewBox="0 0 16 16" aria-hidden="true">' +
+    '<circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.4"/>' +
+    '<path d="M5.9 6.1c0-1.2 1-2.1 2.2-2.1 1.1 0 2.1.8 2.1 2 0 1.5-2 1.6-2 3.1" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>' +
+    '<circle cx="8.1" cy="11.3" r="0.75" fill="currentColor"/>' +
+  '</svg>';
+
 function renderFactLine(fact: string): HTMLElement | null {
   if (!fact) return null;
   const el = document.createElement('div');
   el.className = 'fact-line';
-  el.textContent = fact;
+  // Build icon + text so only the text wraps / ellipsises — the icon always
+  // stays pinned to the left of the fact, flex-shrink:0 in CSS.
+  const text = document.createElement('span');
+  text.className = 'fact-text';
+  text.textContent = fact;
+  el.innerHTML = FACT_ICON_SVG;
+  el.appendChild(text);
   if (previousFactText !== fact) {
     el.classList.add('fact-enter');
   }
