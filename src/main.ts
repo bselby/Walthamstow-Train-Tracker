@@ -37,12 +37,10 @@ let snapshots: Partial<Record<Direction, DirectionSnapshots>> = {};
 let lastFetchMs: number | null = null;
 let lastError: string | undefined;
 
-// Active viewpoint for this session. Starts at the default (East Ave); will be
-// upgraded to the user's favourite in Task 5 once favourite persistence is added.
-let activeViewpoint: Viewpoint = getViewpointById(DEFAULT_VIEWPOINT_ID)!;
 const previousKind: Partial<Record<Direction, string>> = {};
 
 const WALKING_STORAGE_KEY = 'wtt_walking_enabled';
+const FAVOURITE_STORAGE_KEY = 'wtt_favourite_viewpoint';
 
 // Safe wrappers around localStorage. In Safari private browsing `localStorage`
 // exists but `setItem` / `removeItem` throw; in other hardened browsers either
@@ -88,6 +86,20 @@ try {
 
 let walkingEnabled = safeLocalRead(WALKING_STORAGE_KEY) === '1';
 const celebrateSetAt: Partial<Record<Direction, number>> = {};
+
+/** Load the stored favourite viewpoint id, validating that it points at a
+ *  real viewpoint. Falls back to DEFAULT_VIEWPOINT_ID if missing or stale. */
+function loadFavouriteViewpointId(): string {
+  const stored = safeLocalRead(FAVOURITE_STORAGE_KEY);
+  if (stored && getViewpointById(stored)) return stored;
+  return DEFAULT_VIEWPOINT_ID;
+}
+
+let favouriteViewpointId = loadFavouriteViewpointId();
+
+// Active viewpoint for this session. Starts at the user's favourite if stored,
+// else the default (East Ave).
+let activeViewpoint: Viewpoint = getViewpointById(favouriteViewpointId)!;
 
 // Per-direction ring buffer of the last N prediction samples for the hero train.
 // Used by confidence.computeStability to detect when TfL is reshuffling the schedule.
@@ -140,6 +152,34 @@ export function disableWalkingTime(): void {
   walkingEnabled = false;
   safeLocalRemove(WALKING_STORAGE_KEY);
   stopLocation();
+}
+
+export function setFavouriteViewpoint(id: string): void {
+  if (!getViewpointById(id)) return; // guard against stale ids
+  favouriteViewpointId = id;
+  safeLocalWrite(FAVOURITE_STORAGE_KEY, id);
+  rerender();
+}
+
+export function switchToViewpoint(id: string): void {
+  const next = getViewpointById(id);
+  if (!next || next.id === activeViewpoint.id) return;
+  activeViewpoint = next;
+  // Clear snapshots so the UI shows "Connecting to TfL…" until the next
+  // poll resolves against the new stoppoint. Also reset prediction samples
+  // since they're keyed on the old vehicleIds.
+  snapshots = {};
+  predictionSamples.north.length = 0;
+  predictionSamples.south.length = 0;
+  // Update the document title to reflect the new viewpoint.
+  document.title = `East Ave Trains — ${activeViewpoint.name}`;
+  // Update the --line-color CSS custom property so the header + train livery
+  // pick up the new colour immediately.
+  document.documentElement.style.setProperty('--line-color', activeViewpoint.lineColor);
+  rerender();
+  // Fire an immediate fetch against the new stoppoint — don't wait for the
+  // next scheduled poll (20 s away).
+  void tick();
 }
 
 function computeWalkingLabel(): string | null {
@@ -232,6 +272,7 @@ function buildViewModel(): ViewModel {
     southConfidence: heroes.south ? computeConfidence(ageMs, predictionSamples.south) : 1,
     fact: factAt(factIndex),
     viewpoint: activeViewpoint,
+    favouriteViewpointId,
   };
 }
 
@@ -246,6 +287,8 @@ function rerender(): void {
       advanceFact();
       rerender();
     },
+    onSwitchViewpoint: switchToViewpoint,
+    onSetFavouriteViewpoint: setFavouriteViewpoint,
   });
 }
 
@@ -302,6 +345,11 @@ document.addEventListener('visibilitychange', () => {
     if (walkingEnabled) stopLocation();
   }
 });
+
+// Sync CSS + title to the booted viewpoint. These normally update on switch,
+// but first-paint needs them too.
+document.documentElement.style.setProperty('--line-color', activeViewpoint.lineColor);
+document.title = `East Ave Trains — ${activeViewpoint.name}`;
 
 startRenderLoop();
 startPoller(tick, POLL_INTERVAL_MS);

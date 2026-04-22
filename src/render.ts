@@ -20,6 +20,7 @@ export interface ViewModel {
   southConfidence: number;
   fact: Fact;
   viewpoint: Viewpoint;   // active viewpoint — drives strip, header, theming
+  favouriteViewpointId: string;   // id of the user's current favourite
 }
 
 export interface RenderOptions {
@@ -28,6 +29,8 @@ export interface RenderOptions {
   /** Called when the user taps / clicks the fact ticker. Advances to the next
    *  fact immediately (giving Ben agency + the toddler something to poke at). */
   onAdvanceFact: () => void;
+  onSwitchViewpoint: (id: string) => void;
+  onSetFavouriteViewpoint: (id: string) => void;
 }
 
 export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions): void {
