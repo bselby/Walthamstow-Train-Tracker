@@ -24,6 +24,23 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# Permanent redirect from the old netlify.app hostname to the custom domain so
+# search engines consolidate link equity + anyone with the old URL bookmarked
+# gets cleanly forwarded. Netlify evaluates these BEFORE the SPA catch-all below.
+[[redirects]]
+  from = "https://walthamstow-train-tracker.netlify.app/*"
+  to = "https://eastavetrains.co.uk/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://walthamstow-train-tracker.netlify.app/*"
+  to = "https://eastavetrains.co.uk/:splat"
+  status = 301
+  force = true
+
+# SPA catch-all — all unknown paths serve the app shell so the router (the
+# service worker, in our case) can handle them.
 [[redirects]]
   from = "/*"
   to = "/index.html"
