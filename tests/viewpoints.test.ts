@@ -39,6 +39,18 @@ describe('VIEWPOINTS', () => {
     }
   });
 
+  it('anchorIndex names the expected station for each viewpoint', () => {
+    const expectedAnchorNames: Record<string, string> = {
+      'east-ave': 'Walthamstow Central',
+      'queens-road': 'Walthamstow Queens Road',
+    };
+    for (const v of VIEWPOINTS) {
+      const expected = expectedAnchorNames[v.id];
+      if (expected === undefined) continue; // new viewpoint added? fine, don't enforce here
+      expect(v.stops[v.anchorIndex].fullName).toBe(expected);
+    }
+  });
+
   it('east-ave uses the bridge position model', () => {
     const v = getViewpointById('east-ave');
     expect(v?.positionModel).toBe('east-ave-bridge');

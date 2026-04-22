@@ -153,7 +153,7 @@ export const VIEWPOINTS: readonly Viewpoint[] = [
     lineId: 'suffragette',
     lineName: 'Suffragette',
     lineColor: SUFFRAGETTE_GREEN,
-    stopPointId: '910GWLTHQRD', // VERIFY during implementation via TfL /StopPoint/Search
+    stopPointId: '910GWLTHQRD',
     coords: { lat: 51.581539, lng: -0.023774 },
     stops: SUFFRAGETTE_STOPS,
     segments: SUFFRAGETTE_SEGMENTS,
