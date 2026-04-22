@@ -58,4 +58,13 @@ describe('classifyDirection — fallback edge cases', () => {
   it('empty destination falls through to south (safe default; train is still shown)', () => {
     expect(classifyDirection(arrival(''), EAST_AVE)).toBe('south');
   });
+
+  it('empty-string TfL direction falls through to destination-name match', () => {
+    // TfL has been observed returning direction: '' (not undefined) on some
+    // responses. Neither value equals 'outbound'/'inbound', so behaviour must
+    // match the direction-missing path.
+    const EAST_AVE = getViewpointById('east-ave')!;
+    expect(classifyDirection(arrival('Chingford', ''), EAST_AVE)).toBe('north');
+    expect(classifyDirection(arrival('Liverpool Street', ''), EAST_AVE)).toBe('south');
+  });
 });
