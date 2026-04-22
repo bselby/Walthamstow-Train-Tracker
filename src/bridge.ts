@@ -1,6 +1,6 @@
 import type { Arrival } from './tfl';
 import { classifyDirection, type Direction } from './direction';
-import { NORTHBOUND_OFFSET_SECONDS, SOUTHBOUND_OFFSET_SECONDS } from './constants';
+import type { Viewpoint } from './viewpoints';
 
 export interface BridgeEvent {
   arrival: Arrival;
@@ -8,28 +8,32 @@ export interface BridgeEvent {
   bridgeTimeSeconds: number;
 }
 
-export function computeBridgeTime(arrival: Arrival): number {
-  const direction = classifyDirection(arrival);
-  const offset = direction === 'north' ? NORTHBOUND_OFFSET_SECONDS : SOUTHBOUND_OFFSET_SECONDS;
+/** Compute how long until this arrival passes the viewpoint.
+ *  For bridge viewpoints: offset is added to timeToStation (+ve northbound, -ve southbound).
+ *  For station viewpoints: offset is 0, so bridgeTime == timeToStation. */
+export function computeBridgeTime(arrival: Arrival, viewpoint: Viewpoint): number {
+  const direction = classifyDirection(arrival, viewpoint);
+  const offset = viewpoint.directions[direction].offsetSeconds;
   return arrival.timeToStation + offset;
 }
 
 const JUST_CROSSED_WINDOW_SECONDS = -30;
 
-function toEvent(arrival: Arrival): BridgeEvent {
+function toEvent(arrival: Arrival, viewpoint: Viewpoint): BridgeEvent {
   return {
     arrival,
-    direction: classifyDirection(arrival),
-    bridgeTimeSeconds: computeBridgeTime(arrival)
+    direction: classifyDirection(arrival, viewpoint),
+    bridgeTimeSeconds: computeBridgeTime(arrival, viewpoint),
   };
 }
 
 export function pickNextNPerDirection(
   arrivals: Arrival[],
-  n: number
+  n: number,
+  viewpoint: Viewpoint,
 ): { north: BridgeEvent[]; south: BridgeEvent[] } {
   const events = arrivals
-    .map(toEvent)
+    .map((a) => toEvent(a, viewpoint))
     .filter((e) => e.bridgeTimeSeconds >= JUST_CROSSED_WINDOW_SECONDS)
     .sort((a, b) => a.bridgeTimeSeconds - b.bridgeTimeSeconds);
 
@@ -39,7 +43,10 @@ export function pickNextNPerDirection(
   };
 }
 
-export function pickNextPerDirection(arrivals: Arrival[]): { north?: BridgeEvent; south?: BridgeEvent } {
-  const nexts = pickNextNPerDirection(arrivals, 1);
+export function pickNextPerDirection(
+  arrivals: Arrival[],
+  viewpoint: Viewpoint,
+): { north?: BridgeEvent; south?: BridgeEvent } {
+  const nexts = pickNextNPerDirection(arrivals, 1, viewpoint);
   return { north: nexts.north[0], south: nexts.south[0] };
 }

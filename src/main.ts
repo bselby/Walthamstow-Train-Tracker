@@ -6,7 +6,9 @@ import { startPoller } from './poller';
 import { render, type ViewModel } from './render';
 import { formatCountdown } from './display';
 import { estimatePosition } from './trainPosition';
-import { WALTHAMSTOW_CENTRAL_STOPPOINT_ID, POLL_INTERVAL_MS, EAST_AVE_BRIDGE } from './constants';
+import { POLL_INTERVAL_MS } from './constants';
+import { getViewpointById, DEFAULT_VIEWPOINT_ID } from './viewpoints';
+import type { Viewpoint } from './viewpoints';
 import type { Direction } from './direction';
 import { subscribe as subscribeLocation, start as startLocation, stop as stopLocation, getState as getLocationState } from './geolocation';
 import { walkingEstimate, formatWalkingLabel } from './walkingTime';
@@ -34,6 +36,10 @@ interface DirectionSnapshots {
 let snapshots: Partial<Record<Direction, DirectionSnapshots>> = {};
 let lastFetchMs: number | null = null;
 let lastError: string | undefined;
+
+// Active viewpoint for this session. Starts at the default (East Ave); will be
+// upgraded to the user's favourite in Task 5 once favourite persistence is added.
+let activeViewpoint: Viewpoint = getViewpointById(DEFAULT_VIEWPOINT_ID)!;
 const previousKind: Partial<Record<Direction, string>> = {};
 
 const WALKING_STORAGE_KEY = 'wtt_walking_enabled';
@@ -146,7 +152,7 @@ function computeWalkingLabel(): string | null {
   // even while the watch is paused (tab-hidden → visible, or between reacquires).
   // Only fall back to "Locating…" when we truly have nothing yet.
   if (position === null) return 'Locating…';
-  const est = walkingEstimate(position, EAST_AVE_BRIDGE);
+  const est = walkingEstimate(position, activeViewpoint.coords);
   return formatWalkingLabel(est);
 }
 
@@ -244,8 +250,8 @@ function rerender(): void {
 
 async function tick(): Promise<void> {
   try {
-    const arrivals = await fetchArrivals(WALTHAMSTOW_CENTRAL_STOPPOINT_ID);
-    const picked = pickNextNPerDirection(arrivals, TICKER_SIZE);
+    const arrivals = await fetchArrivals(activeViewpoint.stopPointId);
+    const picked = pickNextNPerDirection(arrivals, TICKER_SIZE, activeViewpoint);
     const now = Date.now();
     // Record samples BEFORE reassigning snapshots so the buffer sees the hero
     // we're actually about to display.
