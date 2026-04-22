@@ -19,9 +19,12 @@
       <a class="back" href="/">Back to trains</a>
       <h1>Privacy</h1>
       <p>
-        There is <strong>no server</strong>. This app is a handful of static
-        files served from a CDN. Nothing you do in the app is sent to me, and
-        I don't run analytics, advertising, or tracking of any kind.
+        There is <strong>no server running app logic</strong>. This app is a
+        handful of static files served from a CDN, plus a privacy-friendly
+        pageview count via Cloudflare Web Analytics (no cookies, no personal
+        data — details below). Nothing you do <em>inside</em> the app —
+        tapping the fact line, enabling walking time, watching the countdown
+        — is tracked or reported back to me.
       </p>
 
       <h2>What's stored on your device</h2>
@@ -73,14 +76,38 @@
           <strong>Netlify</strong> — the CDN that serves this site. Netlify
           logs requests as part of hosting the site.
         </li>
+        <li>
+          <strong>Cloudflare</strong> — provides DNS for this domain and
+          also runs the pageview analytics (see next section).
+        </li>
       </ul>
+
+      <h2>Analytics</h2>
+      <p>
+        This site uses
+        <a href="https://www.cloudflare.com/web-analytics/" target="_blank" rel="noopener">Cloudflare Web Analytics</a>
+        to count how many people visit. It's designed around not identifying
+        individual visitors:
+      </p>
+      <ul>
+        <li><strong>No cookies.</strong> Nothing is stored in your browser by the analytics beacon.</li>
+        <li><strong>No fingerprinting.</strong> No device, canvas, or font fingerprinting.</li>
+        <li><strong>No cross-site tracking.</strong> Cloudflare doesn't build a profile of you across the web.</li>
+        <li><strong>What it does see:</strong> the page URL, referrer (if any), user agent, and a coarse country estimate from your IP.</li>
+        <li><strong>What it doesn't see:</strong> anything you do <em>inside</em> the app — the walking time, the facts you tap, the trains you watch.</li>
+      </ul>
+      <p>
+        Cloudflare publish their own
+        <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">privacy policy</a>
+        covering what they keep and for how long.
+      </p>
 
       <h2>What I don't do</h2>
       <ul>
-        <li>No analytics, tracking pixels, or fingerprinting.</li>
-        <li>No advertising and no ad-network code.</li>
+        <li>No advertising or ad-network code.</li>
         <li>No account, login, or sign-up.</li>
         <li>No cookies set by this site itself.</li>
+        <li>No third-party scripts beyond the Cloudflare pageview beacon and the Google Fonts loader.</li>
       </ul>
 
       <h2>Contact</h2>
@@ -89,7 +116,10 @@
         <a href="https://github.com/bselby/Walthamstow-Train-Tracker/issues" target="_blank" rel="noopener">github.com/bselby/Walthamstow-Train-Tracker/issues</a>.
       </p>
 
-      <p class="meta">Last updated 19 April 2026</p>
+      <p class="meta">Last updated 22 April 2026</p>
     </main>
+    <!-- Cloudflare Web Analytics — pageview count only, no cookies, no personal data.
+         See the Analytics section above for the full story. -->
+    <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "f28e4933fd98408da3b08b2b59807a0e"}'></script>
   </body>
 </html>
