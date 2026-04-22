@@ -3,7 +3,7 @@ import type { FreshnessState } from './freshness';
 import type { Fact } from './facts';
 import type { Viewpoint } from './viewpoints';
 import { formatCountdown, formatAge } from './display';
-import { renderDirectionStrip } from './strip';
+import { renderDirectionStrip, clearPreviousPositions } from './strip';
 import { renderSwitcher } from './switcher';
 
 export interface ViewModel {
@@ -68,6 +68,10 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
     // Clear the previous-value memo so the new viewpoint's direction rows
     // don't inherit a "no change" state from the old viewpoint's labels.
     for (const key of Object.keys(previousValueText)) delete previousValueText[key];
+    // Clear strip's last-known position so the first render after a switch
+    // doesn't compare against the old viewpoint's strip position and pulse
+    // wrong pips (e.g. comparing East Ave pos=5.5 with Queens Road pos=6).
+    clearPreviousPositions();
   }
 
   // Always (re-)append the switcher first so it sits at the top of the flex column.

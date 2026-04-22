@@ -37,6 +37,12 @@ let snapshots: Partial<Record<Direction, DirectionSnapshots>> = {};
 let lastFetchMs: number | null = null;
 let lastError: string | undefined;
 
+// Generation counter — incremented on every viewpoint switch. tick() captures
+// the current value at invocation time and discards results if it has changed
+// by the time the fetch resolves, preventing a stale viewpoint's arrivals from
+// overwriting the current viewpoint's state during rapid switches.
+let tickGeneration = 0;
+
 const previousKind: Partial<Record<Direction, string>> = {};
 
 const WALKING_STORAGE_KEY = 'wtt_walking_enabled';
@@ -175,8 +181,10 @@ export function switchToViewpoint(id: string): void {
   lastError = undefined;
   predictionSamples.north.length = 0;
   predictionSamples.south.length = 0;
-  // Update the document title to reflect the new viewpoint.
-  document.title = `East Ave Trains — ${activeViewpoint.name}`;
+  // Invalidate any in-flight tick so it discards its results when it resolves.
+  tickGeneration++;
+  // Update the document title: viewpoint name first so browser tabs are readable.
+  document.title = `East Ave Trains — ${activeViewpoint.lineName} · ${activeViewpoint.name}`;
   // Update the --line-color CSS custom property so the header + train livery
   // pick up the new colour immediately.
   document.documentElement.style.setProperty('--line-color', activeViewpoint.lineColor);
@@ -297,10 +305,14 @@ function rerender(): void {
 }
 
 async function tick(): Promise<void> {
+  const gen = tickGeneration;
   try {
     const arrivals = await fetchArrivals(activeViewpoint.stopPointId, activeViewpoint.lineId);
     const picked = pickNextNPerDirection(arrivals, TICKER_SIZE, activeViewpoint);
     const now = Date.now();
+    // Bail if the viewpoint switched while the fetch was in flight — these
+    // arrivals belong to the old viewpoint and must not overwrite current state.
+    if (gen !== tickGeneration) return;
     // Record samples BEFORE reassigning snapshots so the buffer sees the hero
     // we're actually about to display.
     if (picked.north[0]) recordPredictionSample('north', picked.north[0], now);
@@ -313,7 +325,13 @@ async function tick(): Promise<void> {
     lastError = undefined;
     advanceFact();
   } catch (err) {
+    // Discard errors from stale in-flight ticks.
+    if (gen !== tickGeneration) return;
     lastError = err instanceof Error ? err.message : 'Network error — check connection';
+    // If we have no data yet (e.g. right after a viewpoint switch cleared
+    // lastFetchMs), retry in 3 s rather than leaving the user stuck on the
+    // error screen for the full 20 s poll interval.
+    if (lastFetchMs === null) setTimeout(() => { void tick(); }, 3000);
   }
   rerender();
 }

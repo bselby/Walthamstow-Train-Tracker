@@ -31,7 +31,7 @@ function buildSkeleton(): HTMLElement {
       <span class="switcher-header-label"></span>
       <span class="switcher-header-chevron" aria-hidden="true">▾</span>
     </button>
-    <div id="switcher-sheet" class="switcher-sheet" role="listbox" aria-label="Choose a viewpoint">
+    <div id="switcher-sheet" class="switcher-sheet" role="group" aria-label="Choose a viewpoint">
       <div class="switcher-sheet-inner"></div>
     </div>
   `;
@@ -41,21 +41,18 @@ function buildSkeleton(): HTMLElement {
 
   root.addEventListener('keydown', (e) => {
     if ((e as KeyboardEvent).key === 'Escape' && openState.get(root)) {
-      closeSheet(root);
-      header.focus();
+      closeSheet(root); // closeSheet already returns focus to header
     }
   });
 
-  // Clicking outside the switcher closes the sheet. Use capture phase so our
-  // handler runs before any other stopped-propagation handlers.
-  document.addEventListener(
-    'click',
-    (e) => {
-      if (!openState.get(root)) return;
-      if (!root.contains(e.target as Node)) closeSheet(root);
-    },
-    true,
-  );
+  // Outside-click closes the sheet. Using bubbling (not capture) so that
+  // row/star buttons' e.stopPropagation() naturally blocks this handler —
+  // those interactions are handled directly in the row/star click handlers.
+  // Outside clicks have no stopPropagation call so they bubble to document.
+  document.addEventListener('click', (e) => {
+    if (!openState.get(root)) return;
+    if (!root.contains(e.target as Node)) closeSheet(root);
+  });
 
   openState.set(root, false);
   return root;
@@ -74,8 +71,12 @@ function openSheet(root: HTMLElement): void {
 
 function closeSheet(root: HTMLElement): void {
   openState.set(root, false);
-  root.querySelector('.switcher-header')!.setAttribute('aria-expanded', 'false');
+  const header = root.querySelector<HTMLElement>('.switcher-header')!;
+  header.setAttribute('aria-expanded', 'false');
   root.querySelector('.switcher-sheet')!.classList.remove('open');
+  // Return focus to the header so keyboard users aren't left stranded on a
+  // now-hidden row button after Escape, row-select, or outside-click close.
+  header.focus();
 }
 
 function updateDynamic(root: HTMLElement, model: SwitcherModel): void {
@@ -93,9 +94,15 @@ function updateDynamic(root: HTMLElement, model: SwitcherModel): void {
     const row = document.createElement('button');
     row.type = 'button';
     row.className = 'switcher-row';
-    row.setAttribute('role', 'option');
     row.setAttribute('data-id', vp.id);
-    row.setAttribute('aria-selected', vp.id === activeViewpoint.id ? 'true' : 'false');
+    // aria-current="true" marks the actively-displayed viewpoint.
+    // (aria-selected is reserved for listbox/option semantics; role="group"
+    // + native buttons use aria-current instead.)
+    if (vp.id === activeViewpoint.id) {
+      row.setAttribute('aria-current', 'true');
+    } else {
+      row.removeAttribute('aria-current');
+    }
 
     const rowInner = document.createElement('span');
     rowInner.className = 'switcher-row-content';
@@ -108,9 +115,9 @@ function updateDynamic(root: HTMLElement, model: SwitcherModel): void {
     `;
     row.appendChild(rowInner);
 
-    // Row click → switch viewpoint. Don't bubble to the document click handler.
-    // Also collapse the sheet so the user isn't left with an open panel over
-    // the new viewpoint's strips — selecting a row is a terminal action.
+    // Row click → switch viewpoint + close sheet. e.stopPropagation() ensures
+    // the document outside-click handler doesn't also fire (the row IS inside
+    // the root, but stopPropagation is cleaner than relying on the contains check).
     row.addEventListener('click', (e) => {
       e.stopPropagation();
       // Don't fire switch when the click was actually on the star button.

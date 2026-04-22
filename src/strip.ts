@@ -173,6 +173,15 @@ const previousPos: Partial<Record<Direction, number>> = {};
 // tear down and rebuild when it changes.
 const previousViewpointStops = new WeakMap<HTMLElement, readonly Stop[]>();
 
+/** Called by render.ts on viewpoint switch to prevent the previous viewpoint's
+ *  last-known position from triggering a stale pip-pulse on the first render
+ *  of the new viewpoint's strips. */
+export function clearPreviousPositions(): void {
+  for (const key of Object.keys(previousPos) as Direction[]) {
+    delete previousPos[key];
+  }
+}
+
 export function renderDirectionStrip(
   el: HTMLElement | null,
   model: StripModel,

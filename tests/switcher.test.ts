@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderSwitcher, type SwitcherModel } from '../src/switcher';
 import { getViewpointById } from '../src/viewpoints';
 
@@ -21,6 +21,10 @@ describe('renderSwitcher', () => {
   beforeEach(() => {
     container = document.createElement('div');
     document.body.appendChild(container);
+  });
+
+  afterEach(() => {
+    document.body.removeChild(container);
   });
 
   it('renders the active line name + viewpoint name in the closed header', () => {
@@ -69,8 +73,9 @@ describe('renderSwitcher', () => {
     expect(onSetFavourite).not.toHaveBeenCalled();
   });
 
-  it('clicking a row closes the sheet (selecting a viewpoint is terminal)', () => {
+  it('clicking a row closes the sheet and returns focus to header', () => {
     const el = renderSwitcher(null, baseModel());
+    container.appendChild(el);
     const header = el.querySelector<HTMLButtonElement>('.switcher-header')!;
     header.click();
     expect(el.querySelector('.switcher-sheet')?.classList.contains('open')).toBe(true);
@@ -78,6 +83,7 @@ describe('renderSwitcher', () => {
     queensRow.click();
     expect(el.querySelector('.switcher-sheet')?.classList.contains('open')).toBe(false);
     expect(header.getAttribute('aria-expanded')).toBe('false');
+    expect(document.activeElement).toBe(header);
   });
 
   it('clicking a star calls onSetFavourite with its id and does NOT call onSwitch', () => {
@@ -108,24 +114,34 @@ describe('renderSwitcher', () => {
     expect(eastStar.classList.contains('filled')).toBe(false);
   });
 
-  it('marks the active viewpoint with aria-selected=true on its row', () => {
+  it('active viewpoint row has aria-current=true; others have no aria-current', () => {
     const el = renderSwitcher(null, baseModel({ activeViewpoint: EAST_AVE }));
+    container.appendChild(el);
     const header = el.querySelector<HTMLButtonElement>('.switcher-header')!;
     header.click();
     const eastRow = el.querySelector<HTMLButtonElement>(`.switcher-row[data-id="${EAST_AVE.id}"]`)!;
     const queensRow = el.querySelector<HTMLButtonElement>(`.switcher-row[data-id="${QUEENS_ROAD.id}"]`)!;
-    expect(eastRow.getAttribute('aria-selected')).toBe('true');
-    expect(queensRow.getAttribute('aria-selected')).toBe('false');
+    expect(eastRow.getAttribute('aria-current')).toBe('true');
+    expect(queensRow.hasAttribute('aria-current')).toBe(false);
   });
 
-  it('Escape key closes the sheet', () => {
+  it('sheet uses role=group, not role=listbox', () => {
     const el = renderSwitcher(null, baseModel());
+    const sheet = el.querySelector('.switcher-sheet')!;
+    expect(sheet.getAttribute('role')).toBe('group');
+    expect(sheet.getAttribute('role')).not.toBe('listbox');
+  });
+
+  it('Escape key closes the sheet and returns focus to the header', () => {
+    const el = renderSwitcher(null, baseModel());
+    container.appendChild(el);
     const header = el.querySelector<HTMLButtonElement>('.switcher-header')!;
     header.click();
     expect(header.getAttribute('aria-expanded')).toBe('true');
-    const event = new KeyboardEvent('keydown', { key: 'Escape' });
+    const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
     el.dispatchEvent(event);
     expect(header.getAttribute('aria-expanded')).toBe('false');
+    expect(document.activeElement).toBe(header);
   });
 
   it('re-rendering preserves the header DOM element (no flicker)', () => {

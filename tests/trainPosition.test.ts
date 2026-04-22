@@ -103,4 +103,18 @@ describe('estimatePosition — Queens Road (station model)', () => {
   it('tts > MAX_REASONABLE returns null', () => {
     expect(estimatePosition(2000, 'north', QUEENS_ROAD)).toBeNull();
   });
+
+  it('tts=1800 (MAX_REASONABLE) southbound → clamped to 12 (Barking Riverside)', () => {
+    // At exactly the boundary, the check is > not >=, so it proceeds to
+    // pre-arrival and walks all southbound segments; beyond the last it clamps.
+    expect(estimatePosition(1800, 'south', QUEENS_ROAD)).toBe(12);
+  });
+
+  it('tts=360 southbound → between LMR and LHR (walking segments correctly)', () => {
+    // Southbound from WQR(6): seg 6→7 = 180s, seg 7→8 = 120s (cum 300).
+    // At tts=360, we're in seg 8→9 (LHR→WPk, 240s). progress=(360-300)/240=0.25.
+    // toward=8 (LHR, closer to anchor), away=9 (WPk). pos = 8 + 0.25*1 = 8.25.
+    const pos = estimatePosition(360, 'south', QUEENS_ROAD);
+    expect(pos!).toBeCloseTo(8.25, 2);
+  });
 });
