@@ -302,6 +302,17 @@ function buildConfidenceRing(confidence: number): SVGElement {
   svg.setAttribute('viewBox', '0 0 100 100');
   svg.setAttribute('preserveAspectRatio', 'none');
 
+  // The ring is invisible at full confidence and grows continuously as
+  // confidence drops toward 0. Mapping (1 - confidence/threshold) keeps the
+  // arc smooth across the 0.7 boundary — no visual pop as it appears.
+  const arcFrac = Math.max(0, Math.min(100, (1 - confidence / CONFIDENCE_RING_VISIBLE_THRESHOLD) * 100));
+
+  // Skip the rect entirely when there's nothing to draw. If we set it up with
+  // stroke-dasharray "0 100" and stroke-linecap round, SVG still paints the
+  // round cap at the rect's start point — a tiny orange phantom dot above
+  // the countdown. At full confidence we want literally nothing in the DOM.
+  if (arcFrac <= 0) return svg;
+
   const rect = document.createElementNS(SVG_NS, 'rect');
   rect.setAttribute('x', '2');
   rect.setAttribute('y', '2');
@@ -314,11 +325,6 @@ function buildConfidenceRing(confidence: number): SVGElement {
   rect.setAttribute('stroke-width', '2.5');
   rect.setAttribute('stroke-linecap', 'round');
   rect.setAttribute('pathLength', '100');
-
-  // The ring is invisible at full confidence and grows continuously as
-  // confidence drops toward 0. Mapping (1 - confidence/threshold) keeps the
-  // arc smooth across the 0.7 boundary — no visual pop as it appears.
-  const arcFrac = Math.max(0, Math.min(100, (1 - confidence / CONFIDENCE_RING_VISIBLE_THRESHOLD) * 100));
   rect.setAttribute('stroke-dasharray', `${arcFrac} 100`);
 
   svg.appendChild(rect);
