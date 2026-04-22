@@ -9,3 +9,6 @@ dist-ssr
 .vite
 coverage
 .claude/
+
+# Local Netlify folder
+.netlify
