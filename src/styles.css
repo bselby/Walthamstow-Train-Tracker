@@ -650,28 +650,6 @@ html, body {
   opacity: 0.6;
 }
 
-/* ───── Confidence ring (only visible when confidence < 0.7) ───── */
-
-.value-wrap {
-  position: relative;
-  display: inline-block;
-  padding: 4px 8px;
-}
-
-.value-ring {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  color: var(--warn);
-  opacity: 0.9;
-}
-
-/* No transition on `.value-ring rect` — the SVG is rebuilt every render tick
-   so a CSS transition never gets a before/after pair to animate between. If
-   we want an actual fade one day, preserve the element across renders instead. */
-
 /* ───── Arrow emphasis (last-minute countdown) ───── */
 
 .row-imminent .label::first-letter {

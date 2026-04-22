@@ -17,8 +17,6 @@ export interface ViewModel {
   northTicker: BridgeEvent[];   // entries 1..n (hero is north)
   southTicker: BridgeEvent[];
   walkingLabel: string | null;  // null = feature disabled / not yet available
-  northConfidence: number;      // 1.0 = fully trusted; ring hidden at >= 0.7
-  southConfidence: number;
   fact: Fact;
   viewpoint: Viewpoint;   // active viewpoint — drives strip, header, theming
   favouriteViewpointId: string;   // id of the user's current favourite
@@ -118,7 +116,6 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
       vm.viewpoint.directions.north.label,
       vm.north,
       `Next train to ${vm.viewpoint.directions.north.terminusName}`,
-      vm.northConfidence,
     ));
     const stripN = renderDirectionStrip(existingStripN, {
       direction: 'north',
@@ -139,7 +136,6 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
       vm.viewpoint.directions.south.label,
       vm.south,
       `Next train to ${vm.viewpoint.directions.south.terminusName}`,
-      vm.southConfidence,
     ));
     const stripS = renderDirectionStrip(existingStripS, {
       direction: 'south',
@@ -348,50 +344,10 @@ function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]!));
 }
 
-const CONFIDENCE_RING_VISIBLE_THRESHOLD = 0.7;
-const SVG_NS = 'http://www.w3.org/2000/svg';
-
-function buildConfidenceRing(confidence: number): SVGElement {
-  const svg = document.createElementNS(SVG_NS, 'svg');
-  svg.setAttribute('class', 'value-ring');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.setAttribute('viewBox', '0 0 100 100');
-  svg.setAttribute('preserveAspectRatio', 'none');
-
-  // The ring is invisible at full confidence and grows continuously as
-  // confidence drops toward 0. Mapping (1 - confidence/threshold) keeps the
-  // arc smooth across the 0.7 boundary — no visual pop as it appears.
-  const arcFrac = Math.max(0, Math.min(100, (1 - confidence / CONFIDENCE_RING_VISIBLE_THRESHOLD) * 100));
-
-  // Skip the rect entirely when there's nothing to draw. If we set it up with
-  // stroke-dasharray "0 100" and stroke-linecap round, SVG still paints the
-  // round cap at the rect's start point — a tiny orange phantom dot above
-  // the countdown. At full confidence we want literally nothing in the DOM.
-  if (arcFrac <= 0) return svg;
-
-  const rect = document.createElementNS(SVG_NS, 'rect');
-  rect.setAttribute('x', '2');
-  rect.setAttribute('y', '2');
-  rect.setAttribute('width', '96');
-  rect.setAttribute('height', '96');
-  rect.setAttribute('rx', '14');
-  rect.setAttribute('ry', '14');
-  rect.setAttribute('fill', 'none');
-  rect.setAttribute('stroke', 'currentColor');
-  rect.setAttribute('stroke-width', '2.5');
-  rect.setAttribute('stroke-linecap', 'round');
-  rect.setAttribute('pathLength', '100');
-  rect.setAttribute('stroke-dasharray', `${arcFrac} 100`);
-
-  svg.appendChild(rect);
-  return svg;
-}
-
 function renderDirection(
   label: string,
   event: BridgeEvent | undefined,
   ariaLabel: string,
-  confidence: number
 ): HTMLElement {
   const row = document.createElement('section');
   row.className = 'row';
@@ -401,11 +357,6 @@ function renderDirection(
   labelEl.className = 'label';
   labelEl.textContent = label;
   row.appendChild(labelEl);
-
-  // Wrap the value in a positioning context so the confidence ring can overlay it.
-  const wrap = document.createElement('div');
-  wrap.className = 'value-wrap';
-  wrap.appendChild(buildConfidenceRing(confidence));
 
   const valueEl = document.createElement('div');
   valueEl.className = 'value';
@@ -432,7 +383,6 @@ function renderDirection(
   }
   previousValueText[label] = currentText;
 
-  wrap.appendChild(valueEl);
-  row.appendChild(wrap);
+  row.appendChild(valueEl);
   return row;
 }

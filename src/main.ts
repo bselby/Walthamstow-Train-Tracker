@@ -12,7 +12,6 @@ import type { Viewpoint } from './viewpoints';
 import type { Direction } from './direction';
 import { subscribe as subscribeLocation, start as startLocation, stop as stopLocation, getState as getLocationState } from './geolocation';
 import { walkingEstimate, formatWalkingLabel } from './walkingTime';
-import { computeConfidence, type PredictionSample } from './confidence';
 import { factAt } from './facts';
 
 // A small hello for anyone peeking at devtools. One console log, no overhead.
@@ -107,32 +106,6 @@ let favouriteViewpointId = loadFavouriteViewpointId();
 // else the default (East Ave).
 let activeViewpoint: Viewpoint = getViewpointById(favouriteViewpointId)!;
 
-// Per-direction ring buffer of the last N prediction samples for the hero train.
-// Used by confidence.computeStability to detect when TfL is reshuffling the schedule.
-const PREDICTION_SAMPLES_KEEP = 3;
-const predictionSamples: Record<Direction, PredictionSample[]> = { north: [], south: [] };
-
-function recordPredictionSample(dir: Direction, ev: BridgeEvent, fetchedAtMs: number): void {
-  // Fall back to the prediction id if TfL doesn't ship a vehicleId for this
-  // arrival (shouldn't happen in prod — the real feed always sets it — but
-  // test fixtures and edge cases might). The stability score just degrades
-  // gracefully in that case: the buffer resets on every poll, stability stays 1.0.
-  const sample: PredictionSample = {
-    vehicleId: ev.arrival.vehicleId ?? ev.arrival.id,
-    timeToStation: ev.arrival.timeToStation,
-    fetchedAtMs,
-  };
-  const buf = predictionSamples[dir];
-  // If the hero's vehicle changed (the previous train left and a new one was
-  // promoted), the history is irrelevant — reset the buffer so we cold-start
-  // stability back at 1.0.
-  if (buf.length > 0 && buf[buf.length - 1].vehicleId !== sample.vehicleId) {
-    buf.length = 0;
-  }
-  buf.push(sample);
-  while (buf.length > PREDICTION_SAMPLES_KEEP) buf.shift();
-}
-
 // Facts rotation — persist a monotonically-increasing index in localStorage so the
 // user doesn't always see the same fact first on each app open. Advance once per
 // successful TfL poll.
@@ -179,8 +152,6 @@ export function switchToViewpoint(id: string): void {
   snapshots = {};
   lastFetchMs = null;
   lastError = undefined;
-  predictionSamples.north.length = 0;
-  predictionSamples.south.length = 0;
   // Invalidate any in-flight tick so it discards its results when it resolves.
   tickGeneration++;
   // Update the document title: viewpoint name first so browser tabs are readable.
@@ -267,8 +238,6 @@ function buildViewModel(): ViewModel {
     }
   }
 
-  const ageMs = lastFetchMs === null ? 0 : now - lastFetchMs;
-
   return {
     north: heroes.north,
     south: heroes.south,
@@ -280,8 +249,6 @@ function buildViewModel(): ViewModel {
     northTicker: tickers.north,
     southTicker: tickers.south,
     walkingLabel: computeWalkingLabel(),
-    northConfidence: heroes.north ? computeConfidence(ageMs, predictionSamples.north) : 1,
-    southConfidence: heroes.south ? computeConfidence(ageMs, predictionSamples.south) : 1,
     fact: factAt(factIndex),
     viewpoint: activeViewpoint,
     favouriteViewpointId,
@@ -313,10 +280,6 @@ async function tick(): Promise<void> {
     // Bail if the viewpoint switched while the fetch was in flight — these
     // arrivals belong to the old viewpoint and must not overwrite current state.
     if (gen !== tickGeneration) return;
-    // Record samples BEFORE reassigning snapshots so the buffer sees the hero
-    // we're actually about to display.
-    if (picked.north[0]) recordPredictionSample('north', picked.north[0], now);
-    if (picked.south[0]) recordPredictionSample('south', picked.south[0], now);
     snapshots = {
       north: picked.north.length > 0 ? { events: picked.north, snapshottedAtMs: now } : undefined,
       south: picked.south.length > 0 ? { events: picked.south, snapshottedAtMs: now } : undefined,
