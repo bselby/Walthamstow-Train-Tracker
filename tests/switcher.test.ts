@@ -69,6 +69,17 @@ describe('renderSwitcher', () => {
     expect(onSetFavourite).not.toHaveBeenCalled();
   });
 
+  it('clicking a row closes the sheet (selecting a viewpoint is terminal)', () => {
+    const el = renderSwitcher(null, baseModel());
+    const header = el.querySelector<HTMLButtonElement>('.switcher-header')!;
+    header.click();
+    expect(el.querySelector('.switcher-sheet')?.classList.contains('open')).toBe(true);
+    const queensRow = el.querySelector<HTMLButtonElement>(`.switcher-row[data-id="${QUEENS_ROAD.id}"]`)!;
+    queensRow.click();
+    expect(el.querySelector('.switcher-sheet')?.classList.contains('open')).toBe(false);
+    expect(header.getAttribute('aria-expanded')).toBe('false');
+  });
+
   it('clicking a star calls onSetFavourite with its id and does NOT call onSwitch', () => {
     const onSwitch = vi.fn();
     const onSetFavourite = vi.fn();

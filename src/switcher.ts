@@ -109,10 +109,13 @@ function updateDynamic(root: HTMLElement, model: SwitcherModel): void {
     row.appendChild(rowInner);
 
     // Row click → switch viewpoint. Don't bubble to the document click handler.
+    // Also collapse the sheet so the user isn't left with an open panel over
+    // the new viewpoint's strips — selecting a row is a terminal action.
     row.addEventListener('click', (e) => {
       e.stopPropagation();
       // Don't fire switch when the click was actually on the star button.
       if ((e.target as HTMLElement).closest('.switcher-star')) return;
+      closeSheet(root);
       onSwitch(vp.id);
     });
 
