@@ -4,6 +4,7 @@ import type { Fact } from './facts';
 import type { Viewpoint } from './viewpoints';
 import { formatCountdown, formatAge } from './display';
 import { renderDirectionStrip } from './strip';
+import { renderSwitcher } from './switcher';
 
 export interface ViewModel {
   north?: BridgeEvent;
@@ -34,14 +35,15 @@ export interface RenderOptions {
 }
 
 export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions): void {
-  // Preserve static header and strips across renders so the header stays put
-  // and the strips keep their CSS transitions alive between state updates.
-  // Everything else (rows, footer, error, empty) is rebuilt each tick.
-  const existingHeader = root.querySelector<HTMLElement>('.page-header');
+  // Preserve the switcher and strips across renders so the switcher keeps its
+  // open/closed state + listeners, and the strips keep their CSS transitions
+  // alive between state updates. Everything else (rows, footer, error, empty)
+  // is rebuilt each tick.
+  const existingSwitcher = root.querySelector<HTMLElement>('.switcher');
   const existingStripN = root.querySelector<HTMLElement>('.strip-north');
   const existingStripS = root.querySelector<HTMLElement>('.strip-south');
   const preserved = new Set<Element>();
-  if (existingHeader) preserved.add(existingHeader);
+  if (existingSwitcher) preserved.add(existingSwitcher);
   if (existingStripN) preserved.add(existingStripN);
   if (existingStripS) preserved.add(existingStripS);
 
@@ -49,8 +51,14 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
     if (!preserved.has(child)) root.removeChild(child);
   });
 
-  // Always re-append the header first so it sits at the top of the flex column.
-  if (existingHeader) root.appendChild(existingHeader);
+  // Always (re-)append the switcher first so it sits at the top of the flex column.
+  const switcher = renderSwitcher(existingSwitcher, {
+    activeViewpoint: vm.viewpoint,
+    favouriteViewpointId: vm.favouriteViewpointId,
+    onSwitch: options.onSwitchViewpoint,
+    onSetFavourite: options.onSetFavouriteViewpoint,
+  });
+  root.appendChild(switcher);
 
   // Walking-time row immediately below the header (only when we're showing rows,
   // not in the error-only state — same treatment as the rows themselves).
