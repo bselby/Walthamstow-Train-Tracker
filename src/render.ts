@@ -1,5 +1,6 @@
 import type { BridgeEvent } from './bridge';
 import type { FreshnessState } from './freshness';
+import type { Fact } from './facts';
 import { formatCountdown, formatAge } from './display';
 import { renderDirectionStrip } from './strip';
 
@@ -16,12 +17,15 @@ export interface ViewModel {
   walkingLabel: string | null;  // null = feature disabled / not yet available
   northConfidence: number;      // 1.0 = fully trusted; ring hidden at >= 0.7
   southConfidence: number;
-  fact: string;
+  fact: Fact;
 }
 
 export interface RenderOptions {
   onEnableWalkingTime: () => void;
   onDisableWalkingTime: () => void;
+  /** Called when the user taps / clicks the fact ticker. Advances to the next
+   *  fact immediately (giving Ben agency + the toddler something to poke at). */
+  onAdvanceFact: () => void;
 }
 
 export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions): void {
@@ -105,7 +109,8 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
 
   // Quiet rotating line of verified Weaver-line trivia, below the "updated Xs ago"
   // footer and above the About/Privacy/Terms links. Never competes with the data.
-  const factLine = renderFactLine(vm.fact);
+  // Tap to advance — turns it into a tiny interactive toy for toddler prodding.
+  const factLine = renderFactLine(vm.fact, options.onAdvanceFact);
   if (factLine) root.appendChild(factLine);
 
   const docs = document.createElement('nav');
@@ -152,31 +157,91 @@ function renderTicker(events: BridgeEvent[]): HTMLElement | null {
 // Memo of the last-rendered fact so we can animate a fade only on change.
 let previousFactText: string | null = null;
 
-// A small roundel-with-"?" lockup that prefixes the fact. Uses `currentColor`
-// for both ring and glyph so the whole mark inherits the overground-orange
-// colour from .fact-icon, keeping the colour source in one place (CSS).
-const FACT_ICON_SVG =
-  '<svg class="fact-icon" viewBox="0 0 16 16" aria-hidden="true">' +
-    '<circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.4"/>' +
-    '<path d="M5.9 6.1c0-1.2 1-2.1 2.2-2.1 1.1 0 2.1.8 2.1 2 0 1.5-2 1.6-2 3.1" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>' +
-    '<circle cx="8.1" cy="11.3" r="0.75" fill="currentColor"/>' +
-  '</svg>';
+// Category → SVG icon. All 16×16 viewBoxes using `currentColor` so CSS controls
+// the fill (Overground orange by default). Tiny, child-book-flavoured marks —
+// they turn the ticker into something that visibly cycles through subjects.
+//
+// - line:    a weaver-zigzag inside a roundel (Weaver line origin = textile workers)
+// - station: a platform/sign silhouette with a flagpole
+// - train:   a cartoon train-front matching the strips' carriages
+// - local:   a simple tree for Walthamstow-local trivia
+// - default: the roundel-with-"?" used when a new fact is added without a category
+const FACT_ICONS: Record<string, string> = {
+  line:
+    '<svg class="fact-icon" viewBox="0 0 16 16" aria-hidden="true">' +
+      '<circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.4"/>' +
+      '<path d="M3.8 8 L5.6 6.2 L7.4 9.8 L9.2 6.2 L11 9.8 L12.8 8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '</svg>',
+  station:
+    '<svg class="fact-icon" viewBox="0 0 16 16" aria-hidden="true">' +
+      '<path d="M7.6 2.5 V6" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>' +
+      '<path d="M7.6 2.6 L11.2 3.6 L7.6 4.6 Z" fill="currentColor"/>' +
+      '<rect x="3" y="7.2" width="9.4" height="5.8" rx="0.9" fill="none" stroke="currentColor" stroke-width="1.3"/>' +
+      '<path d="M3 9.4 L12.4 9.4" stroke="currentColor" stroke-width="1.1"/>' +
+      '<circle cx="5.4" cy="11.3" r="0.6" fill="currentColor"/>' +
+      '<circle cx="10" cy="11.3" r="0.6" fill="currentColor"/>' +
+    '</svg>',
+  train:
+    '<svg class="fact-icon" viewBox="0 0 16 16" aria-hidden="true">' +
+      '<rect x="2.4" y="4" width="11.2" height="7.2" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.3"/>' +
+      '<rect x="4.2" y="5.8" width="2.6" height="2.2" rx="0.5" fill="currentColor"/>' +
+      '<rect x="9.2" y="5.8" width="2.6" height="2.2" rx="0.5" fill="currentColor"/>' +
+      '<circle cx="5.2" cy="12.2" r="0.9" fill="currentColor"/>' +
+      '<circle cx="10.8" cy="12.2" r="0.9" fill="currentColor"/>' +
+    '</svg>',
+  local:
+    '<svg class="fact-icon" viewBox="0 0 16 16" aria-hidden="true">' +
+      '<path d="M8 2 C5.5 4.5 4.8 6.8 4.8 8.3 C4.8 9.8 6.2 10.9 8 10.9 C9.8 10.9 11.2 9.8 11.2 8.3 C11.2 6.8 10.5 4.5 8 2 Z" fill="currentColor"/>' +
+      '<path d="M8 10.5 L8 13.8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>' +
+    '</svg>',
+  default:
+    '<svg class="fact-icon" viewBox="0 0 16 16" aria-hidden="true">' +
+      '<circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.4"/>' +
+      '<path d="M5.9 6.1c0-1.2 1-2.1 2.2-2.1 1.1 0 2.1.8 2.1 2 0 1.5-2 1.6-2 3.1" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>' +
+      '<circle cx="8.1" cy="11.3" r="0.75" fill="currentColor"/>' +
+    '</svg>',
+};
 
-function renderFactLine(fact: string): HTMLElement | null {
-  if (!fact) return null;
-  const el = document.createElement('div');
-  el.className = 'fact-line';
+const CATEGORY_LABEL: Record<string, string> = {
+  line: 'Line',
+  station: 'Station',
+  train: 'Train',
+  local: 'Walthamstow',
+  default: 'Trivia',
+};
+
+function renderFactLine(fact: Fact, onAdvance: () => void): HTMLElement | null {
+  if (!fact || !fact.text) return null;
+
+  const el = document.createElement('button');
+  el.type = 'button';
+  el.className = `fact-line fact-line-${fact.category}`;
+  el.setAttribute(
+    'aria-label',
+    `${CATEGORY_LABEL[fact.category] ?? 'Trivia'}: ${fact.text}. Tap for another fact.`,
+  );
+
   // Build icon + text so only the text wraps / ellipsises — the icon always
   // stays pinned to the left of the fact, flex-shrink:0 in CSS.
+  const iconSvg = FACT_ICONS[fact.category] ?? FACT_ICONS.default;
   const text = document.createElement('span');
   text.className = 'fact-text';
-  text.textContent = fact;
-  el.innerHTML = FACT_ICON_SVG;
+  text.textContent = fact.text;
+  el.innerHTML = iconSvg;
   el.appendChild(text);
-  if (previousFactText !== fact) {
+
+  // Only animate on *change* — not on every re-render — so the icon pop reads
+  // as "new fact arrived" rather than as ambient jitter.
+  if (previousFactText !== fact.text) {
     el.classList.add('fact-enter');
   }
-  previousFactText = fact;
+  previousFactText = fact.text;
+
+  el.addEventListener('click', (e) => {
+    e.preventDefault();
+    onAdvance();
+  });
+
   return el;
 }
 

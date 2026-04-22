@@ -232,6 +232,13 @@ function rerender(): void {
   render(root, buildViewModel(), {
     onEnableWalkingTime: enableWalkingTime,
     onDisableWalkingTime: disableWalkingTime,
+    onAdvanceFact: () => {
+      // Tap on the fact line — advance + repaint immediately so the tap feels
+      // instant (not "next time the 1 s loop fires"). Persisted index survives
+      // across sessions so the next fact doesn't keep resetting.
+      advanceFact();
+      rerender();
+    },
   });
 }
 

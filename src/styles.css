@@ -506,10 +506,20 @@ html, body {
 /* ───── Rotating fact line ─────
    Sits between the "updated Xs ago" footer and the doc-links row. Styled as
    an editorial line (sentence case, navy text) rather than metadata, with a
-   small roundel-with-"?" icon to signal "did you know" at a glance. Needs to
-   read differently from the uppercase grey metadata directly above it. */
+   category-aware mini icon that visibly cycles through subjects (line,
+   station, train, local). Tapping the whole row advances to the next fact —
+   a tiny interactive toy for toddler prodding. */
 
 .fact-line {
+  /* Reset the <button> defaults so the row looks like content, not a control. */
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0.75rem 0.5rem 0.25rem;
+  margin: 0 auto;
+  font: inherit;
+  cursor: pointer;
+
   display: flex;
   justify-content: center;
   align-items: center;
@@ -521,8 +531,26 @@ html, body {
   text-align: center;
   letter-spacing: 0;
   opacity: 0.82;
-  padding-top: 0.75rem;
   max-width: 100%;
+  border-radius: 6px;
+
+  /* Squeeze-on-press and gentle hover lift — handled in a single transition. */
+  transition: transform 180ms cubic-bezier(0.25, 1, 0.5, 1),
+              opacity 180ms ease;
+}
+
+.fact-line:hover {
+  opacity: 1;
+}
+
+.fact-line:active {
+  transform: scale(0.97);
+  transition-duration: 60ms;
+}
+
+.fact-line:focus-visible {
+  outline: 2px solid var(--overground);
+  outline-offset: 3px;
 }
 
 .fact-text {
@@ -533,26 +561,43 @@ html, body {
 }
 
 .fact-icon {
-  width: 0.95rem;
-  height: 0.95rem;
+  width: 1.05rem;
+  height: 1.05rem;
   flex-shrink: 0;
   color: var(--overground);  /* currentColor feeds the SVG strokes/fill */
-  opacity: 0.9;
+  opacity: 0.95;
+  transform-origin: center;
   transform: translateY(-0.5px);  /* optical centring against text x-height */
 }
 
+/* When the fact changes, the row fades + rises; the icon additionally bounces
+   with a little overshoot so the "new arrival" registers as a small event,
+   not a silent re-paint. Two separate keyframes so the effects compose cleanly. */
 .fact-line.fact-enter {
-  animation: fact-fade 420ms ease;
+  animation: fact-fade 420ms ease both;
+}
+.fact-line.fact-enter .fact-icon {
+  animation: fact-icon-pop 520ms cubic-bezier(0.2, 1.4, 0.3, 1) both;
 }
 
 @keyframes fact-fade {
-  from { opacity: 0; transform: translateY(2px); }
+  from { opacity: 0; transform: translateY(3px); }
   to   { opacity: 0.82; transform: translateY(0); }
 }
 
+@keyframes fact-icon-pop {
+  0%   { transform: translateY(-0.5px) scale(0.3) rotate(-18deg); opacity: 0; }
+  55%  { transform: translateY(-0.5px) scale(1.18) rotate(4deg);  opacity: 1; }
+  100% { transform: translateY(-0.5px) scale(1)    rotate(0);     opacity: 0.95; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .fact-line.fact-enter {
+  .fact-line.fact-enter,
+  .fact-line.fact-enter .fact-icon {
     animation: none;
+  }
+  .fact-line {
+    transition: none;
   }
 }
 
