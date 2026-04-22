@@ -231,6 +231,7 @@ function buildViewModel(): ViewModel {
     northConfidence: heroes.north ? computeConfidence(ageMs, predictionSamples.north) : 1,
     southConfidence: heroes.south ? computeConfidence(ageMs, predictionSamples.south) : 1,
     fact: factAt(factIndex),
+    viewpoint: activeViewpoint,
   };
 }
 

@@ -1,12 +1,19 @@
-import { STOPS } from './stops';
+import type { Stop } from './stops';
 import type { Direction } from './direction';
 import { currentTheme, type Theme } from './season';
 import { toot } from './toot';
 
-export interface DirectionStripModel {
+export interface StripModel {
   direction: Direction;
   pos: number | null;
   celebrate: boolean;
+  stops: readonly Stop[];
+  anchorIndex: number;
+  /** Strip position of the bridge graphic, if any. For station viewpoints, null. */
+  bridgeStripPosition: number | null;
+  /** Label for the bridge graphic ("East Av") when bridgeStripPosition is set. */
+  bridgeLabel: string | null;
+  lineNameForAria: string; // e.g. 'Weaver line', 'Suffragette line'
 }
 
 const BRIDGE_SVG = `
@@ -16,9 +23,8 @@ const BRIDGE_SVG = `
 </svg>
 `;
 
-// Stylised London Overground Class 710 Aventra — side profile with raked cab nose.
-// Uses named classes so CSS colours the parts: body (cream), livery/doors (overground orange),
-// windows/cab/bogies (ink navy). Mirrors cleanly via scaleX(-1) for southbound.
+// Stylised Class 710 Aventra. `.train-livery` + `.train-body` now use currentColor
+// so the viewpoint's --line-color drives the livery.
 const TRAIN_SVG = `
 <svg class="strip-train-svg" viewBox="0 0 52 22" aria-hidden="true">
   <path class="train-body" d="M1 4 L42 4 L50 8 L50 17 L1 17 Z"/>
@@ -131,34 +137,28 @@ function themedTrainSvg(theme: Theme): string {
   return TRAIN_SVG.replace('</svg>', `${THEME_OVERLAYS[theme]}</svg>`);
 }
 
-function createTrainElement(direction: Direction, theme: Theme): HTMLElement {
+function createTrainElement(direction: Direction, theme: Theme, lastIndex: number): HTMLElement {
   const el = document.createElement('div');
   el.className = `strip-train strip-train-${direction}`;
-  el.style.setProperty('--pos', direction === 'north' ? '0' : '8');
+  // North trains start at position 0 (left), south at lastIndex (right).
+  el.style.setProperty('--pos', direction === 'north' ? '0' : String(lastIndex));
   el.dataset.theme = theme ?? '';
 
-  // Inner wrapper so we can animate a toot-wobble scale (in Task 7) without
-  // overwriting the outer translate positioning.
   const inner = document.createElement('div');
   inner.className = 'strip-train-inner';
   inner.innerHTML = themedTrainSvg(theme);
-
   el.appendChild(inner);
 
-  // Tap to toot — emits a synth honk and triggers the wobble animation.
   el.addEventListener('click', () => {
     toot();
     el.classList.remove('tooting');
-    void el.offsetWidth; // force reflow so the animation restarts
+    void el.offsetWidth;
     el.classList.add('tooting');
   });
 
   return el;
 }
 
-/** Swap the seasonal overlay on an already-built train when the date-based
- *  theme rolls over (e.g. Halloween → Bonfire at midnight). Preserves the
- *  outer `.strip-train` node so CSS transitions and the click listener survive. */
 function refreshTrainTheme(strip: HTMLElement, theme: Theme): void {
   strip.querySelectorAll<HTMLElement>('.strip-train').forEach((train) => {
     if (train.dataset.theme === (theme ?? '')) return;
@@ -168,26 +168,23 @@ function refreshTrainTheme(strip: HTMLElement, theme: Theme): void {
   });
 }
 
-/**
- * Render a single direction's strip. If `el` is null, builds a new skeleton and
- * returns it; otherwise updates the existing one in place (preserving the DOM
- * node so CSS transitions survive between renders). The caller is responsible
- * for appending the returned element to the correct parent.
- */
 const previousPos: Partial<Record<Direction, number>> = {};
+// Remember which viewpoint each direction's strip last rendered for, so we can
+// tear down and rebuild when it changes.
+const previousViewpointStops = new WeakMap<HTMLElement, readonly Stop[]>();
 
 export function renderDirectionStrip(
   el: HTMLElement | null,
-  model: DirectionStripModel
+  model: StripModel,
 ): HTMLElement {
-  const strip = el ?? buildSkeleton(model.direction);
-  // Check for a theme rollover on every render so a session open across midnight
-  // (e.g. Halloween 31st → Bonfire 1st) swaps the train overlay automatically.
+  // If the stops list changed (e.g. user switched viewpoints), force a rebuild.
+  const stale = el !== null && previousViewpointStops.get(el) !== model.stops;
+  const strip = stale || el === null ? buildSkeleton(model) : el;
+  previousViewpointStops.set(strip, model.stops);
+
   refreshTrainTheme(strip, currentTheme(new Date()));
   updateDynamic(strip, model);
 
-  // Pulse any station pips the train crossed since the last render — a small
-  // toddler-delight so you can see the train "visiting" each stop.
   const prev = previousPos[model.direction];
   if (prev !== undefined && model.pos !== null && prev !== model.pos) {
     const lo = Math.min(prev, model.pos);
@@ -196,11 +193,8 @@ export function renderDirectionStrip(
       pulsePip(strip, i);
     }
   }
-  if (model.pos !== null) {
-    previousPos[model.direction] = model.pos;
-  } else {
-    delete previousPos[model.direction];
-  }
+  if (model.pos !== null) previousPos[model.direction] = model.pos;
+  else delete previousPos[model.direction];
 
   return strip;
 }
@@ -210,26 +204,27 @@ function pulsePip(strip: HTMLElement, index: number): void {
   const pip = pips[index];
   if (!pip) return;
   pip.classList.remove('pulsing');
-  // Force a reflow so the animation restarts even if the class was just removed.
   void pip.offsetWidth;
   pip.classList.add('pulsing');
 }
 
-function buildSkeleton(direction: Direction): HTMLElement {
+function buildSkeleton(model: StripModel): HTMLElement {
   const container = document.createElement('section');
-  container.className = `strip strip-${direction}`;
+  container.className = `strip strip-${model.direction}`;
   container.setAttribute(
     'aria-label',
-    direction === 'north'
-      ? 'Northbound train position on the Weaver line'
-      : 'Southbound train position on the Weaver line'
+    model.direction === 'north'
+      ? `Northbound train position on the ${model.lineNameForAria}`
+      : `Southbound train position on the ${model.lineNameForAria}`,
   );
+  // Expose the stop count to CSS so --pos → translate math scales.
+  container.style.setProperty('--stop-count', String(model.stops.length));
 
   const line = document.createElement('div');
   line.className = 'strip-line';
   container.appendChild(line);
 
-  for (const stop of STOPS) {
+  for (const stop of model.stops) {
     const pip = document.createElement('div');
     pip.className = 'strip-pip';
     pip.style.setProperty('--pos', String(stop.index));
@@ -246,25 +241,27 @@ function buildSkeleton(direction: Direction): HTMLElement {
     container.appendChild(pip);
   }
 
-  const bridge = document.createElement('div');
-  bridge.className = 'strip-bridge';
-  bridge.style.setProperty('--pos', '5.5');
-  bridge.innerHTML = `${BRIDGE_SVG}<span class="strip-bridge-label">East Av</span>`;
-  container.appendChild(bridge);
+  if (model.bridgeStripPosition !== null && model.bridgeLabel !== null) {
+    const bridge = document.createElement('div');
+    bridge.className = 'strip-bridge';
+    bridge.style.setProperty('--pos', String(model.bridgeStripPosition));
+    bridge.innerHTML = `${BRIDGE_SVG}<span class="strip-bridge-label">${model.bridgeLabel}</span>`;
+    container.appendChild(bridge);
+  }
 
   const theme = currentTheme(new Date());
-  const train = createTrainElement(direction, theme);
+  const train = createTrainElement(model.direction, theme, model.stops.length - 1);
   container.appendChild(train);
 
   return container;
 }
 
-function updateDynamic(container: HTMLElement, model: DirectionStripModel): void {
+function updateDynamic(container: HTMLElement, model: StripModel): void {
   const train = container.querySelector<HTMLElement>('.strip-train')!;
-  const bridge = container.querySelector<HTMLElement>('.strip-bridge')!;
+  const bridge = container.querySelector<HTMLElement>('.strip-bridge');
 
   setTrain(train, model.pos);
-  bridge.classList.toggle('celebrating', model.celebrate);
+  if (bridge) bridge.classList.toggle('celebrating', model.celebrate);
 }
 
 function setTrain(el: HTMLElement, pos: number | null): void {

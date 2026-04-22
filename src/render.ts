@@ -1,6 +1,7 @@
 import type { BridgeEvent } from './bridge';
 import type { FreshnessState } from './freshness';
 import type { Fact } from './facts';
+import type { Viewpoint } from './viewpoints';
 import { formatCountdown, formatAge } from './display';
 import { renderDirectionStrip } from './strip';
 
@@ -18,6 +19,7 @@ export interface ViewModel {
   northConfidence: number;      // 1.0 = fully trusted; ring hidden at >= 0.7
   southConfidence: number;
   fact: Fact;
+  viewpoint: Viewpoint;   // active viewpoint — drives strip, header, theming
 }
 
 export interface RenderOptions {
@@ -78,22 +80,42 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
     root.appendChild(empty);
   } else {
     // Northbound: row, strip, ticker
-    root.appendChild(renderDirection('→ Chingford', vm.north, 'Next train to Chingford', vm.northConfidence));
+    root.appendChild(renderDirection(
+      vm.viewpoint.directions.north.label,
+      vm.north,
+      `Next train to ${vm.viewpoint.directions.north.terminusName}`,
+      vm.northConfidence,
+    ));
     const stripN = renderDirectionStrip(existingStripN, {
       direction: 'north',
       pos: vm.northPos,
       celebrate: vm.celebrate.north,
+      stops: vm.viewpoint.stops,
+      anchorIndex: vm.viewpoint.anchorIndex,
+      bridgeStripPosition: vm.viewpoint.positionModel === 'east-ave-bridge' ? 5.5 : null,
+      bridgeLabel: vm.viewpoint.positionModel === 'east-ave-bridge' ? 'East Av' : null,
+      lineNameForAria: `${vm.viewpoint.lineName} line`,
     });
     root.appendChild(stripN);
     const tickerN = renderTicker(vm.northTicker);
     if (tickerN) root.appendChild(tickerN);
 
     // Southbound: row, strip, ticker
-    root.appendChild(renderDirection('← Walthamstow Central', vm.south, 'Next train to Walthamstow Central', vm.southConfidence));
+    root.appendChild(renderDirection(
+      vm.viewpoint.directions.south.label,
+      vm.south,
+      `Next train to ${vm.viewpoint.directions.south.terminusName}`,
+      vm.southConfidence,
+    ));
     const stripS = renderDirectionStrip(existingStripS, {
       direction: 'south',
       pos: vm.southPos,
       celebrate: vm.celebrate.south,
+      stops: vm.viewpoint.stops,
+      anchorIndex: vm.viewpoint.anchorIndex,
+      bridgeStripPosition: vm.viewpoint.positionModel === 'east-ave-bridge' ? 5.5 : null,
+      bridgeLabel: vm.viewpoint.positionModel === 'east-ave-bridge' ? 'East Av' : null,
+      lineNameForAria: `${vm.viewpoint.lineName} line`,
     });
     root.appendChild(stripS);
     const tickerS = renderTicker(vm.southTicker);
