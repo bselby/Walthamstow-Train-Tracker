@@ -12,6 +12,8 @@
   --error:        oklch(50% 0.19 25);    /* deep red */
 
   --gap: clamp(1rem, 3vw, 2rem);
+
+  --line-color: oklch(35% 0.12 10); /* Weaver burgundy — default; main.ts overrides per viewpoint */
 }
 
 * { box-sizing: border-box; }
@@ -202,7 +204,7 @@ html, body {
 .strip-pip {
   position: absolute;
   top: 50%;
-  left: calc(var(--pos) * (100% - 32px) / 8 + 16px);
+  left: calc(var(--pos) * (100% - 32px) / (var(--stop-count, 9) - 1) + 16px);
   transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
@@ -234,7 +236,7 @@ html, body {
 .strip-bridge {
   position: absolute;
   top: 50%;
-  left: calc(var(--pos) * (100% - 32px) / 8 + 16px);
+  left: calc(var(--pos) * (100% - 32px) / (var(--stop-count, 9) - 1) + 16px);
   transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
@@ -266,11 +268,11 @@ html, body {
 .strip-train {
   position: absolute;
   top: 50%;
-  left: calc(var(--pos) * (100% - 32px) / 8 + 16px);
+  left: calc(var(--pos) * (100% - 32px) / (var(--stop-count, 9) - 1) + 16px);
   transform: translate(-50%, -50%);
   width: 52px;
   height: 22px;
-  color: var(--overground);
+  color: var(--line-color);
   /* pointer-events:auto explicitly — the train is the ONLY interactive element
      on the strip (tap to toot). Was briefly set to `none` which silently broke
      the click handler. */
@@ -686,5 +688,177 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .row-imminent .label::first-letter {
     animation: none;
+  }
+}
+
+/* ───── Viewpoint switcher ─────
+   Tappable line-name header; taps toggle an inline sheet listing viewpoints
+   with per-row star buttons. Uses grid-template-rows 0fr → 1fr for the sheet
+   animation so there's no height-measurement jank. */
+
+.switcher {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  max-width: 100%;
+}
+
+.switcher-header {
+  /* Reset <button> defaults */
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0.6rem 1rem;
+  margin: 0;
+  font: inherit;
+  cursor: pointer;
+
+  /* Typography matches the old .page-header */
+  font-family: 'Big Shoulders Display', sans-serif;
+  font-weight: 900;
+  font-size: 1.4rem;
+  letter-spacing: 0.02em;
+  text-align: center;
+  color: var(--line-color);
+
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.4em;
+
+  transition: transform 180ms cubic-bezier(0.25, 1, 0.5, 1),
+              opacity 180ms ease;
+}
+
+.switcher-header:hover { opacity: 0.9; }
+.switcher-header:active {
+  transform: scale(0.97);
+  transition-duration: 60ms;
+}
+.switcher-header:focus-visible {
+  outline: 2px solid var(--line-color);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.switcher-header-chevron {
+  font-size: 0.75em;
+  transition: transform 220ms cubic-bezier(0.25, 1, 0.5, 1);
+  display: inline-block;
+}
+.switcher-header[aria-expanded="true"] .switcher-header-chevron {
+  transform: rotate(180deg);
+}
+
+/* Sheet — grid-rows 0fr → 1fr animation. The inner wrapper has
+   overflow: hidden and min-height: 0 so grid content collapses cleanly. */
+.switcher-sheet {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 220ms cubic-bezier(0.25, 1, 0.5, 1);
+  width: 100%;
+}
+.switcher-sheet.open { grid-template-rows: 1fr; }
+.switcher-sheet-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.switcher-row {
+  appearance: none;
+  background: transparent;
+  border: none;
+  width: 100%;
+  padding: 0.6rem 1rem;
+  margin: 0;
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  text-align: left;
+  transition: background-color 140ms ease;
+}
+.switcher-row:hover { background-color: oklch(from var(--bg) calc(l - 0.03) c h); }
+.switcher-row:active { background-color: oklch(from var(--bg) calc(l - 0.06) c h); }
+.switcher-row:focus-visible {
+  outline: 2px solid var(--line-color);
+  outline-offset: -2px;
+}
+
+.switcher-row-content {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  flex: 1;
+  min-width: 0;
+}
+
+.switcher-row-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink);
+  flex-shrink: 0;
+}
+.switcher-row-dot.active { background-color: var(--ink); }
+
+.switcher-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1em;
+  min-width: 0;
+}
+.switcher-row-name {
+  font-family: 'Big Shoulders Display', sans-serif;
+  font-weight: 900;
+  font-size: 1.1rem;
+  color: var(--ink);
+  line-height: 1.1;
+}
+.switcher-row-line {
+  font-family: 'Big Shoulders Text', sans-serif;
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  opacity: 0.85;
+  /* Line colour is applied inline via the style attribute in switcher.ts */
+}
+
+/* Star button (separate hit target inside each row) */
+.switcher-star {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 0.35rem;
+  margin: 0;
+  cursor: pointer;
+  color: var(--overground);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 160ms cubic-bezier(0.25, 1.4, 0.3, 1),
+              color 160ms ease;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+.switcher-star svg { width: 20px; height: 20px; display: block; }
+.switcher-star.filled { color: var(--overground); }
+.switcher-star:not(.filled) { color: oklch(from var(--ink) l c h / 0.5); }
+.switcher-star:hover:not(.filled) { color: oklch(from var(--ink) l c h / 0.75); }
+.switcher-star:active { transform: scale(0.88); transition-duration: 60ms; }
+.switcher-star:focus-visible {
+  outline: 2px solid var(--overground);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switcher-header,
+  .switcher-header-chevron,
+  .switcher-sheet,
+  .switcher-row,
+  .switcher-star {
+    transition: none;
   }
 }
