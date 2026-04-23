@@ -29,13 +29,25 @@
 # gets cleanly forwarded. Netlify evaluates these BEFORE the SPA catch-all below.
 [[redirects]]
   from = "https://walthamstow-train-tracker.netlify.app/*"
-  to = "https://eastavetrains.co.uk/:splat"
+  to = "https://e17trains.uk/:splat"
   status = 301
   force = true
 
 [[redirects]]
   from = "http://walthamstow-train-tracker.netlify.app/*"
-  to = "https://eastavetrains.co.uk/:splat"
+  to = "https://e17trains.uk/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://eastavetrains.co.uk/*"
+  to = "https://e17trains.uk/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://eastavetrains.co.uk/*"
+  to = "https://e17trains.uk/:splat"
   status = 301
   force = true
 
