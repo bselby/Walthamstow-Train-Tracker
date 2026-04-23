@@ -8,12 +8,12 @@
   <!-- Orange horizontal bar across the middle -->
   <rect x="72" y="222" width="368" height="68" fill="#ee7c0e"/>
 
-  <!-- "WEAVER" text in cream -->
-  <text x="256" y="282"
+  <!-- "E17 TRAINS" text in cream -->
+  <text x="256" y="278"
         font-family="'Arial Black', 'Helvetica Neue', Helvetica, Arial, sans-serif"
-        font-size="56"
+        font-size="46"
         font-weight="900"
         fill="#f6efdf"
         text-anchor="middle"
-        style="letter-spacing: 3px;">WEAVER</text>
+        style="letter-spacing: 2px;">E17 TRAINS</text>
 </svg>
