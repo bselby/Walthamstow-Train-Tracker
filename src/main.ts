@@ -13,6 +13,8 @@ import type { Direction } from './direction';
 import { subscribe as subscribeLocation, start as startLocation, stop as stopLocation, getState as getLocationState } from './geolocation';
 import { walkingEstimate, formatWalkingLabel } from './walkingTime';
 import { factAt } from './facts';
+import { subscribeBerthEvents, BERTH_ETA_TTL_MS } from './tdProxy';
+import type { BerthEvent } from './tdProxy';
 
 // A small hello for anyone peeking at devtools. One console log, no overhead.
 console.log(
@@ -35,6 +37,11 @@ interface DirectionSnapshots {
 let snapshots: Partial<Record<Direction, DirectionSnapshots>> = {};
 let lastFetchMs: number | null = null;
 let lastError: string | undefined;
+
+// Berth-based ETAs: Unix ms timestamp when the next train is expected to
+// reach the viewpoint, derived from a live TD berth step event.
+// Takes precedence over TfL-prediction timing for the hero train.
+const berthEtas: Partial<Record<Direction, number>> = {};
 
 // Generation counter — incremented on every viewpoint switch. tick() captures
 // the current value at invocation time and discards results if it has changed
@@ -152,6 +159,8 @@ export function switchToViewpoint(id: string): void {
   snapshots = {};
   lastFetchMs = null;
   lastError = undefined;
+  delete berthEtas.north;
+  delete berthEtas.south;
   // Invalidate any in-flight tick so it discards its results when it resolves.
   tickGeneration++;
   // Update the document title: viewpoint name first so browser tabs are readable.
@@ -179,10 +188,14 @@ function computeWalkingLabel(): string | null {
   return formatWalkingLabel(est);
 }
 
-/** Decrement snapshot[index]'s bridgeTimeSeconds by elapsed seconds since it was fetched. */
-function liveEvent(snap: DirectionSnapshots, index: number, nowMs: number): BridgeEvent | undefined {
+/** Decrement snapshot[index]'s bridgeTimeSeconds by elapsed seconds since it was fetched.
+ *  For the hero (index 0), a live berth ETA overrides the TfL-prediction timing. */
+function liveEvent(snap: DirectionSnapshots, index: number, nowMs: number, berthEtaMs?: number): BridgeEvent | undefined {
   const ev = snap.events[index];
   if (!ev) return undefined;
+  if (index === 0 && berthEtaMs !== undefined) {
+    return { ...ev, bridgeTimeSeconds: (berthEtaMs - nowMs) / 1000 };
+  }
   const elapsedSeconds = (nowMs - snap.snapshottedAtMs) / 1000;
   return { ...ev, bridgeTimeSeconds: ev.bridgeTimeSeconds - elapsedSeconds };
 }
@@ -206,7 +219,9 @@ function buildViewModel(): ViewModel {
   for (const dir of DIRECTIONS) {
     const snap = snapshots[dir];
     if (!snap) continue;
-    heroes[dir] = liveEvent(snap, 0, now);
+    const eta = berthEtas[dir];
+    const validEta = eta !== undefined && now - eta < BERTH_ETA_TTL_MS ? eta : undefined;
+    heroes[dir] = liveEvent(snap, 0, now, validEta);
     positions[dir] = livePosition(snap, 0, now);
     // Ticker entries: indices 1..TICKER_SIZE-1, decremented and filtered for non-negative bridge times.
     for (let i = 1; i < TICKER_SIZE; i++) {
@@ -335,6 +350,32 @@ document.addEventListener('visibilitychange', () => {
 // but first-paint needs them too.
 document.documentElement.style.setProperty('--line-color', activeViewpoint.lineColor);
 document.title = `East Ave Trains — ${activeViewpoint.name}`;
+
+// ── TD berth integration ──────────────────────────────────────────────────────
+// When a live berth event arrives from the proxy, check if it matches the
+// active viewpoint's berthConfig for either direction. If so, compute a
+// precise ETA for when the train will reach the viewpoint and store it.
+// The 1s render loop picks this up via liveEvent() and uses it instead of
+// the TfL-prediction-based countdown.
+function onBerthEvent(event: BerthEvent): void {
+  for (const dir of DIRECTIONS) {
+    const cfg = activeViewpoint.directions[dir].berthConfig;
+    if (!cfg) continue;
+    if (event.fromBerth !== cfg.fromBerth || event.toBerth !== cfg.toBerth) continue;
+
+    // offsetSeconds is negative for departure events (step fires before departure).
+    // Actual departure = timestamp + |offsetSeconds| * 1000.
+    const actualDepartureMs = event.timestamp + Math.abs(event.offsetSeconds) * 1000;
+    berthEtas[dir] = actualDepartureMs + cfg.travelSecondsFromDeparture * 1000;
+
+    console.log(
+      `[td] ${dir} berth hit: train ${event.trainId} @ ${event.station}` +
+      ` → viewpoint ETA in ${((berthEtas[dir]! - Date.now()) / 1000).toFixed(0)}s`
+    );
+  }
+}
+
+subscribeBerthEvents(onBerthEvent);
 
 startRenderLoop();
 startPoller(tick, POLL_INTERVAL_MS);

@@ -8,6 +8,16 @@ import { STOPS as CHINGFORD_STOPS } from './stops';
 
 export type LineId = 'weaver' | 'suffragette';
 
+export interface BerthConfig {
+  /** The berth step that signals the train departed the reference station.
+   *  Matched against events from the TD proxy. */
+  fromBerth: string;
+  toBerth: string;
+  /** Seconds from actual station departure to viewpoint crossing.
+   *  Initial values are estimates — calibrate from live observations. */
+  travelSecondsFromDeparture: number;
+}
+
 export interface ViewpointDirection {
   /** Short label above the countdown — e.g. '→ Chingford', '← Walthamstow Central'. */
   label: string;
@@ -20,6 +30,9 @@ export interface ViewpointDirection {
    *  -ve = train passes BEFORE arriving (southbound bridge).
    *   0  = station viewpoint (no offset — the viewpoint IS the station). */
   offsetSeconds: number;
+  /** When set, a live TD berth event replaces the TfL-prediction countdown
+   *  with a timestamp-anchored ETA for more precise timing. */
+  berthConfig?: BerthConfig;
 }
 
 /** How trainPosition estimates the train's strip position around the anchor station.
@@ -136,13 +149,18 @@ export const VIEWPOINTS: readonly Viewpoint[] = [
         label: '→ Chingford',
         tflDirection: 'outbound',
         terminusName: 'Chingford',
-        offsetSeconds: 90, // dwell at WC + cross bridge
+        offsetSeconds: 90, // dwell at WC + cross bridge (TfL fallback)
+        // Berth 1415→1419 = WC northbound departure (step fires 11s before departure).
+        // travelSecondsFromDeparture is an estimate — calibrate from live data.
+        berthConfig: { fromBerth: '1415', toBerth: '1419', travelSecondsFromDeparture: 60 },
       },
       south: {
         label: '← Walthamstow Central',
         tflDirection: 'inbound',
         terminusName: 'Liverpool Street',
-        offsetSeconds: -20, // crosses bridge 20s before reaching WC
+        offsetSeconds: -20, // crosses bridge 20s before reaching WC (TfL fallback)
+        // Berth 1422→1420 = Wood Street southbound departure (step fires 25s before departure).
+        berthConfig: { fromBerth: '1422', toBerth: '1420', travelSecondsFromDeparture: 70 },
       },
     },
   },
