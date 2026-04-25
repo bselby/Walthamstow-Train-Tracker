@@ -110,11 +110,14 @@ function updateDynamic(root: HTMLElement, model: SwitcherModel): void {
 
     const rowInner = document.createElement('span');
     rowInner.className = 'switcher-row-content';
+    // Order mirrors the header: small uppercase line label (colour-carrier) above
+    // the neutral viewpoint name below. Same hierarchy in both places means the
+    // active row reads identically to the active header label.
     rowInner.innerHTML = `
       <span class="switcher-row-dot${vp.id === activeViewpoint.id ? ' active' : ''}"></span>
       <span class="switcher-row-text">
+        <span class="switcher-row-line" style="color: ${vp.lineColor};">${escapeHtml(vp.lineName)}</span>
         <span class="switcher-row-name">${escapeHtml(vp.name)}</span>
-        <span class="switcher-row-line" style="color: ${vp.lineColor};">${escapeHtml(vp.lineName)} line</span>
       </span>
     `;
     row.appendChild(rowInner);

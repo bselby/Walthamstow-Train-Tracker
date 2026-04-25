@@ -853,20 +853,26 @@ html, body {
   gap: 0.1em;
   min-width: 0;
 }
+/* Match the header's hierarchy exactly: small line-coloured cap above,
+   neutral viewpoint name below at the same size + weight as the header.
+   The same viewpoint reads identically whether it's the active label in the
+   header or a row in the open sheet. */
+.switcher-row-line {
+  font-family: 'Big Shoulders Display', sans-serif;
+  font-weight: 600;
+  font-size: 0.74rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  line-height: 1;
+  /* Line colour is applied inline via the style attribute in switcher.ts */
+}
 .switcher-row-name {
   font-family: 'Big Shoulders Display', sans-serif;
-  font-weight: 900;
-  font-size: 1.1rem;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
   color: var(--ink);
   line-height: 1.1;
-}
-.switcher-row-line {
-  font-family: 'Big Shoulders Text', sans-serif;
-  font-weight: 600;
-  font-size: 0.75rem;
-  letter-spacing: 0.05em;
-  opacity: 0.85;
-  /* Line colour is applied inline via the style attribute in switcher.ts */
 }
 
 /* Star button (separate hit target inside each row) */
