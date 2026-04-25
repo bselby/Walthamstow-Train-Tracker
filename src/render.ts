@@ -82,6 +82,10 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
   });
   root.appendChild(switcher);
 
+  // Map-verify link: tap to open Google Maps with the viewpoint's exact coords —
+  // disambiguates "which Northcote Road bridge?" without an in-app thumbnail.
+  root.appendChild(renderMapLink(vm.viewpoint));
+
   // Walking-time row immediately below the header (only when we're showing rows,
   // not in the error-only state — same treatment as the rows themselves).
   if (vm.freshness.state !== 'no-data' || !vm.error) {
@@ -303,6 +307,23 @@ function renderFactLine(fact: Fact, onAdvance: () => void): HTMLElement | null {
 const previousValueText: Record<string, string> = {};
 
 const PIN_SVG = '<svg class="walking-icon" viewBox="0 0 10 13" aria-hidden="true"><path d="M5 0C2 0 0 2 0 5c0 3 5 8 5 8s5-5 5-8c0-3-2-5-5-5Zm0 6.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z" fill="currentColor"/></svg>';
+
+function renderMapLink(viewpoint: Viewpoint): HTMLElement {
+  const { lat, lng } = viewpoint.coords;
+  // ?api=1 deep-links into the Google Maps app on iOS/Android when installed,
+  // and falls back to maps.google.com in a browser. Coords (not name) so the
+  // pin always lands on the exact spot — even if multiple "Northcote Roads" exist.
+  const href = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+
+  const el = document.createElement('a');
+  el.className = 'map-link';
+  el.href = href;
+  el.target = '_blank';
+  el.rel = 'noopener';
+  el.setAttribute('aria-label', `Verify ${viewpoint.name} on Google Maps`);
+  el.innerHTML = `${PIN_SVG}<span>Verify on map</span>`;
+  return el;
+}
 
 function renderWalkingTime(
   label: string | null,

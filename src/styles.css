@@ -439,6 +439,40 @@ html, body {
   100% { transform: scale(1); }
 }
 
+/* ───── Map-verify link ─────
+   Tiny tap target sat directly under the switcher header — opens Google Maps
+   on the viewpoint's exact coords so the user can confirm they're at the
+   right bridge / station before they look up at the line. */
+
+.map-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0 0.3rem;
+  font-family: 'Big Shoulders Text', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+  text-decoration: none;
+  opacity: 0.75;
+  transition: opacity 160ms ease, color 160ms ease;
+}
+
+.map-link:hover,
+.map-link:focus-visible {
+  opacity: 1;
+  color: var(--line-color);
+}
+
+.map-link:focus-visible {
+  outline: 2px solid var(--line-color);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
 /* ───── Walking time row ───── */
 
 .walking-time {
