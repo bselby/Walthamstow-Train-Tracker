@@ -65,3 +65,31 @@ SMART changes when berth layouts change — usually slowly, but check the
 | SO | 51553  | WLTHMSTQR | **Walthamstow Queens Road** (Suffragette) |
 | SO | 51551  | LEYTONMRD | Leyton Midland Road                     |
 | SO | 51555  | BLKHORSRD | Blackhorse Road                         |
+
+## Audit against `src/viewpoints.ts` (2026-04-25)
+
+Cross-checked every TD-related assumption in the codebase against SMART. All
+correct as written:
+
+- **TD areas Q4 (Chingford branch) + SO (GOBLIN)** — confirmed; both Walthamstow
+  stations sit in these areas.
+- **East Ave north berth `1415 → 1419`** — Q4 STANOX 52733, EVENT=D (departed),
+  Plat 2 Down, BERTHOFFSET −11s. Correct: Down line = northbound past WC.
+- **East Ave south berth `1422 → 1420`** — Q4 STANOX 52729 (Wood St), EVENT=B
+  (between/past), Plat 1 Up, BERTHOFFSET −25s. Correct: Up line = southbound,
+  step fires as the train clears Wood St heading toward WC.
+- **Direction convention `north = outbound = Plat 2 Down`** — holds at every
+  Q4 and SO station audited.
+- **Queens Road CRS `WMW`** — matches the rtt.io fixture in `tests/fixtures`.
+
+Retraction: an earlier commit message (`8f2d2fb`) claimed the East Ave
+southbound berth step was wrong and should be `1421 → 1423`. That was a
+misread — Plat 1 Up EVENT=B is the correct southbound past-platform event.
+The code in `src/viewpoints.ts` is right as-is; only the commit message is
+misleading, and it stays in history.
+
+The two numbers that SMART can't verify are the manual
+`travelSecondsFromDeparture` calibrations (60s north, 85s south). Geometry
+suggests they're in the right ballpark (~40s / ~75s), but live observation
+is the only way to nail them — and that's blocked until TD events flow
+again.
