@@ -1,8 +1,25 @@
 import { describe, it, expect } from 'vitest';
-import { parseFreightResponse, isFreightByHeadcode } from '../src/freight';
+import { parseFreightResponse, isFreightByHeadcode, clampFreightPosition } from '../src/freight';
 import { getViewpointById } from '../src/viewpoints';
 
 const QUEENS_ROAD = getViewpointById('queens-road')!;
+
+describe('clampFreightPosition', () => {
+  it('passes passenger positions through unchanged regardless of tts', () => {
+    expect(clampFreightPosition(3.5, 600, false)).toBe(3.5);
+    expect(clampFreightPosition(null, 600, false)).toBeNull();
+  });
+
+  it('passes freight through when tts is within the modelled window', () => {
+    expect(clampFreightPosition(3.5, 300, true)).toBe(3.5);
+    expect(clampFreightPosition(3.5, 60, true)).toBe(3.5);
+  });
+
+  it('clamps freight to null beyond the modelled window', () => {
+    expect(clampFreightPosition(3.5, 301, true)).toBeNull();
+    expect(clampFreightPosition(3.5, 900, true)).toBeNull();
+  });
+});
 
 describe('isFreightByHeadcode', () => {
   it('classifies standard freight headcodes (4xxx–8xxx) as freight', () => {

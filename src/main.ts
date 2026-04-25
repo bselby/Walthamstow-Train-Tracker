@@ -6,7 +6,7 @@ import { startPoller } from './poller';
 import { render, type ViewModel } from './render';
 import { formatCountdown } from './display';
 import { estimatePosition } from './trainPosition';
-import { POLL_INTERVAL_MS } from './constants';
+import { POLL_INTERVAL_MS, FREIGHT_POLL_INTERVAL_MS } from './constants';
 import { getViewpointById, DEFAULT_VIEWPOINT_ID } from './viewpoints';
 import type { Viewpoint } from './viewpoints';
 import type { Direction } from './direction';
@@ -15,6 +15,7 @@ import { walkingEstimate, formatWalkingLabel } from './walkingTime';
 import { factAt } from './facts';
 import { subscribeBerthEvents, BERTH_ETA_TTL_MS } from './tdProxy';
 import type { BerthEvent } from './tdProxy';
+import { fetchFreight, clampFreightPosition } from './freight';
 
 // A small hello for anyone peeking at devtools. One console log, no overhead.
 console.log(
@@ -37,6 +38,13 @@ interface DirectionSnapshots {
 let snapshots: Partial<Record<Direction, DirectionSnapshots>> = {};
 let lastFetchMs: number | null = null;
 let lastError: string | undefined;
+
+// Freight snapshots, mirroring `snapshots` shape: pickNextNPerDirection has
+// already classified rows into north/south, computed bridgeTimeSeconds, and
+// capped per direction. buildViewModel merges these with passenger snapshots
+// into a single live-sorted hero + ticker list per direction.
+let freightSnapshots: Partial<Record<Direction, DirectionSnapshots>> = {};
+let freightPollerStop: (() => void) | null = null;
 
 // Berth-based ETAs: Unix ms timestamp when the next train is expected to
 // reach the viewpoint, derived from a live TD berth step event.
@@ -157,6 +165,7 @@ export function switchToViewpoint(id: string): void {
   // for up to a few hundred ms until the new tick resolves. Also reset
   // prediction samples since they're keyed on the old vehicleIds.
   snapshots = {};
+  freightSnapshots = {};
   lastFetchMs = null;
   lastError = undefined;
   delete berthEtas.north;
@@ -172,6 +181,10 @@ export function switchToViewpoint(id: string): void {
   // Fire an immediate fetch against the new stoppoint — don't wait for the
   // next scheduled poll (20 s away).
   void tick();
+  // Restart the freight poller against the new viewpoint. start/stop are no-ops
+  // when the new viewpoint has no freightStationCode (e.g. East Ave).
+  stopFreightPoller();
+  startFreightPoller();
 }
 
 function computeWalkingLabel(): string | null {
@@ -200,13 +213,11 @@ function liveEvent(snap: DirectionSnapshots, index: number, nowMs: number, berth
   return { ...ev, bridgeTimeSeconds: ev.bridgeTimeSeconds - elapsedSeconds };
 }
 
-/** Live position for snapshot[index] (hero index 0). */
-function livePosition(snap: DirectionSnapshots, index: number, nowMs: number): number | null {
-  const ev = snap.events[index];
-  if (!ev) return null;
-  const elapsedSeconds = (nowMs - snap.snapshottedAtMs) / 1000;
-  const currentTts = ev.arrival.timeToStation - elapsedSeconds;
-  return estimatePosition(currentTts, ev.direction, activeViewpoint);
+interface LiveCandidate {
+  event: BridgeEvent;
+  snapshot: DirectionSnapshots;
+  indexInSnapshot: number;
+  isFreight: boolean;
 }
 
 function buildViewModel(): ViewModel {
@@ -217,16 +228,53 @@ function buildViewModel(): ViewModel {
   const tickers: Record<Direction, BridgeEvent[]> = { north: [], south: [] };
 
   for (const dir of DIRECTIONS) {
-    const snap = snapshots[dir];
-    if (!snap) continue;
-    const eta = berthEtas[dir];
-    const validEta = eta !== undefined && now - eta < BERTH_ETA_TTL_MS ? eta : undefined;
-    heroes[dir] = liveEvent(snap, 0, now, validEta);
-    positions[dir] = livePosition(snap, 0, now);
-    // Ticker entries: indices 1..TICKER_SIZE-1, decremented and filtered for non-negative bridge times.
-    for (let i = 1; i < TICKER_SIZE; i++) {
-      const live = liveEvent(snap, i, now);
-      if (live && live.bridgeTimeSeconds >= 0) tickers[dir].push(live);
+    const passengerSnap = snapshots[dir];
+    const freightSnap = freightSnapshots[dir];
+    if (!passengerSnap && !freightSnap) continue;
+
+    // Build a unified live-event list across both sources, then sort by live
+    // bridgeTimeSeconds. The hero (and the order of ticker entries) is decided
+    // post-merge — a freight train sooner than the next passenger should
+    // become the hero, and vice-versa.
+    const candidates: LiveCandidate[] = [];
+    if (passengerSnap) {
+      for (let i = 0; i < passengerSnap.events.length; i++) {
+        const live = liveEvent(passengerSnap, i, now);
+        if (live) candidates.push({ event: live, snapshot: passengerSnap, indexInSnapshot: i, isFreight: false });
+      }
+    }
+    if (freightSnap) {
+      for (let i = 0; i < freightSnap.events.length; i++) {
+        const live = liveEvent(freightSnap, i, now);
+        if (live) candidates.push({ event: live, snapshot: freightSnap, indexInSnapshot: i, isFreight: true });
+      }
+    }
+    candidates.sort((a, b) => a.event.bridgeTimeSeconds - b.event.bridgeTimeSeconds);
+
+    const hero = candidates[0];
+    if (hero) {
+      // Berth ETA is a passenger-only signal (TD steps fire on Weaver-line
+      // berths). Apply only when the eventual hero is a passenger event;
+      // freight predictions stay on RTT-derived TfL-equivalent timing.
+      const eta = berthEtas[dir];
+      const validEta = !hero.isFreight && eta !== undefined && now - eta < BERTH_ETA_TTL_MS ? eta : undefined;
+      heroes[dir] = validEta !== undefined
+        ? { ...hero.event, bridgeTimeSeconds: (validEta - now) / 1000 }
+        : hero.event;
+
+      // Position from the hero's source snapshot (uses its own snapshottedAtMs).
+      // For freight beyond the modelled-position window, clamp to null so the
+      // strip glyph hides while the countdown + ticker keep showing.
+      const ev = hero.snapshot.events[hero.indexInSnapshot];
+      const elapsedSeconds = (now - hero.snapshot.snapshottedAtMs) / 1000;
+      const currentTts = ev.arrival.timeToStation - elapsedSeconds;
+      const rawPos = estimatePosition(currentTts, ev.direction, activeViewpoint);
+      positions[dir] = clampFreightPosition(rawPos, currentTts, hero.isFreight);
+    }
+
+    // Ticker = the next TICKER_SIZE-1 future-or-now candidates after the hero.
+    for (let i = 1; i < candidates.length && tickers[dir].length < TICKER_SIZE - 1; i++) {
+      if (candidates[i].event.bridgeTimeSeconds >= 0) tickers[dir].push(candidates[i].event);
     }
   }
 
@@ -284,6 +332,40 @@ function rerender(): void {
     onSwitchViewpoint: switchToViewpoint,
     onSetFavouriteViewpoint: setFavouriteViewpoint,
   });
+}
+
+async function freightTick(): Promise<void> {
+  const stationCode = activeViewpoint.freightStationCode;
+  if (!stationCode) return; // viewpoint without freight (e.g. East Ave) — no-op
+  const gen = tickGeneration;
+  try {
+    const arrivals = await fetchFreight(stationCode, activeViewpoint);
+    const picked = pickNextNPerDirection(arrivals, TICKER_SIZE, activeViewpoint);
+    const now = Date.now();
+    if (gen !== tickGeneration) return;
+    freightSnapshots = {
+      north: picked.north.length > 0 ? { events: picked.north, snapshottedAtMs: now } : undefined,
+      south: picked.south.length > 0 ? { events: picked.south, snapshottedAtMs: now } : undefined,
+    };
+  } catch {
+    // Freight failure is silent: passenger trains are still working and the
+    // hero countdown stays on TfL data. Surfacing this in `lastError` would
+    // dim the passenger UI for a freight-side problem (rotated RTT token,
+    // RTT outage), which would be misleading.
+  }
+}
+
+function startFreightPoller(): void {
+  if (freightPollerStop !== null) return;
+  if (!activeViewpoint.freightStationCode) return;
+  freightPollerStop = startPoller(freightTick, FREIGHT_POLL_INTERVAL_MS);
+}
+
+function stopFreightPoller(): void {
+  if (freightPollerStop !== null) {
+    freightPollerStop();
+    freightPollerStop = null;
+  }
 }
 
 async function tick(): Promise<void> {
@@ -379,3 +461,4 @@ subscribeBerthEvents(onBerthEvent);
 
 startRenderLoop();
 startPoller(tick, POLL_INTERVAL_MS);
+startFreightPoller();

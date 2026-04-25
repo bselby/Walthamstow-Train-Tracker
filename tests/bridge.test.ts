@@ -115,4 +115,19 @@ describe('pickNextNPerDirection', () => {
     expect(result.north).toHaveLength(1);
     expect(result.south).toEqual([]);
   });
+
+  // Regression: freight events get merged into the same arrivals[] before
+  // pickNextNPerDirection is called. Sort order must be purely by bridge time —
+  // freight inserted in the middle should sort by its tts, not get appended at
+  // the end of its direction's bucket.
+  it('sorts mixed passenger+freight purely by bridgeTimeSeconds', () => {
+    const QR = getViewpointById('queens-road')!;
+    const arrivals: Arrival[] = [
+      { ...arrival('Barking Riverside', 120, 'p1'), lineId: 'suffragette', direction: 'outbound' },
+      { ...arrival('Felixstowe', 60, 'f1'), lineId: 'suffragette', category: 'freight', headcode: '4L85', direction: 'outbound' },
+      { ...arrival('Barking Riverside', 180, 'p2'), lineId: 'suffragette', direction: 'outbound' },
+    ];
+    const picked = pickNextNPerDirection(arrivals, 3, QR);
+    expect(picked.north.map((e) => e.arrival.id)).toEqual(['f1', 'p1', 'p2']);
+  });
 });
