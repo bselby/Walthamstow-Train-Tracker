@@ -1,5 +1,5 @@
 import http from 'node:http';
-import { startStompClient } from './stomp.js';
+import { startKafkaClient } from './kafka.js';
 import type { BerthEvent } from './types.js';
 
 const PORT = parseInt(process.env.PORT ?? '8080', 10);
@@ -99,9 +99,12 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`[http] listening on port ${PORT}`);
 });
 
-// ── Start STOMP ───────────────────────────────────────────────────────────────
+// ── Start Kafka ───────────────────────────────────────────────────────────────
 
-startStompClient((event) => {
+startKafkaClient((event) => {
   console.log(`[td] ${event.station} ${event.event} train=${event.trainId}`);
   broadcast(event);
+}).catch((err: Error) => {
+  console.error('[kafka] fatal:', err.message);
+  process.exit(1);
 });

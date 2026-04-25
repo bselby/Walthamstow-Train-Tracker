@@ -9,12 +9,11 @@
     "dev": "tsx watch src/index.ts"
   },
   "dependencies": {
-    "stompit": "^1.0.0"
+    "kafkajs": "^2.2.4"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "@types/stompit": "^0.26.5",
     "tsx": "^4.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^6.0.3"
   }
 }
