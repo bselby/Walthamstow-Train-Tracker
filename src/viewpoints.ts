@@ -160,7 +160,7 @@ export const VIEWPOINTS: readonly Viewpoint[] = [
         terminusName: 'Liverpool Street',
         offsetSeconds: -20, // crosses bridge 20s before reaching WC (TfL fallback)
         // Berth 1422→1420 = Wood Street southbound departure (step fires 25s before departure).
-        berthConfig: { fromBerth: '1422', toBerth: '1420', travelSecondsFromDeparture: 70 },
+        berthConfig: { fromBerth: '1422', toBerth: '1420', travelSecondsFromDeparture: 85 },
       },
     },
   },
@@ -189,6 +189,37 @@ export const VIEWPOINTS: readonly Viewpoint[] = [
         tflDirection: 'inbound',
         terminusName: 'Gospel Oak',
         offsetSeconds: 0,
+      },
+    },
+  },
+  {
+    id: 'northcote-rd',
+    name: 'Northcote Rd bridge',
+    description: 'The road bridge over the Suffragette line on Northcote Road, Walthamstow',
+    lineId: 'suffragette',
+    lineName: 'Suffragette',
+    lineColor: SUFFRAGETTE_GREEN,
+    stopPointId: '910GWLTHQRD',
+    coords: { lat: 51.5850951, lng: -0.0310174 },
+    stops: SUFFRAGETTE_STOPS,
+    segments: SUFFRAGETTE_SEGMENTS,
+    anchorIndex: 6, // Walthamstow Queens Road
+    positionModel: 'station',
+    directions: {
+      north: {
+        label: '→ Barking Riverside',
+        tflDirection: 'outbound',
+        terminusName: 'Barking Riverside',
+        // Bridge is ~718m from BHR, ~634m from WQR (55% of BHR→WQR from the BHR side).
+        // Train passes the bridge ~87s before arriving at WQR.
+        offsetSeconds: -87,
+      },
+      south: {
+        label: '← Gospel Oak',
+        tflDirection: 'inbound',
+        terminusName: 'Gospel Oak',
+        // Train departs WQR and passes the bridge ~87s later.
+        offsetSeconds: 87,
       },
     },
   },
