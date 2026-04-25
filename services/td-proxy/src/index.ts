@@ -1,9 +1,13 @@
 import http from 'node:http';
-import { startKafkaClient } from './kafka.js';
+import { startKafkaClient, kafkaStats } from './kafka.js';
 import type { BerthEvent } from './types.js';
 
 const PORT = parseInt(process.env.PORT ?? '8080', 10);
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN ?? 'https://e17trains.uk';
+
+// Process-level stats not owned by kafka.ts.
+const processStartedAt = Date.now();
+let eventsEmitted = 0;
 
 // ── SSE client registry ───────────────────────────────────────────────────────
 
@@ -69,7 +73,23 @@ const server = http.createServer((req, res) => {
 
   if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok', clients: clients.size }));
+    res.end(JSON.stringify({
+      status: 'ok',
+      uptimeSec: Math.floor((Date.now() - processStartedAt) / 1000),
+      clients: clients.size,
+      kafka: {
+        connected: kafkaStats.connected,
+        startedAt: kafkaStats.startedAt,
+        messagesProcessed: kafkaStats.messagesProcessed,
+        caMsgsSeen: kafkaStats.caMsgsSeen,
+        firstMessageAt: kafkaStats.firstMessageAt,
+        lastMessageAt: kafkaStats.lastMessageAt,
+        secondsSinceLastMessage: kafkaStats.lastMessageAt
+          ? Math.floor((Date.now() - kafkaStats.lastMessageAt) / 1000)
+          : null,
+      },
+      eventsEmitted,
+    }));
     return;
   }
 
@@ -102,6 +122,7 @@ server.listen(PORT, '0.0.0.0', () => {
 // ── Start Kafka ───────────────────────────────────────────────────────────────
 
 startKafkaClient((event) => {
+  eventsEmitted++;
   console.log(`[td] ${event.station} ${event.event} train=${event.trainId}`);
   broadcast(event);
 }).catch((err: Error) => {
