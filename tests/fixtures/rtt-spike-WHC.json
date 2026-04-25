@@ -1,0 +1,551 @@
+{
+  "systemStatus": {
+    "realtimeNetworkRail": "OK",
+    "rttCore": "OK"
+  },
+  "query": {
+    "location": {
+      "namespace": "gb-nr",
+      "description": "Walthamstow Central",
+      "shortCodes": [
+        "WHC"
+      ],
+      "longCodes": [
+        "WLTWCEN"
+      ]
+    },
+    "timeFrom": "2026-04-25T21:57:05+01:00",
+    "timeTo": "2026-04-25T22:57:05+01:00",
+    "detailed": false
+  },
+  "services": [
+    {
+      "temporalData": {
+        "arrival": {
+          "scheduleInternal": "2026-04-25T22:00:00",
+          "scheduleAdvertised": "2026-04-25T22:01:00",
+          "realtimeForecast": "2026-04-25T22:02:00",
+          "isCancelled": false
+        },
+        "departure": {
+          "scheduleInternal": "2026-04-25T22:01:00",
+          "scheduleAdvertised": "2026-04-25T22:01:00",
+          "realtimeForecast": "2026-04-25T22:03:00",
+          "isCancelled": false
+        },
+        "scheduledCallType": "ADVERTISED_OPEN",
+        "realtimeCallType": "ADVERTISED_OPEN",
+        "displayAs": "CALL",
+        "isInterpolated": false
+      },
+      "locationMetadata": {
+        "platform": {
+          "planned": "2",
+          "forecast": "2"
+        }
+      },
+      "scheduleMetadata": {
+        "uniqueIdentity": "gb-nr:P52322:2026-04-25",
+        "namespace": "gb-nr",
+        "identity": "P52322",
+        "departureDate": "2026-04-25",
+        "operator": {
+          "code": "LO",
+          "name": "London Overground"
+        },
+        "modeType": "TRAIN",
+        "inPassengerService": true
+      },
+      "origin": [
+        {
+          "location": {
+            "description": "London Liverpool Street",
+            "longCodes": [
+              "LIVST"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T21:46:00",
+            "scheduleAdvertised": "2026-04-25T21:46:00"
+          }
+        }
+      ],
+      "destination": [
+        {
+          "location": {
+            "description": "Chingford",
+            "longCodes": [
+              "CHINGFD"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T22:12:00",
+            "scheduleAdvertised": "2026-04-25T22:13:00"
+          }
+        }
+      ]
+    },
+    {
+      "temporalData": {
+        "arrival": {
+          "scheduleInternal": "2026-04-25T22:01:00",
+          "scheduleAdvertised": "2026-04-25T22:02:00",
+          "realtimeForecast": "2026-04-25T22:01:00",
+          "isCancelled": false
+        },
+        "departure": {
+          "scheduleInternal": "2026-04-25T22:02:00",
+          "scheduleAdvertised": "2026-04-25T22:02:00",
+          "realtimeForecast": "2026-04-25T22:02:00",
+          "isCancelled": false
+        },
+        "scheduledCallType": "ADVERTISED_OPEN",
+        "realtimeCallType": "ADVERTISED_OPEN",
+        "displayAs": "CALL",
+        "isInterpolated": false
+      },
+      "locationMetadata": {
+        "platform": {
+          "planned": "1",
+          "forecast": "1"
+        }
+      },
+      "scheduleMetadata": {
+        "uniqueIdentity": "gb-nr:P52376:2026-04-25",
+        "namespace": "gb-nr",
+        "identity": "P52376",
+        "departureDate": "2026-04-25",
+        "operator": {
+          "code": "LO",
+          "name": "London Overground"
+        },
+        "modeType": "TRAIN",
+        "inPassengerService": true
+      },
+      "origin": [
+        {
+          "location": {
+            "description": "Chingford",
+            "longCodes": [
+              "CHINGFD"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T21:53:00",
+            "scheduleAdvertised": "2026-04-25T21:53:00"
+          }
+        }
+      ],
+      "destination": [
+        {
+          "location": {
+            "description": "London Liverpool Street",
+            "longCodes": [
+              "LIVST"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T22:19:00",
+            "scheduleAdvertised": "2026-04-25T22:19:00"
+          }
+        }
+      ]
+    },
+    {
+      "temporalData": {
+        "arrival": {
+          "scheduleInternal": "2026-04-25T22:15:00",
+          "scheduleAdvertised": "2026-04-25T22:16:00",
+          "realtimeForecast": "2026-04-25T22:15:00",
+          "isCancelled": false
+        },
+        "departure": {
+          "scheduleInternal": "2026-04-25T22:16:00",
+          "scheduleAdvertised": "2026-04-25T22:16:00",
+          "realtimeForecast": "2026-04-25T22:16:00",
+          "isCancelled": false
+        },
+        "scheduledCallType": "ADVERTISED_OPEN",
+        "realtimeCallType": "ADVERTISED_OPEN",
+        "displayAs": "CALL",
+        "isInterpolated": false
+      },
+      "locationMetadata": {
+        "platform": {
+          "planned": "2",
+          "forecast": "2"
+        }
+      },
+      "scheduleMetadata": {
+        "uniqueIdentity": "gb-nr:P52334:2026-04-25",
+        "namespace": "gb-nr",
+        "identity": "P52334",
+        "departureDate": "2026-04-25",
+        "operator": {
+          "code": "LO",
+          "name": "London Overground"
+        },
+        "modeType": "TRAIN",
+        "inPassengerService": true
+      },
+      "origin": [
+        {
+          "location": {
+            "description": "London Liverpool Street",
+            "longCodes": [
+              "LIVST"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T22:01:00",
+            "scheduleAdvertised": "2026-04-25T22:01:00"
+          }
+        }
+      ],
+      "destination": [
+        {
+          "location": {
+            "description": "Chingford",
+            "longCodes": [
+              "CHINGFD"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T22:27:00",
+            "scheduleAdvertised": "2026-04-25T22:28:00"
+          }
+        }
+      ]
+    },
+    {
+      "temporalData": {
+        "arrival": {
+          "scheduleInternal": "2026-04-25T22:16:00",
+          "scheduleAdvertised": "2026-04-25T22:17:00",
+          "realtimeForecast": "2026-04-25T22:16:00",
+          "isCancelled": false
+        },
+        "departure": {
+          "scheduleInternal": "2026-04-25T22:17:00",
+          "scheduleAdvertised": "2026-04-25T22:17:00",
+          "realtimeForecast": "2026-04-25T22:17:00",
+          "isCancelled": false
+        },
+        "scheduledCallType": "ADVERTISED_OPEN",
+        "realtimeCallType": "ADVERTISED_OPEN",
+        "displayAs": "CALL",
+        "isInterpolated": false
+      },
+      "locationMetadata": {
+        "platform": {
+          "planned": "1",
+          "forecast": "1"
+        }
+      },
+      "scheduleMetadata": {
+        "uniqueIdentity": "gb-nr:P52388:2026-04-25",
+        "namespace": "gb-nr",
+        "identity": "P52388",
+        "departureDate": "2026-04-25",
+        "operator": {
+          "code": "LO",
+          "name": "London Overground"
+        },
+        "modeType": "TRAIN",
+        "inPassengerService": true
+      },
+      "origin": [
+        {
+          "location": {
+            "description": "Chingford",
+            "longCodes": [
+              "CHINGFD"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T22:08:00",
+            "scheduleAdvertised": "2026-04-25T22:08:00"
+          }
+        }
+      ],
+      "destination": [
+        {
+          "location": {
+            "description": "London Liverpool Street",
+            "longCodes": [
+              "LIVST"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T22:34:00",
+            "scheduleAdvertised": "2026-04-25T22:34:00"
+          }
+        }
+      ]
+    },
+    {
+      "temporalData": {
+        "arrival": {
+          "scheduleInternal": "2026-04-25T22:30:00",
+          "scheduleAdvertised": "2026-04-25T22:31:00",
+          "realtimeForecast": "2026-04-25T22:30:00",
+          "isCancelled": false
+        },
+        "departure": {
+          "scheduleInternal": "2026-04-25T22:31:00",
+          "scheduleAdvertised": "2026-04-25T22:31:00",
+          "realtimeForecast": "2026-04-25T22:31:00",
+          "isCancelled": false
+        },
+        "scheduledCallType": "ADVERTISED_OPEN",
+        "realtimeCallType": "ADVERTISED_OPEN",
+        "displayAs": "CALL",
+        "isInterpolated": false
+      },
+      "locationMetadata": {
+        "platform": {
+          "planned": "2",
+          "forecast": "2"
+        }
+      },
+      "scheduleMetadata": {
+        "uniqueIdentity": "gb-nr:P52346:2026-04-25",
+        "namespace": "gb-nr",
+        "identity": "P52346",
+        "departureDate": "2026-04-25",
+        "operator": {
+          "code": "LO",
+          "name": "London Overground"
+        },
+        "modeType": "TRAIN",
+        "inPassengerService": true
+      },
+      "origin": [
+        {
+          "location": {
+            "description": "London Liverpool Street",
+            "longCodes": [
+              "LIVST"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T22:16:00",
+            "scheduleAdvertised": "2026-04-25T22:16:00"
+          }
+        }
+      ],
+      "destination": [
+        {
+          "location": {
+            "description": "Chingford",
+            "longCodes": [
+              "CHINGFD"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T22:42:00",
+            "scheduleAdvertised": "2026-04-25T22:43:00"
+          }
+        }
+      ]
+    },
+    {
+      "temporalData": {
+        "arrival": {
+          "scheduleInternal": "2026-04-25T22:31:00",
+          "scheduleAdvertised": "2026-04-25T22:32:00",
+          "realtimeForecast": "2026-04-25T22:31:00",
+          "isCancelled": false
+        },
+        "departure": {
+          "scheduleInternal": "2026-04-25T22:32:00",
+          "scheduleAdvertised": "2026-04-25T22:32:00",
+          "realtimeForecast": "2026-04-25T22:32:00",
+          "isCancelled": false
+        },
+        "scheduledCallType": "ADVERTISED_OPEN",
+        "realtimeCallType": "ADVERTISED_OPEN",
+        "displayAs": "CALL",
+        "isInterpolated": false
+      },
+      "locationMetadata": {
+        "platform": {
+          "planned": "1",
+          "forecast": "1"
+        }
+      },
+      "scheduleMetadata": {
+        "uniqueIdentity": "gb-nr:P52399:2026-04-25",
+        "namespace": "gb-nr",
+        "identity": "P52399",
+        "departureDate": "2026-04-25",
+        "operator": {
+          "code": "LO",
+          "name": "London Overground"
+        },
+        "modeType": "TRAIN",
+        "inPassengerService": true
+      },
+      "origin": [
+        {
+          "location": {
+            "description": "Chingford",
+            "longCodes": [
+              "CHINGFD"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T22:23:00",
+            "scheduleAdvertised": "2026-04-25T22:23:00"
+          }
+        }
+      ],
+      "destination": [
+        {
+          "location": {
+            "description": "London Liverpool Street",
+            "longCodes": [
+              "LIVST"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T22:49:00",
+            "scheduleAdvertised": "2026-04-25T22:49:00"
+          }
+        }
+      ]
+    },
+    {
+      "temporalData": {
+        "arrival": {
+          "scheduleInternal": "2026-04-25T22:45:00",
+          "scheduleAdvertised": "2026-04-25T22:46:00",
+          "realtimeForecast": "2026-04-25T22:45:00",
+          "isCancelled": false
+        },
+        "departure": {
+          "scheduleInternal": "2026-04-25T22:46:00",
+          "scheduleAdvertised": "2026-04-25T22:46:00",
+          "realtimeForecast": "2026-04-25T22:46:00",
+          "isCancelled": false
+        },
+        "scheduledCallType": "ADVERTISED_OPEN",
+        "realtimeCallType": "ADVERTISED_OPEN",
+        "displayAs": "CALL",
+        "isInterpolated": false
+      },
+      "locationMetadata": {
+        "platform": {
+          "planned": "2",
+          "forecast": "2"
+        }
+      },
+      "scheduleMetadata": {
+        "uniqueIdentity": "gb-nr:P52358:2026-04-25",
+        "namespace": "gb-nr",
+        "identity": "P52358",
+        "departureDate": "2026-04-25",
+        "operator": {
+          "code": "LO",
+          "name": "London Overground"
+        },
+        "modeType": "TRAIN",
+        "inPassengerService": true
+      },
+      "origin": [
+        {
+          "location": {
+            "description": "London Liverpool Street",
+            "longCodes": [
+              "LIVST"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T22:31:00",
+            "scheduleAdvertised": "2026-04-25T22:31:00"
+          }
+        }
+      ],
+      "destination": [
+        {
+          "location": {
+            "description": "Chingford",
+            "longCodes": [
+              "CHINGFD"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T22:57:00",
+            "scheduleAdvertised": "2026-04-25T22:58:00"
+          }
+        }
+      ]
+    },
+    {
+      "temporalData": {
+        "arrival": {
+          "scheduleInternal": "2026-04-25T22:46:00",
+          "scheduleAdvertised": "2026-04-25T22:47:00",
+          "realtimeForecast": "2026-04-25T22:46:00",
+          "isCancelled": false
+        },
+        "departure": {
+          "scheduleInternal": "2026-04-25T22:47:00",
+          "scheduleAdvertised": "2026-04-25T22:47:00",
+          "realtimeForecast": "2026-04-25T22:47:00",
+          "isCancelled": false
+        },
+        "scheduledCallType": "ADVERTISED_OPEN",
+        "realtimeCallType": "ADVERTISED_OPEN",
+        "displayAs": "CALL",
+        "isInterpolated": false
+      },
+      "locationMetadata": {
+        "platform": {
+          "planned": "1",
+          "forecast": "1"
+        }
+      },
+      "scheduleMetadata": {
+        "uniqueIdentity": "gb-nr:P52409:2026-04-25",
+        "namespace": "gb-nr",
+        "identity": "P52409",
+        "departureDate": "2026-04-25",
+        "operator": {
+          "code": "LO",
+          "name": "London Overground"
+        },
+        "modeType": "TRAIN",
+        "inPassengerService": true
+      },
+      "origin": [
+        {
+          "location": {
+            "description": "Chingford",
+            "longCodes": [
+              "CHINGFD"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T22:38:00",
+            "scheduleAdvertised": "2026-04-25T22:38:00"
+          }
+        }
+      ],
+      "destination": [
+        {
+          "location": {
+            "description": "London Liverpool Street",
+            "longCodes": [
+              "LIVST"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T23:04:00",
+            "scheduleAdvertised": "2026-04-25T23:04:00"
+          }
+        }
+      ]
+    }
+  ]
+}
