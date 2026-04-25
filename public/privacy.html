@@ -19,12 +19,17 @@
       <a class="back" href="/">Back to trains</a>
       <h1>Privacy</h1>
       <p>
-        There is <strong>no server running app logic</strong>. This app is a
-        handful of static files served from a CDN, plus a privacy-friendly
-        pageview count via Cloudflare Web Analytics (no cookies, no personal
-        data — details below). Nothing you do <em>inside</em> the app —
-        tapping the fact line, enabling walking time, watching the countdown
-        — is tracked or reported back to me.
+        This app is a handful of static files served from a CDN, plus a
+        <em>single stateless function</em> (used only on the Suffragette
+        viewpoint) that proxies freight-data requests to
+        <a href="https://www.realtimetrains.co.uk/about/" target="_blank" rel="noopener">Realtime Trains</a>
+        so that their API credentials stay server-side. The function logs
+        requests as part of normal Netlify operation; it does not see your
+        location, identity, or any in-app actions. Plus a privacy-friendly
+        pageview count via Cloudflare Web Analytics (details below).
+        Nothing you do <em>inside</em> the app — tapping the fact line,
+        enabling walking time, watching the countdown — is tracked or
+        reported back to me.
       </p>
 
       <h2>What's stored on your device</h2>
@@ -70,6 +75,15 @@
           live train arrivals. TfL's own
           <a href="https://tfl.gov.uk/corporate/privacy-and-cookies" target="_blank" rel="noopener">privacy policy</a>
           covers what they do with their logs.
+        </li>
+        <li>
+          <strong>Realtime Trains</strong> (via
+          <code>/.netlify/functions/freight</code>) — only when viewing the
+          Queens Road viewpoint. Their
+          <a href="https://www.realtimetrains.co.uk/about/privacy/" target="_blank" rel="noopener">privacy policy</a>
+          covers what they log. My proxy forwards your browser's freight
+          request to their API and returns their response unchanged; no
+          user-identifying data is added.
         </li>
         <li>
           <strong>Google Fonts</strong> (<code>fonts.googleapis.com</code> and
@@ -120,7 +134,7 @@
         <a href="https://github.com/bselby/Walthamstow-Train-Tracker/issues" target="_blank" rel="noopener">github.com/bselby/Walthamstow-Train-Tracker/issues</a>.
       </p>
 
-      <p class="meta">Last updated 22 April 2026</p>
+      <p class="meta">Last updated 25 April 2026</p>
     </main>
     <!-- Cloudflare Web Analytics — pageview count only, no cookies, no personal data.
          See the Analytics section above for the full story. -->
