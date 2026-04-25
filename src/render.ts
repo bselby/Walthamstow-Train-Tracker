@@ -5,6 +5,7 @@ import type { Viewpoint } from './viewpoints';
 import { formatCountdown, formatAge } from './display';
 import { renderDirectionStrip, clearPreviousPositions } from './strip';
 import { renderSwitcher } from './switcher';
+import { escapeHtml } from './escapeHtml';
 
 export interface ViewModel {
   north?: BridgeEvent;
@@ -338,10 +339,6 @@ function renderWalkingTime(
   }
 
   return el;
-}
-
-function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]!));
 }
 
 function renderDirection(
