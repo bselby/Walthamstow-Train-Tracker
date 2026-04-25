@@ -14,6 +14,11 @@
   --gap: clamp(1rem, 3vw, 2rem);
 
   --line-color: oklch(35% 0.12 10); /* Weaver burgundy — default; main.ts overrides per viewpoint */
+
+  /* Freight diesel brown — deliberately NOT themed per-viewpoint; freight is
+     its own category across every line. Muted to stay visually secondary to
+     passenger data. */
+  --freight-color: oklch(45% 0.06 30);
 }
 
 * { box-sizing: border-box; }
@@ -92,6 +97,24 @@ html, body {
 .label::first-letter {
   color: var(--overground);
   font-weight: 700;
+}
+
+/* FREIGHT pill — inline marker beside the direction label when the hero is a
+   freight working. Outline + freight-brown; deliberately quiet so the
+   countdown remains the loud thing on the page. */
+.freight-tag {
+  display: inline-block;
+  margin-left: 0.4em;
+  padding: 2px 6px;
+  font-family: 'Big Shoulders Text', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--freight-color);
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  vertical-align: 0.1em;
 }
 
 .value {
@@ -331,6 +354,63 @@ html, body {
   transform: scaleX(-1);
 }
 
+/* ───── Freight livery ─────
+   Class 66 SVG sits in place of the Aventra when the active hero is a freight
+   working. The freight strip overrides --line-color via .strip-train.freight
+   so the Class 66 picks up freight-brown via currentColor — passenger SVGs
+   carry on using the viewpoint's line colour as before. */
+
+.strip-train.freight {
+  color: var(--freight-color);
+  /* Freight SVG viewBox is 0 0 62 22 (vs passenger 0 0 52 22) — wider so the
+     wagon doesn't look squashed. */
+  width: 62px;
+}
+
+.strip-freight-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+.strip-freight-svg .freight-body,
+.strip-freight-svg .freight-roof,
+.strip-freight-svg .freight-wagon-base,
+.strip-freight-svg .freight-container,
+.strip-freight-svg .freight-coupling {
+  fill: currentColor;
+}
+
+.strip-freight-svg .freight-window {
+  fill: var(--bg);
+  stroke: var(--ink);
+  stroke-width: 0.4;
+}
+
+.strip-freight-svg .freight-bogie,
+.strip-freight-svg .freight-exhaust,
+.strip-freight-svg .freight-grille {
+  fill: var(--ink);
+}
+
+.strip-freight-svg .freight-container-line {
+  fill: var(--bg);
+  opacity: 0.4;
+}
+
+/* Mirror southbound — same convention as the passenger SVG. */
+.strip-south .strip-freight-svg {
+  transform: scaleX(-1);
+}
+
+/* Stale freight feed — dim the loco without redrawing it. The .stale class is
+   applied by the freight render path when its data is older than the freight
+   freshness threshold. */
+.strip-train.freight.stale {
+  opacity: 0.45;
+}
+
 /* ───── Strip animations ───── */
 
 .strip-bridge.celebrating .strip-bridge-svg {
@@ -419,6 +499,19 @@ html, body {
   color: var(--overground);
 }
 
+/* Ticker freight marker — superscript 'fr' rendered via ::after so the DOM
+   text stays clean for screen readers (the freight tag itself sets an
+   aria-label on the parent ticker entry). */
+.ticker-value-freight::after {
+  content: 'fr';
+  font-size: 0.65em;
+  font-weight: 800;
+  color: var(--freight-color);
+  margin-left: 0.15em;
+  vertical-align: 0.5em;
+  letter-spacing: 0.05em;
+}
+
 /* Tighter vertical rhythm so strip → ticker reads as one unit */
 .strip + .ticker {
   margin-top: -0.25rem;
@@ -434,20 +527,23 @@ html, body {
 .freight-journey {
   text-align: center;
   font-family: 'Big Shoulders Text', sans-serif;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--dim);
+  font-size: 0.8rem;
+  font-weight: 600;
   letter-spacing: 0.04em;
+  color: var(--freight-color);
+  opacity: 0.85;
   line-height: 1.3;
   padding: 0.25rem 1rem 0;
 }
 
 /* Inline region marker — quiet at rest, brief warm flash on its first sighting
    this session (handled in render.ts via a one-shot animationend listener that
-   strips the .new-this-session class). */
+   strips the .new-this-session class). Colour is inherited from the
+   surrounding .freight-journey so chips share its freight-brown tone; the
+   flash keyframe explicitly sets ink at 0% and lets the close interpolate
+   back to the inherited resting colour. */
 .region-chip {
-  font-weight: 600;
-  color: var(--dim);
+  font-weight: 700;
 }
 
 .region-chip.new-this-session {
@@ -461,7 +557,6 @@ html, body {
   }
   100% {
     background-color: transparent;
-    color: var(--dim);
   }
 }
 
