@@ -131,6 +131,7 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
       bridgeStripPosition: vm.viewpoint.positionModel === 'east-ave-bridge' ? 5.5 : null,
       bridgeLabel: vm.viewpoint.positionModel === 'east-ave-bridge' ? 'East Av' : null,
       lineNameForAria: `${vm.viewpoint.lineName} line`,
+      isFreight: vm.north?.arrival.category === 'freight',
     });
     root.appendChild(stripN);
     const tickerN = renderTicker(vm.northTicker);
@@ -151,6 +152,7 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
       bridgeStripPosition: vm.viewpoint.positionModel === 'east-ave-bridge' ? 5.5 : null,
       bridgeLabel: vm.viewpoint.positionModel === 'east-ave-bridge' ? 'East Av' : null,
       lineNameForAria: `${vm.viewpoint.lineName} line`,
+      isFreight: vm.south?.arrival.category === 'freight',
     });
     root.appendChild(stripS);
     const tickerS = renderTicker(vm.southTicker);

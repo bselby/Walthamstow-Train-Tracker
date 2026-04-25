@@ -2,6 +2,7 @@ import type { Stop } from './stops';
 import type { Direction } from './direction';
 import { currentTheme, type Theme } from './season';
 import { toot } from './toot';
+import { FREIGHT_TRAIN_SVG } from './freightSvg';
 
 export interface StripModel {
   direction: Direction;
@@ -14,6 +15,9 @@ export interface StripModel {
   /** Label for the bridge graphic ("East Av") when bridgeStripPosition is set. */
   bridgeLabel: string | null;
   lineNameForAria: string; // e.g. 'Weaver line', 'Suffragette line'
+  /** When true the strip renders the Class 66 freight loco SVG instead of the
+   *  Aventra. Seasonal overlays are skipped — they're authored for passenger only. */
+  isFreight: boolean;
 }
 
 const BRIDGE_SVG = `
@@ -137,16 +141,22 @@ function themedTrainSvg(theme: Theme): string {
   return TRAIN_SVG.replace('</svg>', `${THEME_OVERLAYS[theme]}</svg>`);
 }
 
-function createTrainElement(direction: Direction, theme: Theme, lastIndex: number): HTMLElement {
+function createTrainElement(
+  direction: Direction,
+  theme: Theme,
+  lastIndex: number,
+  isFreight: boolean,
+): HTMLElement {
   const el = document.createElement('div');
-  el.className = `strip-train strip-train-${direction}`;
+  el.className = `strip-train strip-train-${direction}${isFreight ? ' freight' : ''}`;
   // North trains start at position 0 (left), south at lastIndex (right).
   el.style.setProperty('--pos', direction === 'north' ? '0' : String(lastIndex));
   el.dataset.theme = theme ?? '';
+  el.dataset.category = isFreight ? 'freight' : 'passenger';
 
   const inner = document.createElement('div');
   inner.className = 'strip-train-inner';
-  inner.innerHTML = themedTrainSvg(theme);
+  inner.innerHTML = isFreight ? FREIGHT_TRAIN_SVG : themedTrainSvg(theme);
   el.appendChild(inner);
 
   el.addEventListener('click', () => {
@@ -159,13 +169,16 @@ function createTrainElement(direction: Direction, theme: Theme, lastIndex: numbe
   return el;
 }
 
-function refreshTrainTheme(strip: HTMLElement, theme: Theme): void {
-  strip.querySelectorAll<HTMLElement>('.strip-train').forEach((train) => {
-    if (train.dataset.theme === (theme ?? '')) return;
-    train.dataset.theme = theme ?? '';
-    const inner = train.querySelector<HTMLElement>('.strip-train-inner');
-    if (inner) inner.innerHTML = themedTrainSvg(theme);
-  });
+function refreshTrainCategory(strip: HTMLElement, isFreight: boolean, theme: Theme): void {
+  const train = strip.querySelector<HTMLElement>('.strip-train');
+  if (!train) return;
+  const nextCategory = isFreight ? 'freight' : 'passenger';
+  if (train.dataset.category === nextCategory && train.dataset.theme === (theme ?? '')) return;
+  train.dataset.category = nextCategory;
+  train.dataset.theme = theme ?? '';
+  train.classList.toggle('freight', isFreight);
+  const inner = train.querySelector<HTMLElement>('.strip-train-inner');
+  if (inner) inner.innerHTML = isFreight ? FREIGHT_TRAIN_SVG : themedTrainSvg(theme);
 }
 
 const previousPos: Partial<Record<Direction, number>> = {};
@@ -191,7 +204,7 @@ export function renderDirectionStrip(
   const strip = stale || el === null ? buildSkeleton(model) : el;
   previousViewpointStops.set(strip, model.stops);
 
-  refreshTrainTheme(strip, currentTheme(new Date()));
+  refreshTrainCategory(strip, model.isFreight, currentTheme(new Date()));
   updateDynamic(strip, model);
 
   const prev = previousPos[model.direction];
@@ -259,7 +272,7 @@ function buildSkeleton(model: StripModel): HTMLElement {
   }
 
   const theme = currentTheme(new Date());
-  const train = createTrainElement(model.direction, theme, model.stops.length - 1);
+  const train = createTrainElement(model.direction, theme, model.stops.length - 1, model.isFreight);
   container.appendChild(train);
 
   return container;
