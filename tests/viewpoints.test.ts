@@ -60,6 +60,16 @@ describe('VIEWPOINTS', () => {
     const v = getViewpointById('queens-road');
     expect(v?.positionModel).toBe('station');
   });
+
+  it('queens-road has a freightStationCode (Suffragette covers GOBLIN freight)', () => {
+    const v = getViewpointById('queens-road');
+    expect(v?.freightStationCode).toBeTruthy();
+  });
+
+  it('east-ave does NOT have a freightStationCode (Chingford branch is passenger-only)', () => {
+    const v = getViewpointById('east-ave');
+    expect(v?.freightStationCode).toBeUndefined();
+  });
 });
 
 describe('getViewpointById', () => {

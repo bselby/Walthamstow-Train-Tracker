@@ -1,5 +1,7 @@
 import { TFL_ARRIVALS_URL } from './constants';
 
+export type ServiceCategory = 'passenger' | 'freight';
+
 export interface Arrival {
   id: string;
   stationName: string;
@@ -20,6 +22,24 @@ export interface Arrival {
    *  fresh `id` — so only `vehicleId` lets us detect whether the hero is still
    *  the same train when scoring stability. */
   vehicleId?: string;
+  /** Category of service. Undefined → passenger (all TfL rows). The freight
+   *  proxy populates this as 'freight' for rtt.io rows where
+   *  scheduleMetadata.inPassengerService === false. */
+  category?: ServiceCategory;
+  /** ATOC operator code (two letters). Freight only — set from the rtt.io
+   *  scheduleMetadata.operator.code. Used as a defence-in-depth check
+   *  alongside category, and to render the operator chip on the freight hero. */
+  operatorCode?: string;
+  /** Four-character headcode (e.g. '6M23'). Freight only and not always
+   *  present — /rtt/location?code=… does not return headcode in the default
+   *  response, so this stays undefined unless the proxy hits /rtt/service. */
+  headcode?: string;
+  /** Free-text origin location — yard or depot for freight, terminus for
+   *  passenger. TfL passenger rows leave this undefined; the freight proxy
+   *  populates it from the rtt.io top-level origin[0].location.description.
+   *  Rendered as part of the hero's 'origin → destination' subtitle when
+   *  the hero is a freight row. */
+  origin?: string;
 }
 
 export async function fetchArrivals(stopPointId: string, lineId: string): Promise<Arrival[]> {

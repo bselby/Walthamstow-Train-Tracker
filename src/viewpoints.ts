@@ -72,6 +72,11 @@ export interface Viewpoint {
     north: ViewpointDirection;
     south: ViewpointDirection;
   };
+  /** Realtime Trains station CRS (3-char code). When set, the freight proxy
+   *  polls /rtt/location?code=gb-nr:<this> alongside TfL passenger arrivals
+   *  and merges any inPassengerService=false rows in. Undefined → no freight
+   *  poll, e.g. East Ave (Chingford branch is passenger-only). */
+  freightStationCode?: string;
 }
 
 // ─── Chingford branch (Weaver) segments, keyed to CHINGFORD_STOPS ordering ───
@@ -177,6 +182,9 @@ export const VIEWPOINTS: readonly Viewpoint[] = [
     segments: SUFFRAGETTE_SEGMENTS,
     anchorIndex: 6, // Walthamstow Queens Road
     positionModel: 'station',
+    // CRS confirmed against the live rtt.io capture in tests/fixtures —
+    // query.location.shortCodes is ['WMW'] for Walthamstow Queens Road.
+    freightStationCode: 'WMW',
     directions: {
       north: {
         label: '→ Barking Riverside',
