@@ -32,7 +32,7 @@ describe('renderSwitcher', () => {
     container.appendChild(el);
     const header = el.querySelector<HTMLElement>('.switcher-header')!;
     expect(header.textContent).toContain('Weaver');
-    expect(header.textContent).toContain('East Ave bridge');
+    expect(header.textContent).toContain('East Avenue Bridge');
   });
 
   it('closed header has aria-expanded=false and the sheet is not visible', () => {

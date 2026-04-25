@@ -45,7 +45,7 @@ export type PositionModel = 'east-ave-bridge' | 'station';
 export interface Viewpoint {
   /** Stable slug — used as localStorage key + in the switcher. */
   id: string;
-  /** Short display label for the switcher — 'East Ave bridge', 'Queens Road station'. */
+  /** Short display label for the switcher — 'East Avenue Bridge', 'Queens Road Station'. */
   name: string;
   /** Longer copy for screen readers + the switcher sheet subtitle. */
   description: string;
@@ -138,7 +138,7 @@ const SUFFRAGETTE_GREEN = 'oklch(55% 0.15 155)';
 export const VIEWPOINTS: readonly Viewpoint[] = [
   {
     id: 'east-ave',
-    name: 'East Ave bridge',
+    name: 'East Avenue Bridge',
     description: 'The road bridge over the Weaver line on East Avenue, Walthamstow',
     lineId: 'weaver',
     lineName: 'Weaver',
@@ -171,7 +171,7 @@ export const VIEWPOINTS: readonly Viewpoint[] = [
   },
   {
     id: 'queens-road',
-    name: 'Queens Road station',
+    name: 'Queens Road Station',
     description: 'Walthamstow Queens Road station, platform view',
     lineId: 'suffragette',
     lineName: 'Suffragette',
@@ -202,7 +202,7 @@ export const VIEWPOINTS: readonly Viewpoint[] = [
   },
   {
     id: 'northcote-rd',
-    name: 'Northcote Rd bridge',
+    name: 'Northcote Road Bridge',
     description: 'The road bridge over the Suffragette line on Northcote Road, Walthamstow',
     lineId: 'suffragette',
     lineName: 'Suffragette',
