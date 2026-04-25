@@ -204,6 +204,9 @@ function renderTicker(events: BridgeEvent[]): HTMLElement | null {
     }
     const val = document.createElement('span');
     val.className = 'ticker-value';
+    if (ev.arrival.category === 'freight') {
+      val.classList.add('ticker-value-freight');
+    }
     const mins = Math.max(0, Math.floor(ev.bridgeTimeSeconds / 60));
     // Only the LAST value gets the "min" suffix so the row doesn't shout "MIN · MIN · MIN".
     val.textContent = i === events.length - 1 ? `${mins} min` : `${mins}`;
@@ -373,9 +376,19 @@ function renderDirection(
   row.className = 'row';
   row.setAttribute('aria-label', ariaLabel);
 
+  const isFreight = event?.arrival.category === 'freight';
+
   const labelEl = document.createElement('div');
   labelEl.className = 'label';
   labelEl.textContent = label;
+  if (isFreight) {
+    const tag = document.createElement('span');
+    tag.className = 'freight-tag';
+    tag.textContent = 'FREIGHT';
+    tag.setAttribute('aria-label', 'Freight service');
+    labelEl.appendChild(document.createTextNode(' '));
+    labelEl.appendChild(tag);
+  }
   row.appendChild(labelEl);
 
   const valueEl = document.createElement('div');
@@ -404,5 +417,19 @@ function renderDirection(
   previousValueText[label] = currentText;
 
   row.appendChild(valueEl);
+
+  // Origin → destination subtitle, only when we have BOTH ends — half an arrow
+  // ("Tilbury Riverside Yard →") looks broken, so skip the row instead.
+  if (isFreight && event?.arrival.origin && event?.arrival.destinationName) {
+    const journey = document.createElement('div');
+    journey.className = 'freight-journey';
+    journey.setAttribute(
+      'aria-label',
+      `Freight journey: ${event.arrival.origin} to ${event.arrival.destinationName}`,
+    );
+    journey.textContent = `${event.arrival.origin} → ${event.arrival.destinationName}`;
+    row.appendChild(journey);
+  }
+
   return row;
 }
