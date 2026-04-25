@@ -1,0 +1,551 @@
+{
+  "systemStatus": {
+    "realtimeNetworkRail": "OK",
+    "rttCore": "OK"
+  },
+  "query": {
+    "location": {
+      "namespace": "gb-nr",
+      "description": "Walthamstow Queens Road",
+      "shortCodes": [
+        "WMW"
+      ],
+      "longCodes": [
+        "WLTHQRD"
+      ]
+    },
+    "timeFrom": "2026-04-25T09:58:23+01:00",
+    "timeTo": "2026-04-25T10:58:23+01:00",
+    "detailed": false
+  },
+  "services": [
+    {
+      "temporalData": {
+        "arrival": {
+          "scheduleInternal": "2026-04-25T10:07:00",
+          "scheduleAdvertised": "2026-04-25T10:08:00",
+          "realtimeForecast": "2026-04-25T10:07:00",
+          "isCancelled": false
+        },
+        "departure": {
+          "scheduleInternal": "2026-04-25T10:08:00",
+          "scheduleAdvertised": "2026-04-25T10:08:00",
+          "realtimeForecast": "2026-04-25T10:08:00",
+          "isCancelled": false
+        },
+        "scheduledCallType": "ADVERTISED_OPEN",
+        "realtimeCallType": "ADVERTISED_OPEN",
+        "displayAs": "CALL",
+        "isInterpolated": false
+      },
+      "locationMetadata": {
+        "platform": {
+          "planned": "1",
+          "forecast": "1"
+        }
+      },
+      "scheduleMetadata": {
+        "uniqueIdentity": "gb-nr:P51307:2026-04-25",
+        "namespace": "gb-nr",
+        "identity": "P51307",
+        "departureDate": "2026-04-25",
+        "operator": {
+          "code": "LO",
+          "name": "London Overground"
+        },
+        "modeType": "TRAIN",
+        "inPassengerService": true
+      },
+      "origin": [
+        {
+          "location": {
+            "description": "Barking Riverside",
+            "longCodes": [
+              "BARKRIV"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T09:48:00",
+            "scheduleAdvertised": "2026-04-25T09:48:00"
+          }
+        }
+      ],
+      "destination": [
+        {
+          "location": {
+            "description": "Gospel Oak",
+            "longCodes": [
+              "GOSPLOK"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T10:27:00",
+            "scheduleAdvertised": "2026-04-25T10:29:00"
+          }
+        }
+      ]
+    },
+    {
+      "temporalData": {
+        "arrival": {
+          "scheduleInternal": "2026-04-25T10:12:00",
+          "scheduleAdvertised": "2026-04-25T10:12:00",
+          "realtimeForecast": "2026-04-25T10:12:00",
+          "isCancelled": false
+        },
+        "departure": {
+          "scheduleInternal": "2026-04-25T10:12:00",
+          "scheduleAdvertised": "2026-04-25T10:12:00",
+          "realtimeForecast": "2026-04-25T10:12:00",
+          "isCancelled": false
+        },
+        "scheduledCallType": "ADVERTISED_OPEN",
+        "realtimeCallType": "ADVERTISED_OPEN",
+        "displayAs": "CALL",
+        "isInterpolated": false
+      },
+      "locationMetadata": {
+        "platform": {
+          "planned": "2",
+          "forecast": "2"
+        }
+      },
+      "scheduleMetadata": {
+        "uniqueIdentity": "gb-nr:P51312:2026-04-25",
+        "namespace": "gb-nr",
+        "identity": "P51312",
+        "departureDate": "2026-04-25",
+        "operator": {
+          "code": "LO",
+          "name": "London Overground"
+        },
+        "modeType": "TRAIN",
+        "inPassengerService": true
+      },
+      "origin": [
+        {
+          "location": {
+            "description": "Gospel Oak",
+            "longCodes": [
+              "GOSPLOK"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T09:54:00",
+            "scheduleAdvertised": "2026-04-25T09:54:00"
+          }
+        }
+      ],
+      "destination": [
+        {
+          "location": {
+            "description": "Barking Riverside",
+            "longCodes": [
+              "BARKRIV"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T10:32:00",
+            "scheduleAdvertised": "2026-04-25T10:34:00"
+          }
+        }
+      ]
+    },
+    {
+      "temporalData": {
+        "arrival": {
+          "scheduleInternal": "2026-04-25T10:22:00",
+          "scheduleAdvertised": "2026-04-25T10:23:00",
+          "realtimeForecast": "2026-04-25T10:22:00",
+          "isCancelled": false
+        },
+        "departure": {
+          "scheduleInternal": "2026-04-25T10:23:00",
+          "scheduleAdvertised": "2026-04-25T10:23:00",
+          "realtimeForecast": "2026-04-25T10:23:00",
+          "isCancelled": false
+        },
+        "scheduledCallType": "ADVERTISED_OPEN",
+        "realtimeCallType": "ADVERTISED_OPEN",
+        "displayAs": "CALL",
+        "isInterpolated": false
+      },
+      "locationMetadata": {
+        "platform": {
+          "planned": "1",
+          "forecast": "1"
+        }
+      },
+      "scheduleMetadata": {
+        "uniqueIdentity": "gb-nr:P51317:2026-04-25",
+        "namespace": "gb-nr",
+        "identity": "P51317",
+        "departureDate": "2026-04-25",
+        "operator": {
+          "code": "LO",
+          "name": "London Overground"
+        },
+        "modeType": "TRAIN",
+        "inPassengerService": true
+      },
+      "origin": [
+        {
+          "location": {
+            "description": "Barking Riverside",
+            "longCodes": [
+              "BARKRIV"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T10:03:00",
+            "scheduleAdvertised": "2026-04-25T10:03:00"
+          }
+        }
+      ],
+      "destination": [
+        {
+          "location": {
+            "description": "Gospel Oak",
+            "longCodes": [
+              "GOSPLOK"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T10:42:00",
+            "scheduleAdvertised": "2026-04-25T10:44:00"
+          }
+        }
+      ]
+    },
+    {
+      "temporalData": {
+        "arrival": {
+          "scheduleInternal": "2026-04-25T10:27:00",
+          "scheduleAdvertised": "2026-04-25T10:27:00",
+          "realtimeForecast": "2026-04-25T10:27:00",
+          "isCancelled": false
+        },
+        "departure": {
+          "scheduleInternal": "2026-04-25T10:27:00",
+          "scheduleAdvertised": "2026-04-25T10:27:00",
+          "realtimeForecast": "2026-04-25T10:27:00",
+          "isCancelled": false
+        },
+        "scheduledCallType": "ADVERTISED_OPEN",
+        "realtimeCallType": "ADVERTISED_OPEN",
+        "displayAs": "CALL",
+        "isInterpolated": false
+      },
+      "locationMetadata": {
+        "platform": {
+          "planned": "2",
+          "forecast": "2"
+        }
+      },
+      "scheduleMetadata": {
+        "uniqueIdentity": "gb-nr:P51322:2026-04-25",
+        "namespace": "gb-nr",
+        "identity": "P51322",
+        "departureDate": "2026-04-25",
+        "operator": {
+          "code": "LO",
+          "name": "London Overground"
+        },
+        "modeType": "TRAIN",
+        "inPassengerService": true
+      },
+      "origin": [
+        {
+          "location": {
+            "description": "Gospel Oak",
+            "longCodes": [
+              "GOSPLOK"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T10:09:00",
+            "scheduleAdvertised": "2026-04-25T10:09:00"
+          }
+        }
+      ],
+      "destination": [
+        {
+          "location": {
+            "description": "Barking Riverside",
+            "longCodes": [
+              "BARKRIV"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T10:47:00",
+            "scheduleAdvertised": "2026-04-25T10:49:00"
+          }
+        }
+      ]
+    },
+    {
+      "temporalData": {
+        "arrival": {
+          "scheduleInternal": "2026-04-25T10:37:00",
+          "scheduleAdvertised": "2026-04-25T10:38:00",
+          "realtimeForecast": "2026-04-25T10:37:00",
+          "isCancelled": false
+        },
+        "departure": {
+          "scheduleInternal": "2026-04-25T10:38:00",
+          "scheduleAdvertised": "2026-04-25T10:38:00",
+          "realtimeForecast": "2026-04-25T10:38:00",
+          "isCancelled": false
+        },
+        "scheduledCallType": "ADVERTISED_OPEN",
+        "realtimeCallType": "ADVERTISED_OPEN",
+        "displayAs": "CALL",
+        "isInterpolated": false
+      },
+      "locationMetadata": {
+        "platform": {
+          "planned": "1",
+          "forecast": "1"
+        }
+      },
+      "scheduleMetadata": {
+        "uniqueIdentity": "gb-nr:P51327:2026-04-25",
+        "namespace": "gb-nr",
+        "identity": "P51327",
+        "departureDate": "2026-04-25",
+        "operator": {
+          "code": "LO",
+          "name": "London Overground"
+        },
+        "modeType": "TRAIN",
+        "inPassengerService": true
+      },
+      "origin": [
+        {
+          "location": {
+            "description": "Barking Riverside",
+            "longCodes": [
+              "BARKRIV"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T10:18:00",
+            "scheduleAdvertised": "2026-04-25T10:18:00"
+          }
+        }
+      ],
+      "destination": [
+        {
+          "location": {
+            "description": "Gospel Oak",
+            "longCodes": [
+              "GOSPLOK"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T10:57:00",
+            "scheduleAdvertised": "2026-04-25T10:59:00"
+          }
+        }
+      ]
+    },
+    {
+      "temporalData": {
+        "arrival": {
+          "scheduleInternal": "2026-04-25T10:42:00",
+          "scheduleAdvertised": "2026-04-25T10:42:00",
+          "realtimeForecast": "2026-04-25T10:42:00",
+          "isCancelled": false
+        },
+        "departure": {
+          "scheduleInternal": "2026-04-25T10:42:00",
+          "scheduleAdvertised": "2026-04-25T10:42:00",
+          "realtimeForecast": "2026-04-25T10:42:00",
+          "isCancelled": false
+        },
+        "scheduledCallType": "ADVERTISED_OPEN",
+        "realtimeCallType": "ADVERTISED_OPEN",
+        "displayAs": "CALL",
+        "isInterpolated": false
+      },
+      "locationMetadata": {
+        "platform": {
+          "planned": "2",
+          "forecast": "2"
+        }
+      },
+      "scheduleMetadata": {
+        "uniqueIdentity": "gb-nr:P51332:2026-04-25",
+        "namespace": "gb-nr",
+        "identity": "P51332",
+        "departureDate": "2026-04-25",
+        "operator": {
+          "code": "LO",
+          "name": "London Overground"
+        },
+        "modeType": "TRAIN",
+        "inPassengerService": true
+      },
+      "origin": [
+        {
+          "location": {
+            "description": "Gospel Oak",
+            "longCodes": [
+              "GOSPLOK"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T10:24:00",
+            "scheduleAdvertised": "2026-04-25T10:24:00"
+          }
+        }
+      ],
+      "destination": [
+        {
+          "location": {
+            "description": "Barking Riverside",
+            "longCodes": [
+              "BARKRIV"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T11:02:00",
+            "scheduleAdvertised": "2026-04-25T11:04:00"
+          }
+        }
+      ]
+    },
+    {
+      "temporalData": {
+        "arrival": {
+          "scheduleInternal": "2026-04-25T10:52:00",
+          "scheduleAdvertised": "2026-04-25T10:53:00",
+          "realtimeForecast": "2026-04-25T10:52:00",
+          "isCancelled": false
+        },
+        "departure": {
+          "scheduleInternal": "2026-04-25T10:53:00",
+          "scheduleAdvertised": "2026-04-25T10:53:00",
+          "realtimeForecast": "2026-04-25T10:53:00",
+          "isCancelled": false
+        },
+        "scheduledCallType": "ADVERTISED_OPEN",
+        "realtimeCallType": "ADVERTISED_OPEN",
+        "displayAs": "CALL",
+        "isInterpolated": false
+      },
+      "locationMetadata": {
+        "platform": {
+          "planned": "1",
+          "forecast": "1"
+        }
+      },
+      "scheduleMetadata": {
+        "uniqueIdentity": "gb-nr:P51337:2026-04-25",
+        "namespace": "gb-nr",
+        "identity": "P51337",
+        "departureDate": "2026-04-25",
+        "operator": {
+          "code": "LO",
+          "name": "London Overground"
+        },
+        "modeType": "TRAIN",
+        "inPassengerService": true
+      },
+      "origin": [
+        {
+          "location": {
+            "description": "Barking Riverside",
+            "longCodes": [
+              "BARKRIV"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T10:33:00",
+            "scheduleAdvertised": "2026-04-25T10:33:00"
+          }
+        }
+      ],
+      "destination": [
+        {
+          "location": {
+            "description": "Gospel Oak",
+            "longCodes": [
+              "GOSPLOK"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T11:12:00",
+            "scheduleAdvertised": "2026-04-25T11:14:00"
+          }
+        }
+      ]
+    },
+    {
+      "temporalData": {
+        "arrival": {
+          "scheduleInternal": "2026-04-25T10:57:00",
+          "scheduleAdvertised": "2026-04-25T10:57:00",
+          "realtimeForecast": "2026-04-25T10:57:00",
+          "isCancelled": false
+        },
+        "departure": {
+          "scheduleInternal": "2026-04-25T10:57:00",
+          "scheduleAdvertised": "2026-04-25T10:57:00",
+          "realtimeForecast": "2026-04-25T10:57:00",
+          "isCancelled": false
+        },
+        "scheduledCallType": "ADVERTISED_OPEN",
+        "realtimeCallType": "ADVERTISED_OPEN",
+        "displayAs": "CALL",
+        "isInterpolated": false
+      },
+      "locationMetadata": {
+        "platform": {
+          "planned": "2",
+          "forecast": "2"
+        }
+      },
+      "scheduleMetadata": {
+        "uniqueIdentity": "gb-nr:P51342:2026-04-25",
+        "namespace": "gb-nr",
+        "identity": "P51342",
+        "departureDate": "2026-04-25",
+        "operator": {
+          "code": "LO",
+          "name": "London Overground"
+        },
+        "modeType": "TRAIN",
+        "inPassengerService": true
+      },
+      "origin": [
+        {
+          "location": {
+            "description": "Gospel Oak",
+            "longCodes": [
+              "GOSPLOK"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T10:39:00",
+            "scheduleAdvertised": "2026-04-25T10:39:00"
+          }
+        }
+      ],
+      "destination": [
+        {
+          "location": {
+            "description": "Barking Riverside",
+            "longCodes": [
+              "BARKRIV"
+            ]
+          },
+          "temporalData": {
+            "scheduleInternal": "2026-04-25T11:17:00",
+            "scheduleAdvertised": "2026-04-25T11:19:00"
+          }
+        }
+      ]
+    }
+  ]
+}
