@@ -727,8 +727,11 @@ html, body {
   font: inherit;
   cursor: pointer;
 
-  font-family: 'Big Shoulders Display', sans-serif;
-  font-size: 1.05rem;
+  /* Big Shoulders Text — Big Shoulders Display is only loaded at 900 (reserved
+     for the hero countdown), so any sub-900 weight here would be faux-bolded
+     or silently rendered at 900. Text family has 500–800 loaded for real. */
+  font-family: 'Big Shoulders Text', sans-serif;
+  font-size: 1rem;
   text-align: center;
   color: var(--ink);
 
@@ -741,27 +744,27 @@ html, body {
               opacity 180ms ease;
 }
 
-/* Two-line stacked label: subtle line-name above, bold viewpoint name below */
+/* Two-line stacked label: line-coloured name above, neutral viewpoint name below */
 .switcher-header-label {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.05em;
+  gap: 0.15em;
 }
 
 .switcher-header-line {
-  font-size: 0.7em;         /* ~0.74rem — small, but readable as the colour-carrier */
-  font-weight: 600;
-  letter-spacing: 0.18em;
+  font-size: 0.78em;
+  font-weight: 700;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--line-color); /* line identity lives here now, not in the name */
+  color: var(--line-color); /* line identity lives here, not in the name */
   line-height: 1;
 }
 
 .switcher-header-name {
-  font-size: 1em;           /* ~1.05rem — primary identity, neutral so it stays consistent */
-  font-weight: 700;
-  letter-spacing: 0.01em;
+  font-size: 1em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   line-height: 1.1;
   color: var(--ink);
 }
@@ -858,19 +861,19 @@ html, body {
    The same viewpoint reads identically whether it's the active label in the
    header or a row in the open sheet. */
 .switcher-row-line {
-  font-family: 'Big Shoulders Display', sans-serif;
-  font-weight: 600;
-  font-size: 0.74rem;
-  letter-spacing: 0.18em;
+  font-family: 'Big Shoulders Text', sans-serif;
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   line-height: 1;
   /* Line colour is applied inline via the style attribute in switcher.ts */
 }
 .switcher-row-name {
-  font-family: 'Big Shoulders Display', sans-serif;
-  font-weight: 700;
-  font-size: 1.05rem;
-  letter-spacing: 0.01em;
+  font-family: 'Big Shoulders Text', sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
   color: var(--ink);
   line-height: 1.1;
 }

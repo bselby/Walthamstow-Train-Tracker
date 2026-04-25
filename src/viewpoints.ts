@@ -45,7 +45,7 @@ export type PositionModel = 'east-ave-bridge' | 'station';
 export interface Viewpoint {
   /** Stable slug — used as localStorage key + in the switcher. */
   id: string;
-  /** Short display label for the switcher — 'East Ave bridge', 'Queens Road'. */
+  /** Short display label for the switcher — 'East Ave bridge', 'Queens Road station'. */
   name: string;
   /** Longer copy for screen readers + the switcher sheet subtitle. */
   description: string;
@@ -171,7 +171,7 @@ export const VIEWPOINTS: readonly Viewpoint[] = [
   },
   {
     id: 'queens-road',
-    name: 'Queens Road',
+    name: 'Queens Road station',
     description: 'Walthamstow Queens Road station, platform view',
     lineId: 'suffragette',
     lineName: 'Suffragette',
