@@ -6,6 +6,7 @@ import { formatCountdown, formatAge } from './display';
 import { renderDirectionStrip, clearPreviousPositions } from './strip';
 import { renderSwitcher } from './switcher';
 import { escapeHtml } from './escapeHtml';
+import { regionFor, isNewRegionThisSession, type Region } from './freightRegions';
 
 export interface ViewModel {
   north?: BridgeEvent;
@@ -367,6 +368,23 @@ function renderWalkingTime(
   return el;
 }
 
+function regionChip(region: Region): HTMLElement {
+  const chip = document.createElement('span');
+  chip.className = 'region-chip';
+  chip.textContent = ` · ${region}`;
+  if (isNewRegionThisSession(region)) {
+    chip.classList.add('new-this-session');
+    // Strip the class once the shimmer completes so a re-render of the same
+    // region (still novel within this session) doesn't re-trigger the animation.
+    chip.addEventListener(
+      'animationend',
+      () => chip.classList.remove('new-this-session'),
+      { once: true },
+    );
+  }
+  return chip;
+}
+
 function renderDirection(
   label: string,
   event: BridgeEvent | undefined,
@@ -423,11 +441,24 @@ function renderDirection(
   if (isFreight && event?.arrival.origin && event?.arrival.destinationName) {
     const journey = document.createElement('div');
     journey.className = 'freight-journey';
+
+    const originRegion = regionFor(event.arrival.origin);
+    const destRegion = regionFor(event.arrival.destinationName);
+
+    journey.appendChild(document.createTextNode(event.arrival.origin));
+    journey.appendChild(regionChip(originRegion));
+    journey.appendChild(document.createTextNode(' → '));
+    journey.appendChild(document.createTextNode(event.arrival.destinationName));
+    // Same-region trips (e.g. Willesden → Wembley) skip the duplicate chip
+    // so the line stays compact and the chip retains meaning.
+    if (destRegion !== originRegion) {
+      journey.appendChild(regionChip(destRegion));
+    }
+
     journey.setAttribute(
       'aria-label',
-      `Freight journey: ${event.arrival.origin} to ${event.arrival.destinationName}`,
+      `Freight journey: ${event.arrival.origin} (${originRegion}) to ${event.arrival.destinationName} (${destRegion})`,
     );
-    journey.textContent = `${event.arrival.origin} → ${event.arrival.destinationName}`;
     row.appendChild(journey);
   }
 

@@ -3,6 +3,7 @@ import { render, type ViewModel } from '../src/render';
 import type { BridgeEvent } from '../src/bridge';
 import type { Arrival } from '../src/tfl';
 import { getViewpointById } from '../src/viewpoints';
+import { __resetRegionMemoForTests } from '../src/freightRegions';
 
 const QR = getViewpointById('queens-road')!;
 
@@ -72,6 +73,8 @@ describe('render — freight', () => {
   beforeEach(() => {
     document.body.innerHTML = '<div id="app"></div>';
     root = document.getElementById('app')!;
+    // Reset the session-novelty memo so .new-this-session fires deterministically.
+    __resetRegionMemoForTests();
   });
 
   it('passenger hero: no .freight-tag', () => {
@@ -115,5 +118,53 @@ describe('render — freight', () => {
     }), opts);
     expect(root.querySelector('.ticker-value-freight')).toBeNull();
     expect(root.querySelector('.ticker-value')).not.toBeNull();
+  });
+
+  it('different-region trip: renders origin + destination region chips', () => {
+    render(root, vm({
+      north: event(freightArrival({
+        origin: 'Mossend Yard',
+        destinationName: 'Felixstowe North',
+      }), 60),
+    }), opts);
+    const chips = root.querySelectorAll('.region-chip');
+    expect(chips).toHaveLength(2);
+    expect(chips[0].textContent).toContain('Scotland');
+    expect(chips[1].textContent).toContain('East Anglia');
+  });
+
+  it('same-region trip: renders only one region chip', () => {
+    render(root, vm({
+      north: event(freightArrival({
+        origin: 'Willesden Euroterminal',
+        destinationName: 'Wembley Yard',
+      }), 60),
+    }), opts);
+    expect(root.querySelectorAll('.region-chip')).toHaveLength(1);
+  });
+
+  it('first sighting of a shimmer-eligible region: chip gets .new-this-session', () => {
+    render(root, vm({
+      north: event(freightArrival({
+        origin: 'Mossend Yard',
+        destinationName: 'Willesden Euroterminal',
+      }), 60),
+    }), opts);
+    const scot = Array.from(root.querySelectorAll('.region-chip')).find((c) =>
+      c.textContent?.includes('Scotland'),
+    );
+    expect(scot?.classList.contains('new-this-session')).toBe(true);
+  });
+
+  it('Home region never gets .new-this-session', () => {
+    render(root, vm({
+      north: event(freightArrival({
+        origin: 'Willesden Euroterminal',
+        destinationName: 'Stratford International',
+      }), 60),
+    }), opts);
+    const home = root.querySelector('.region-chip');
+    expect(home?.textContent).toContain('Home');
+    expect(home?.classList.contains('new-this-session')).toBe(false);
   });
 });
