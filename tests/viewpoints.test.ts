@@ -70,6 +70,19 @@ describe('VIEWPOINTS', () => {
     const v = getViewpointById('east-ave');
     expect(v?.freightStationCode).toBeUndefined();
   });
+
+  it('northcote-rd shares the WMW freight feed with queens-road (same physical track)', () => {
+    const queensRoad = getViewpointById('queens-road');
+    const northcote = getViewpointById('northcote-rd');
+    expect(northcote?.freightStationCode).toBe('WMW');
+    expect(northcote?.freightStationCode).toBe(queensRoad?.freightStationCode);
+  });
+
+  it('northcote-rd applies a non-zero offsetSeconds (bridge is ~634m from WQR, not at it)', () => {
+    const v = getViewpointById('northcote-rd');
+    expect(v?.directions.north.offsetSeconds).not.toBe(0);
+    expect(v?.directions.south.offsetSeconds).not.toBe(0);
+  });
 });
 
 describe('getViewpointById', () => {

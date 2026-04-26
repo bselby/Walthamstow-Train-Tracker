@@ -213,6 +213,12 @@ export const VIEWPOINTS: readonly Viewpoint[] = [
     segments: SUFFRAGETTE_SEGMENTS,
     anchorIndex: 6, // Walthamstow Queens Road
     positionModel: 'station',
+    // Same physical track as Queens Road, ~634m down the line — every freight
+    // movement past WMW also passes under this bridge ±87s later. The freight
+    // DTO's timeToStation is "seconds until the train passes WMW", and
+    // computeBridgeTime applies the directions.*.offsetSeconds below identically
+    // for passenger and freight, so the same ±87s shift maps it onto the bridge.
+    freightStationCode: 'WMW',
     directions: {
       north: {
         label: '→ Barking Riverside',
