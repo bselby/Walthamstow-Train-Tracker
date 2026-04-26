@@ -19,7 +19,7 @@ import { fetchFreight, clampFreightPosition } from './freight';
 
 // A small hello for anyone peeking at devtools. One console log, no overhead.
 console.log(
-  '%c🚂 Walthamstow Train Tracker\n%cBuilt for watching trains with a toddler on the East Avenue bridge.\nSource: github.com/bselby/Walthamstow-Train-Tracker',
+  '%c🚂 E17 Trains\n%cLive train times from popular E17 toddler viewpoints.\nSource: github.com/bselby/Walthamstow-Train-Tracker',
   'font: 700 16px system-ui; color: #EE7C0E;',
   'font: 500 12px system-ui; color: #1a2840; line-height: 1.6;'
 );
@@ -173,7 +173,7 @@ export function switchToViewpoint(id: string): void {
   // Invalidate any in-flight tick so it discards its results when it resolves.
   tickGeneration++;
   // Update the document title: viewpoint name first so browser tabs are readable.
-  document.title = `East Ave Trains — ${activeViewpoint.lineName} · ${activeViewpoint.name}`;
+  document.title = `E17 Trains — ${activeViewpoint.lineName} · ${activeViewpoint.name}`;
   // Update the --line-color CSS custom property so the header + train livery
   // pick up the new colour immediately.
   document.documentElement.style.setProperty('--line-color', activeViewpoint.lineColor);
@@ -431,7 +431,7 @@ document.addEventListener('visibilitychange', () => {
 // Sync CSS + title to the booted viewpoint. These normally update on switch,
 // but first-paint needs them too.
 document.documentElement.style.setProperty('--line-color', activeViewpoint.lineColor);
-document.title = `East Ave Trains — ${activeViewpoint.name}`;
+document.title = `E17 Trains — ${activeViewpoint.name}`;
 
 // ── TD berth integration ──────────────────────────────────────────────────────
 // When a live berth event arrives from the proxy, check if it matches the

@@ -7,9 +7,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Walthamstow Trains',
-        short_name: 'Trains',
-        description: 'Live Weaver-line arrivals over the East Avenue bridge',
+        name: 'E17 Trains',
+        short_name: 'E17 Trains',
+        description: 'Live train times from popular E17 toddler viewpoints',
         theme_color: '#f6efdf',
         background_color: '#f6efdf',
         // standalone (not fullscreen) so Android keeps the status bar visible

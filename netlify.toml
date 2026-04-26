@@ -28,6 +28,14 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# Netlify auto-detects most MIME types but ships .webmanifest as
+# application/octet-stream by default, which Chrome warns about and some older
+# browsers reject. Pin it to the spec'd type.
+[[headers]]
+  for = "/*.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"
+
 # Permanent redirect from the old netlify.app hostname to the custom domain so
 # search engines consolidate link equity + anyone with the old URL bookmarked
 # gets cleanly forwarded. Netlify evaluates these BEFORE the SPA catch-all below.
