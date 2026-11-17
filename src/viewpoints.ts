@@ -36,8 +36,13 @@ export interface ViewpointDirection {
 export type PositionModel = 'east-ave-bridge' | 'station';
 
 export interface Viewpoint {
-  /** Stable slug — used as localStorage key + in the switcher. */
+  /** Stable internal id — used as a localStorage key and to key tap records
+   *  on the server. Never changes, and is not the URL slug. */
   id: string;
+  /** Hand-chosen locality, the first part of the viewpoint's URL: 'walthamstow'. */
+  place: string;
+  /** Second part of the URL: `/<place>/<slug>`. Permanent once published. */
+  slug: string;
   /** Short display label for the switcher — 'East Avenue Bridge', 'Queens Road Station'. */
   name: string;
   /** Longer copy for screen readers + the switcher sheet subtitle. */
@@ -132,19 +137,67 @@ const SUFFRAGETTE_SEGMENTS: readonly Segment[] = [
 const WEAVER_BURGUNDY = 'oklch(35% 0.12 10)';
 const SUFFRAGETTE_GREEN = 'oklch(55% 0.15 155)';
 
+/** Everything about a line that every viewpoint on it shares. */
+export const LINES: Record<LineId, {
+  name: string;
+  color: string;
+  stops: readonly Stop[];
+  segments: readonly Segment[];
+}> = {
+  weaver: { name: 'Weaver', color: WEAVER_BURGUNDY, stops: CHINGFORD_STOPS, segments: CHINGFORD_SEGMENTS },
+  suffragette: { name: 'Suffragette', color: SUFFRAGETTE_GREEN, stops: SUFFRAGETTE_STOPS, segments: SUFFRAGETTE_SEGMENTS },
+};
+
+/** What is written by hand for one viewpoint. Line name, colour, stops and
+ *  inter-stop timings come from LINES. */
+export interface ViewpointRecord {
+  id: string;
+  place: string;
+  slug: string;
+  name: string;
+  description: string;
+  coords: { lat: number; lng: number };
+  line: LineId;
+  stopPointId: string;
+  /** Full name of the stop on that line the viewpoint is at or nearest to. */
+  anchorStop: string;
+  directions: { north: ViewpointDirection; south: ViewpointDirection };
+  /** Defaults to 'station'. */
+  positionModel?: PositionModel;
+  timeFromExpectedArrival?: boolean;
+  freightStationCode?: string;
+}
+
+export function defineViewpoint(record: ViewpointRecord): Viewpoint {
+  const { line: lineId, anchorStop, positionModel, ...rest } = record;
+  const line = LINES[lineId];
+  const anchorIndex = line.stops.findIndex((s) => s.fullName === anchorStop);
+  if (anchorIndex === -1) {
+    throw new Error(`Viewpoint ${record.id}: "${anchorStop}" is not a stop on the ${line.name} line`);
+  }
+  return {
+    ...rest,
+    lineId,
+    lineName: line.name,
+    lineColor: line.color,
+    stops: line.stops,
+    segments: line.segments,
+    anchorIndex,
+    positionModel: positionModel ?? 'station',
+  };
+}
+
 export const VIEWPOINTS: readonly Viewpoint[] = [
-  {
+  defineViewpoint({
     id: 'east-ave',
+    place: 'walthamstow',
+    slug: 'east-avenue-bridge',
     name: 'East Avenue Bridge',
     description: 'The road bridge over the Weaver line on East Avenue, Walthamstow',
-    lineId: 'weaver',
-    lineName: 'Weaver',
-    lineColor: WEAVER_BURGUNDY,
+    line: 'weaver',
     stopPointId: '910GWLTWCEN',
     coords: { lat: 51.583486, lng: -0.014564 },
-    stops: CHINGFORD_STOPS,
-    segments: CHINGFORD_SEGMENTS,
-    anchorIndex: 5, // Walthamstow Central
+    anchorStop: 'Walthamstow Central',
     positionModel: 'east-ave-bridge',
     timeFromExpectedArrival: true,
     directions: {
@@ -180,20 +233,17 @@ export const VIEWPOINTS: readonly Viewpoint[] = [
         ],
       },
     },
-  },
-  {
+  }),
+  defineViewpoint({
     id: 'queens-road',
+    place: 'walthamstow',
+    slug: 'queens-road-station',
     name: 'Queens Road Station',
     description: 'Walthamstow Queens Road station, platform view',
-    lineId: 'suffragette',
-    lineName: 'Suffragette',
-    lineColor: SUFFRAGETTE_GREEN,
+    line: 'suffragette',
     stopPointId: '910GWLTHQRD',
     coords: { lat: 51.581539, lng: -0.023774 },
-    stops: SUFFRAGETTE_STOPS,
-    segments: SUFFRAGETTE_SEGMENTS,
-    anchorIndex: 6, // Walthamstow Queens Road
-    positionModel: 'station',
+    anchorStop: 'Walthamstow Queens Road',
     // CRS confirmed against the live rtt.io capture in tests/fixtures —
     // query.location.shortCodes is ['WMW'] for Walthamstow Queens Road.
     freightStationCode: 'WMW',
@@ -211,20 +261,17 @@ export const VIEWPOINTS: readonly Viewpoint[] = [
         offsetSeconds: 0,
       },
     },
-  },
-  {
+  }),
+  defineViewpoint({
     id: 'northcote-rd',
+    place: 'walthamstow',
+    slug: 'northcote-road-bridge',
     name: 'Northcote Road Bridge',
     description: 'The road bridge over the Suffragette line on Northcote Road, Walthamstow',
-    lineId: 'suffragette',
-    lineName: 'Suffragette',
-    lineColor: SUFFRAGETTE_GREEN,
+    line: 'suffragette',
     stopPointId: '910GWLTHQRD',
     coords: { lat: 51.5850951, lng: -0.0310174 },
-    stops: SUFFRAGETTE_STOPS,
-    segments: SUFFRAGETTE_SEGMENTS,
-    anchorIndex: 6, // Walthamstow Queens Road
-    positionModel: 'station',
+    anchorStop: 'Walthamstow Queens Road',
     // Same physical track as Queens Road, ~634m down the line — every freight
     // movement past WMW also passes under this bridge ±87s later. The freight
     // DTO's timeToStation is "seconds until the train passes WMW", and
@@ -255,11 +302,15 @@ export const VIEWPOINTS: readonly Viewpoint[] = [
         berthSteps: [{ fromBerth: 'ST22', toBerth: 'ST20', secondsToViewpoint: 21 }],
       },
     },
-  },
+  }),
 ];
 
 export const DEFAULT_VIEWPOINT_ID = 'east-ave';
 
 export function getViewpointById(id: string): Viewpoint | undefined {
   return VIEWPOINTS.find((v) => v.id === id);
+}
+
+export function getViewpointBySlug(place: string, slug: string): Viewpoint | undefined {
+  return VIEWPOINTS.find((v) => v.place === place && v.slug === slug);
 }
