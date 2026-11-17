@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   renderTapSlot,
   renderAskCard,
@@ -105,6 +105,27 @@ describe('renderTapSlot', () => {
     // Shown fresh (e.g. after a reload): no clip movement.
     const fresh = renderTapSlot(null, thanksView(1), 2, noop)!;
     expect(fresh.querySelectorAll('.ticket-hole.just-clipped')).toHaveLength(0);
+  });
+});
+
+describe('renderTapSlot clip window', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('drops the clip class once the animation window has passed, with no animationend', () => {
+    vi.useFakeTimers();
+    const button = renderTapSlot(null, buttonView(), 1, noop);
+    const thanks = renderTapSlot(button, thanksView(1), 2, noop)!;
+    expect(thanks.querySelector('.just-clipped')).not.toBeNull();
+    vi.advanceTimersByTime(400);
+    expect(thanks.querySelector('.just-clipped')).toBeNull();
+    expect(thanks.querySelectorAll('.ticket-hole.clipped')).toHaveLength(1);
+  });
+
+  it('drops the clip class on animationend', () => {
+    const button = renderTapSlot(null, buttonView(), 1, noop);
+    const thanks = renderTapSlot(button, thanksView(1), 2, noop)!;
+    thanks.querySelector('.just-clipped')!.dispatchEvent(new Event('animationend'));
+    expect(thanks.querySelector('.just-clipped')).toBeNull();
   });
 });
 

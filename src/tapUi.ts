@@ -175,6 +175,19 @@ export function renderAskCard(
   return card;
 }
 
+/** Slightly longer than the 300 ms clip, for when no animationend fires
+ *  (reduced motion, or the ticket is not on screen). */
+const CLIP_WINDOW_MS = 350;
+
+/** The clip plays once: the class comes off when it ends, so nothing that
+ *  later re-inserts the ticket can replay it. */
+function markJustClipped(hole: HTMLElement): void {
+  hole.classList.add('just-clipped');
+  const clear = () => hole.classList.remove('just-clipped');
+  hole.addEventListener('animationend', clear, { once: true });
+  setTimeout(clear, CLIP_WINDOW_MS);
+}
+
 /**
  * An old card railway ticket: the grade, and one hole per tap needed for the
  * next grade. At the top grade there is no next grade, so no holes.
@@ -209,7 +222,7 @@ export function renderTicket(taps: number, justClipped: boolean): HTMLElement {
     for (let i = 0; i < level.stepsTotal; i++) {
       const hole = el('span', 'ticket-hole');
       if (i < level.stepsDone) hole.classList.add('clipped');
-      if (justClipped && i === level.stepsDone - 1) hole.classList.add('just-clipped');
+      if (justClipped && i === level.stepsDone - 1) markJustClipped(hole);
       holes.appendChild(hole);
     }
     ticket.appendChild(holes);
