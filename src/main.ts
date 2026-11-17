@@ -15,8 +15,7 @@ import { walkingEstimate, formatWalkingLabel } from './walkingTime';
 import { factAt } from './facts';
 import { subscribeBerthEvents } from './tdProxy';
 import { berthEtaFromStep, liveBerthEta, alreadyPassedPerBerth } from './berthEta';
-import { secondsToStation, holdDroppedTrains } from './tflTiming';
-import { classifyDirection } from './direction';
+import { snapshotViewpoint, type DirectionSnapshot, type ViewpointSnapshots } from './snapshots';
 import type { BerthEvent } from './tdProxy';
 import { fetchFreight, clampFreightPosition } from './freight';
 import { atViewpoint, canOfferTap, passKey, updatePass, type TapPass } from './tap';
@@ -40,12 +39,9 @@ const DIRECTIONS: readonly Direction[] = ['north', 'south'];
 const CELEBRATE_DURATION_MS = 1000;
 const TICKER_SIZE = 4; // hero + 3 ticker entries
 
-interface DirectionSnapshots {
-  events: BridgeEvent[];
-  snapshottedAtMs: number;
-}
+type DirectionSnapshots = DirectionSnapshot;
 
-let snapshots: Partial<Record<Direction, DirectionSnapshots>> = {};
+let snapshots: ViewpointSnapshots = {};
 let lastFetchMs: number | null = null;
 let lastError: string | undefined;
 
@@ -53,7 +49,7 @@ let lastError: string | undefined;
 // already classified rows into north/south, computed bridgeTimeSeconds, and
 // capped per direction. buildViewModel merges these with passenger snapshots
 // into a single live-sorted hero + ticker list per direction.
-let freightSnapshots: Partial<Record<Direction, DirectionSnapshots>> = {};
+let freightSnapshots: ViewpointSnapshots = {};
 let freightPollerStop: (() => void) | null = null;
 
 // Berth-based ETAs: Unix ms timestamp when the next train is expected to
@@ -505,26 +501,7 @@ async function tick(): Promise<void> {
     // Bail if the viewpoint switched while the fetch was in flight — these
     // arrivals belong to the old viewpoint and must not overwrite current state.
     if (gen !== tickGeneration) return;
-    const fromExpected = activeViewpoint.timeFromExpectedArrival === true;
-    const arrivals = fetched.map((a) => ({ ...a, timeToStation: secondsToStation(a, now, fromExpected) }));
-    const picked = pickNextNPerDirection(arrivals, TICKER_SIZE, activeViewpoint);
-    const next: typeof snapshots = {};
-    for (const dir of DIRECTIONS) {
-      const feedVehicleIds = new Set(
-        arrivals
-          .filter((a) => classifyDirection(a, activeViewpoint) === dir && a.vehicleId)
-          .map((a) => a.vehicleId as string),
-      );
-      const events = holdDroppedTrains(
-        snapshots[dir],
-        picked[dir],
-        feedVehicleIds,
-        now,
-        activeViewpoint.directions[dir].offsetSeconds,
-      ).slice(0, TICKER_SIZE);
-      next[dir] = events.length > 0 ? { events, snapshottedAtMs: now } : undefined;
-    }
-    snapshots = next;
+    snapshots = snapshotViewpoint(snapshots, fetched, activeViewpoint, now, TICKER_SIZE);
     lastFetchMs = now;
     lastError = undefined;
     advanceFact();
