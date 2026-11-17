@@ -14,7 +14,7 @@ import { subscribe as subscribeLocation, start as startLocation, stop as stopLoc
 import { walkingEstimate, formatWalkingLabel } from './walkingTime';
 import { factAt } from './facts';
 import { subscribeBerthEvents } from './tdProxy';
-import { berthEtaFromStep, liveBerthEta } from './berthEta';
+import { berthEtaFromStep, liveBerthEta, alreadyPassedPerBerth } from './berthEta';
 import type { BerthEvent } from './tdProxy';
 import { fetchFreight, clampFreightPosition } from './freight';
 
@@ -241,7 +241,11 @@ function buildViewModel(): ViewModel {
     if (passengerSnap) {
       for (let i = 0; i < passengerSnap.events.length; i++) {
         const live = liveEvent(passengerSnap, i, now);
-        if (live) candidates.push({ event: live, snapshot: passengerSnap, indexInSnapshot: i, isFreight: false });
+        if (!live) continue;
+        // TfL lags the train: once a berth step has timed it past the
+        // viewpoint, don't let its late prediction return as a countdown.
+        if (alreadyPassedPerBerth(now + live.bridgeTimeSeconds * 1000, berthEtas[dir], now)) continue;
+        candidates.push({ event: live, snapshot: passengerSnap, indexInSnapshot: i, isFreight: false });
       }
     }
     if (freightSnap) {

@@ -38,3 +38,22 @@ export function liveBerthEta(etaMs: number | undefined, nowMs: number): number |
   if (etaMs === undefined) return undefined;
   return nowMs <= etaMs + BERTH_ETA_GRACE_MS ? etaMs : undefined;
 }
+
+/** TfL's prediction for a train can lag the train itself by a minute or two.
+ *  A prediction this close after a berth ETA is the same train, not the next. */
+const SAME_TRAIN_WINDOW_MS = 3 * 60_000;
+/** How long a berth ETA is remembered for that purpose. */
+const BERTH_ETA_MEMORY_MS = 5 * 60_000;
+
+/** True when a TfL-predicted crossing belongs to a train that a berth step has
+ *  already timed past the viewpoint, so it must not come back as a countdown. */
+export function alreadyPassedPerBerth(
+  predictedCrossingMs: number,
+  etaMs: number | undefined,
+  nowMs: number,
+): boolean {
+  if (etaMs === undefined) return false;
+  if (nowMs <= etaMs + BERTH_ETA_GRACE_MS) return false;
+  if (nowMs > etaMs + BERTH_ETA_MEMORY_MS) return false;
+  return predictedCrossingMs < etaMs + SAME_TRAIN_WINDOW_MS;
+}

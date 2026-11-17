@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { berthEtaFromStep, liveBerthEta, BERTH_ETA_GRACE_MS } from '../src/berthEta';
+import { berthEtaFromStep, liveBerthEta, alreadyPassedPerBerth, BERTH_ETA_GRACE_MS } from '../src/berthEta';
 import { getViewpointById } from '../src/viewpoints';
 
 const STEPS = [
@@ -62,5 +62,31 @@ describe('East Avenue berth steps', () => {
       { fromBerth: '1422', toBerth: '1420', secondsToViewpoint: 48 },
       { fromBerth: '1418', toBerth: '1414', secondsToViewpoint: 5 },
     ]);
+  });
+});
+
+describe('alreadyPassedPerBerth', () => {
+  const eta = 10_000_000;
+  const afterGrace = eta + BERTH_ETA_GRACE_MS + 1_000;
+
+  it('drops a TfL prediction for the train the berth step already timed past the viewpoint', () => {
+    // TfL runs late: it still expects the same train 60 s after it passed.
+    expect(alreadyPassedPerBerth(eta + 60_000, eta, afterGrace)).toBe(true);
+  });
+
+  it('keeps the following train', () => {
+    expect(alreadyPassedPerBerth(eta + 15 * 60_000, eta, afterGrace)).toBe(false);
+  });
+
+  it('does not drop anything while the berth ETA is still driving the countdown', () => {
+    expect(alreadyPassedPerBerth(eta + 60_000, eta, eta - 5_000)).toBe(false);
+  });
+
+  it('forgets the berth ETA after a few minutes', () => {
+    expect(alreadyPassedPerBerth(eta + 6 * 60_000 + 30_000, eta, eta + 6 * 60_000)).toBe(false);
+  });
+
+  it('drops nothing when no berth step has been seen', () => {
+    expect(alreadyPassedPerBerth(eta + 60_000, undefined, afterGrace)).toBe(false);
   });
 });
