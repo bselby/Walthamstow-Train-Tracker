@@ -7,6 +7,8 @@ import { renderDirectionStrip, clearPreviousPositions } from './strip';
 import { renderSwitcher } from './switcher';
 import { escapeHtml } from './escapeHtml';
 import { regionFor, isNewRegionThisSession, type Region } from './freightRegions';
+import type { Direction } from './direction';
+import { renderTapSlot, renderAskCard, type TapView } from './tapUi';
 
 export interface ViewModel {
   north?: BridgeEvent;
@@ -22,6 +24,7 @@ export interface ViewModel {
   fact: Fact;
   viewpoint: Viewpoint;   // active viewpoint — drives strip, header, theming
   favouriteViewpointId: string;   // id of the user's current favourite
+  tap: TapView;   // "train's here" button per direction + the ask card
 }
 
 export interface RenderOptions {
@@ -32,7 +35,15 @@ export interface RenderOptions {
   onAdvanceFact: () => void;
   onSwitchViewpoint: (id: string) => void;
   onSetFavouriteViewpoint: (id: string) => void;
+  onTap: (direction: Direction) => void;
+  onHelpChoice: (choice: 'helping' | 'declined') => void;
 }
+
+// The options from the latest render. Kept tap slots and the ask card outlive
+// the render that built them, so their listeners call through this instead of
+// holding on to the handlers they were first given.
+let currentOptions: RenderOptions | null = null;
+
 
 // Track the viewpoint id from the last render so we can invalidate preserved
 // strips when the user switches viewpoint — otherwise stale strips (with the
@@ -46,6 +57,7 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
   const viewpointChanged = lastRenderedViewpointId !== null
     && lastRenderedViewpointId !== vm.viewpoint.id;
   lastRenderedViewpointId = vm.viewpoint.id;
+  currentOptions = options;
 
   // Preserve the switcher and strips across renders so the switcher keeps its
   // open/closed state + listeners, and the strips keep their CSS transitions
@@ -55,6 +67,13 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
   const existingSwitcher = root.querySelector<HTMLElement>('.switcher');
   const existingStripN = viewpointChanged ? null : root.querySelector<HTMLElement>('.strip-north');
   const existingStripS = viewpointChanged ? null : root.querySelector<HTMLElement>('.strip-south');
+  // Tap slots live inside the rebuilt rows, so they are picked up here and
+  // moved into the new rows; the ask card is kept while its kind and the tap
+  // count are unchanged. Either way a press in progress survives the redraw.
+  const existingSlotN = root.querySelector<HTMLElement>('.tap-slot[data-direction="north"]');
+  const existingSlotS = root.querySelector<HTMLElement>('.tap-slot[data-direction="south"]');
+  const existingAsk = root.querySelector<HTMLElement>('.ask-card');
+  const focused = document.activeElement;
   const preserved = new Set<Element>();
   if (existingSwitcher) preserved.add(existingSwitcher);
   if (existingStripN) preserved.add(existingStripN);
@@ -122,6 +141,7 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
       vm.viewpoint.directions.north.label,
       vm.north,
       `Next train to ${vm.viewpoint.directions.north.terminusName}`,
+      tapSlot('north', existingSlotN, vm.tap),
     ));
     const stripN = renderDirectionStrip(existingStripN, {
       direction: 'north',
@@ -143,6 +163,7 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
       vm.viewpoint.directions.south.label,
       vm.south,
       `Next train to ${vm.viewpoint.directions.south.terminusName}`,
+      tapSlot('south', existingSlotS, vm.tap),
     ));
     const stripS = renderDirectionStrip(existingStripS, {
       direction: 'south',
@@ -158,6 +179,15 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
     root.appendChild(stripS);
     const tickerS = renderTicker(vm.southTicker);
     if (tickerS) root.appendChild(tickerS);
+
+    // The ask sits in the page flow below both panels, never over a countdown.
+    const ask = askCard(existingAsk, vm.tap);
+    if (ask) root.appendChild(ask);
+  }
+
+  // A kept slot or card was detached with its old row; give focus back.
+  if (focused instanceof HTMLElement && focused !== document.activeElement && root.contains(focused)) {
+    focused.focus({ preventScroll: true });
   }
 
   const footer = document.createElement('div');
@@ -183,6 +213,25 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
     '<span aria-hidden="true">·</span>' +
     '<a href="/terms.html">Terms</a>';
   root.appendChild(docs);
+}
+
+function tapSlot(direction: Direction, existing: HTMLElement | null, tap: TapView): HTMLElement | null {
+  const slot = renderTapSlot(existing, tap[direction], tap.taps, () => currentOptions?.onTap(direction));
+  if (slot) slot.dataset.direction = direction;
+  return slot;
+}
+
+function askCard(existing: HTMLElement | null, tap: TapView): HTMLElement | null {
+  if (tap.ask === null) return null;
+  if (existing && existing.dataset.ask === tap.ask && existing.dataset.taps === String(tap.taps)) {
+    return existing;
+  }
+  const card = renderAskCard(tap.ask, tap.taps, (choice) => currentOptions?.onHelpChoice(choice));
+  if (card) {
+    card.dataset.ask = tap.ask;
+    card.dataset.taps = String(tap.taps);
+  }
+  return card;
 }
 
 function renderTicker(events: BridgeEvent[]): HTMLElement | null {
@@ -389,6 +438,7 @@ function renderDirection(
   label: string,
   event: BridgeEvent | undefined,
   ariaLabel: string,
+  tapSlot: HTMLElement | null,
 ): HTMLElement {
   const row = document.createElement('section');
   row.className = 'row';
@@ -435,6 +485,9 @@ function renderDirection(
   previousValueText[label] = currentText;
 
   row.appendChild(valueEl);
+
+  // "Train's here" button or its thank-you, just under the countdown.
+  if (tapSlot) row.appendChild(tapSlot);
 
   // Origin → destination subtitle, only when we have BOTH ends — half an arrow
   // ("Tilbury Riverside Yard →") looks broken, so skip the row instead.

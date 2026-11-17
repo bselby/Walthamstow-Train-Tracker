@@ -321,6 +321,13 @@ function buildViewModel(): ViewModel {
     fact: factAt(factIndex),
     viewpoint: activeViewpoint,
     favouriteViewpointId,
+    // Neutral until Task 6 wires the tap state in: no ask, no buttons.
+    tap: {
+      ask: null,
+      taps: 0,
+      north: { state: 'none', passKey: null, destination: null, entry: null },
+      south: { state: 'none', passKey: null, destination: null, entry: null },
+    },
   };
 }
 
@@ -337,6 +344,9 @@ function rerender(): void {
     },
     onSwitchViewpoint: switchToViewpoint,
     onSetFavouriteViewpoint: setFavouriteViewpoint,
+    // No-ops until Task 6 wires the tap state in.
+    onTap: () => {},
+    onHelpChoice: () => {},
   });
 }
 

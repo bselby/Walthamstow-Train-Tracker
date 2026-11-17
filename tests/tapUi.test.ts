@@ -1,0 +1,176 @@
+import { describe, it, expect, vi } from 'vitest';
+import {
+  renderTapSlot,
+  renderAskCard,
+  renderTicket,
+  type TapDirectionView,
+} from '../src/tapUi';
+import { registerGapLine } from '../src/tap';
+
+// Build times from local components so HH:MM:SS does not depend on the
+// machine's timezone.
+const TAP_MS = new Date(2026, 10, 17, 9, 5, 7).getTime();
+const PREDICTED_MS = new Date(2026, 10, 17, 9, 5, 19).getTime();
+
+function buttonView(passKey = 'east-ave|north|1000'): TapDirectionView {
+  return { state: 'button', passKey, destination: 'Chingford', entry: null };
+}
+
+function thanksView(tapsBefore: number, passKey = 'east-ave|north|1000'): TapDirectionView {
+  return {
+    state: 'thanks',
+    passKey,
+    destination: 'Chingford',
+    entry: { tapMs: TAP_MS, predictedMs: PREDICTED_MS, tapsBefore },
+  };
+}
+
+const noop = () => {};
+
+describe('renderTapSlot', () => {
+  it('returns null for none', () => {
+    const view: TapDirectionView = { state: 'none', passKey: null, destination: null, entry: null };
+    expect(renderTapSlot(null, view, 0, noop)).toBeNull();
+  });
+
+  it('button state is a button reading "<destination> train is passing"', () => {
+    const el = renderTapSlot(null, buttonView(), 0, noop)!;
+    expect(el.tagName).toBe('BUTTON');
+    expect(el.textContent).toBe('Chingford train is passing');
+  });
+
+  it('thanks state shows the register entry and the ticket', () => {
+    const el = renderTapSlot(null, thanksView(2), 3, noop)!;
+    const text = el.textContent ?? '';
+    expect(text).toContain('Booked in. Thank you.');
+    expect(text).toContain('09:05:07');
+    expect(text).toContain('09:05:19');
+    expect(text).toContain(registerGapLine(TAP_MS, PREDICTED_MS));
+    expect(el.querySelector('.ticket')).not.toBeNull();
+    expect(text).not.toContain('Staff notice');
+  });
+
+  it('thanks state on a promotion shows a staff notice instead of the plain heading', () => {
+    const el = renderTapSlot(null, thanksView(4), 5, noop)!;
+    const text = el.textContent ?? '';
+    expect(text).toContain('Staff notice');
+    expect(text).toContain('Promoted to Guard');
+    expect(text).toContain('Whistle issued');
+    expect(text).not.toContain('Booked in. Thank you.');
+    expect(el.querySelector('.ticket')).not.toBeNull();
+  });
+
+  it('keeps the same element for the same passKey and state', () => {
+    const first = renderTapSlot(null, buttonView(), 0, noop);
+    const again = renderTapSlot(first, buttonView(), 0, noop);
+    expect(again).toBe(first);
+
+    const thanks = renderTapSlot(null, thanksView(2), 3, noop);
+    expect(renderTapSlot(thanks, thanksView(2), 3, noop)).toBe(thanks);
+  });
+
+  it('a new passKey gives a new element', () => {
+    const first = renderTapSlot(null, buttonView('a'), 0, noop);
+    const next = renderTapSlot(first, buttonView('b'), 0, noop);
+    expect(next).not.toBe(first);
+    expect(next!.textContent).toBe('Chingford train is passing');
+  });
+
+  it('calls onTap once on pointerdown and ignores a second press', () => {
+    const onTap = vi.fn();
+    const el = renderTapSlot(null, buttonView(), 0, onTap)!;
+    el.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    expect(onTap).toHaveBeenCalledTimes(1);
+    el.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(onTap).toHaveBeenCalledTimes(1);
+  });
+
+  it('a keyboard click (no pointerdown) also books the train once', () => {
+    const onTap = vi.fn();
+    const el = renderTapSlot(null, buttonView(), 0, onTap)!;
+    el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(onTap).toHaveBeenCalledTimes(1);
+  });
+
+  it('clips the new hole only when the thank-you replaces the button', () => {
+    const button = renderTapSlot(null, buttonView(), 1, noop);
+    const thanks = renderTapSlot(button, thanksView(1), 2, noop)!;
+    expect(thanks.querySelectorAll('.ticket-hole.just-clipped')).toHaveLength(1);
+
+    // Same thank-you on a later redraw: same element, so no replay.
+    expect(renderTapSlot(thanks, thanksView(1), 2, noop)).toBe(thanks);
+
+    // Shown fresh (e.g. after a reload): no clip movement.
+    const fresh = renderTapSlot(null, thanksView(1), 2, noop)!;
+    expect(fresh.querySelectorAll('.ticket-hole.just-clipped')).toHaveLength(0);
+  });
+});
+
+describe('renderAskCard', () => {
+  it('is null when there is nothing to ask', () => {
+    expect(renderAskCard(null, 0, noop)).toBeNull();
+  });
+
+  it.each(['first', 'again'] as const)('%s: heading, body and two choices', (kind) => {
+    const onChoice = vi.fn();
+    const card = renderAskCard(kind, 0, onChoice)!;
+    expect(card.textContent).toContain('Help make this spot-on');
+    expect(card.textContent).toContain('Our timings can be a little out.');
+    const buttons = Array.from(card.querySelectorAll('button'));
+    expect(buttons.map((b) => b.textContent)).toEqual(["I'll help", 'Not now']);
+    buttons[0].click();
+    expect(onChoice).toHaveBeenLastCalledWith('helping');
+    buttons[1].click();
+    expect(onChoice).toHaveBeenLastCalledWith('declined');
+  });
+
+  it('invite: one line and the ticket, no "Not now"', () => {
+    const card = renderAskCard('invite', 3, noop)!;
+    expect(card.textContent).toContain('Want to make it more accurate?');
+    expect(card.querySelector('.ticket')).not.toBeNull();
+    expect(card.textContent).not.toContain('Not now');
+  });
+});
+
+describe('renderTicket', () => {
+  it('shows the grade, the holes for the next grade and an accessible label', () => {
+    const t = renderTicket(2, false);
+    expect(t.querySelector('.ticket-grade')!.textContent).toBe('Spotter');
+    expect(t.querySelectorAll('.ticket-hole')).toHaveLength(4);
+    expect(t.querySelectorAll('.ticket-hole.clipped')).toHaveLength(1);
+    expect(t.getAttribute('aria-label')).toBe('Spotter. 1 of 4 taps to Guard');
+    expect(t.querySelector('.just-clipped')).toBeNull();
+  });
+
+  it('top grade: the grade and no holes', () => {
+    const t = renderTicket(75, false);
+    expect(t.querySelector('.ticket-grade')!.textContent).toBe('Station Master');
+    expect(t.querySelectorAll('.ticket-hole')).toHaveLength(0);
+    expect(t.getAttribute('aria-label')).toBe('Station Master');
+  });
+
+  it('justClipped marks the newest clipped hole with the clip class', () => {
+    const t = renderTicket(2, true);
+    const marked = t.querySelectorAll('.ticket-hole.just-clipped');
+    expect(marked).toHaveLength(1);
+    expect(marked[0].classList.contains('clipped')).toBe(true);
+  });
+
+  it('justClipped marks only the newest of several clipped holes', () => {
+    const t = renderTicket(3, true);
+    const clipped = t.querySelectorAll('.ticket-hole.clipped');
+    expect(clipped).toHaveLength(2);
+    const marked = t.querySelectorAll('.ticket-hole.just-clipped');
+    expect(marked).toHaveLength(1);
+    expect(marked[0]).toBe(clipped[1]);
+  });
+
+  it('justClipped on a fresh ticket (just promoted) marks nothing', () => {
+    const t = renderTicket(5, true);
+    expect(t.querySelector('.ticket-grade')!.textContent).toBe('Guard');
+    expect(t.querySelectorAll('.ticket-hole.clipped')).toHaveLength(0);
+    expect(t.querySelector('.just-clipped')).toBeNull();
+  });
+});
