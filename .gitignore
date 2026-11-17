@@ -12,3 +12,6 @@ coverage
 
 # Local Netlify folder
 .netlify
+
+# Python bytecode from scripts/calibrate
+__pycache__/
