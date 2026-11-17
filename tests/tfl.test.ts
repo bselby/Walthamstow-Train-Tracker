@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { fetchArrivals } from '../src/tfl';
+import { fetchArrivals, fetchStopArrivals } from '../src/tfl';
 
 describe('fetchArrivals', () => {
   const originalFetch = globalThis.fetch;
@@ -79,5 +79,34 @@ describe('fetchArrivals', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('2');
+  });
+});
+
+describe('fetchStopArrivals', () => {
+  const originalFetch = globalThis.fetch;
+  beforeEach(() => { globalThis.fetch = vi.fn(); });
+  afterEach(() => { globalThis.fetch = originalFetch; });
+
+  const rows = [
+    { id: '1', lineId: 'weaver', destinationName: 'Chingford', timeToStation: 60 },
+    { id: '2', lineId: 'victoria', destinationName: 'Brixton', timeToStation: 90 },
+  ];
+
+  it('returns every line at the stop from one request', async () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, json: async () => rows });
+    const result = await fetchStopArrivals('STOPID');
+    expect(result.map((a) => a.lineId)).toEqual(['weaver', 'victoria']);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    expect(globalThis.fetch).toHaveBeenCalledWith('https://api.tfl.gov.uk/StopPoint/STOPID/Arrivals');
+  });
+
+  it('fetchArrivals still keeps only the asked-for line', async () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, json: async () => rows });
+    expect((await fetchArrivals('STOPID', 'weaver')).map((a) => a.id)).toEqual(['1']);
+  });
+
+  it('rejects on a TfL error', async () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: false, status: 500 });
+    await expect(fetchStopArrivals('STOPID')).rejects.toThrow('TfL API error: 500');
   });
 });
