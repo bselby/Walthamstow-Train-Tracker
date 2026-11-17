@@ -9,6 +9,7 @@ import {
   passKey,
   promotionFor,
   registerGapLine,
+  tidyDestination,
   updatePass,
   type TapPass,
 } from '../src/tap';
@@ -193,5 +194,31 @@ describe('atViewpoint', () => {
   });
   it('is no beyond 150 m', () => {
     expect(atViewpoint({ lat: coords.lat + 0.0036, lng: coords.lng }, coords)).toBe('no'); // ~400 m
+  });
+});
+
+describe('tidyDestination', () => {
+  it.each([
+    ['London Liverpool Street Rail Station', 'Liverpool Street'],
+    ['Chingford Rail Station', 'Chingford'],
+    ['Barking Riverside', 'Barking Riverside'],
+    ['Gospel Oak Rail Station', 'Gospel Oak'],
+    ['London', 'London'],
+    ['', ''],
+    ['Highams Park Station', 'Highams Park'],
+    ['  Walthamstow   Central  rail station ', 'Walthamstow Central'],
+  ])('%j -> %j', (raw, tidy) => {
+    expect(tidyDestination(raw)).toBe(tidy);
+  });
+
+  it('is used for the pass destination', () => {
+    const pass = updatePass(null, {
+      viewpoint: eastAve,
+      direction: 'north',
+      hero: hero(10, { destinationName: 'London Liverpool Street Rail Station' }),
+      berthTrainId: null,
+      nowMs: 1_000,
+    })!;
+    expect(pass.destination).toBe('Liverpool Street');
   });
 });

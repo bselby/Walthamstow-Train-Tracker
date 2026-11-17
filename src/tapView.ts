@@ -3,7 +3,7 @@
 // device id. Kept out of main.ts, which runs side effects on import.
 import type { BridgeEvent } from './bridge';
 import { passKey, type TapPass } from './tap';
-import { buttonsEnabled, hasTapped, type TapState } from './tapStore';
+import { askKind, buttonsEnabled, hasTapped, type AskKind, type TapState } from './tapStore';
 import type { TapDirectionView } from './tapUi';
 
 /**
@@ -35,6 +35,19 @@ export function tapDirectionView(input: {
     }
   }
   return { state: 'none', passKey: null, destination: null, entry: null };
+}
+
+/** The ask card below the panels: none where no tap can be offered, and none
+ *  while a thank-you shows, since both would carry the same ticket. */
+export function tapAsk(input: {
+  tapState: TapState;
+  nowMs: number;
+  offerable: boolean;
+  views: readonly TapDirectionView[];
+}): AskKind {
+  if (!input.offerable) return null;
+  if (input.views.some((v) => v.state === 'thanks')) return null;
+  return askKind(input.tapState, input.nowMs);
 }
 
 /** TfL's expected arrival (Unix ms) for this vehicle in the snapshot, or null. */

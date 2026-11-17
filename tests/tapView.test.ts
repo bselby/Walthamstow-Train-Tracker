@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { BridgeEvent } from '../src/bridge';
 import type { TapPass } from '../src/tap';
 import type { TapState } from '../src/tapStore';
-import { newDeviceId, tapDirectionView, tflExpectedArrivalMs } from '../src/tapView';
+import { newDeviceId, tapAsk, tapDirectionView, tflExpectedArrivalMs } from '../src/tapView';
 
 const NOW = 1_800_000_000_000;
 
@@ -143,5 +143,26 @@ describe('newDeviceId', () => {
     expect(a).toMatch(RE);
     expect(b).toMatch(RE);
     expect(a).not.toBe(b);
+  });
+});
+
+describe('tapAsk', () => {
+  const none = { state: 'none', passKey: null, destination: null, entry: null } as const;
+
+  it('hides the ask while either direction shows its thank-you, then invites again', () => {
+    const during = tapDirectionView({ pass, tapState: tapped, thanksUntilMs: NOW + 30_000, thanksPassKey: KEY, nowMs: NOW });
+    expect(during.state).toBe('thanks');
+    expect(tapAsk({ tapState: tapped, nowMs: NOW, offerable: true, views: [none, during] })).toBeNull();
+    expect(tapAsk({ tapState: tapped, nowMs: NOW, offerable: true, views: [during, none] })).toBeNull();
+
+    const later = NOW + 30_000;
+    const after = tapDirectionView({ pass, tapState: tapped, thanksUntilMs: NOW + 30_000, thanksPassKey: KEY, nowMs: later });
+    expect(after.state).not.toBe('thanks');
+    expect(tapAsk({ tapState: tapped, nowMs: later, offerable: true, views: [none, after] })).toBe('invite');
+  });
+
+  it('is null where no tap can be offered', () => {
+    expect(tapAsk({ tapState: state(), nowMs: NOW, offerable: false, views: [none, none] })).toBeNull();
+    expect(tapAsk({ tapState: state(), nowMs: NOW, offerable: true, views: [none, none] })).toBe('first');
   });
 });
