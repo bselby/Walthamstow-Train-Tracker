@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { VIEWPOINTS, getViewpointById, DEFAULT_VIEWPOINT_ID } from '../src/viewpoints';
+import { VIEWPOINTS, getViewpointById, getViewpointBySlug, defineViewpoint, LINES, DEFAULT_VIEWPOINT_ID, type ViewpointRecord } from '../src/viewpoints';
 
 describe('VIEWPOINTS', () => {
   it('contains at least two viewpoints (East Ave + Queens Road)', () => {
@@ -102,5 +102,66 @@ describe('DEFAULT_VIEWPOINT_ID', () => {
 
   it('is east-ave (the app\'s primary spot)', () => {
     expect(DEFAULT_VIEWPOINT_ID).toBe('east-ave');
+  });
+});
+
+describe('viewpoint URLs and records', () => {
+  it('gives each viewpoint its published URL parts', () => {
+    expect(VIEWPOINTS.map((v) => `${v.id}:/${v.place}/${v.slug}`)).toEqual([
+      'east-ave:/walthamstow/east-avenue-bridge',
+      'queens-road:/walthamstow/queens-road-station',
+      'northcote-rd:/walthamstow/northcote-road-bridge',
+    ]);
+  });
+
+  it('place/slug pairs are unique and URL-safe', () => {
+    const keys = VIEWPOINTS.map((v) => `${v.place}/${v.slug}`);
+    expect(new Set(keys).size).toBe(keys.length);
+    for (const k of keys) expect(k).toMatch(/^[a-z0-9-]+\/[a-z0-9-]+$/);
+  });
+
+  it('getViewpointBySlug finds by place and slug, and nothing else', () => {
+    expect(getViewpointBySlug('walthamstow', 'east-avenue-bridge')?.id).toBe('east-ave');
+    expect(getViewpointBySlug('leyton', 'east-avenue-bridge')).toBeUndefined();
+    expect(getViewpointBySlug('walthamstow', 'east-ave')).toBeUndefined();
+  });
+
+  const record: ViewpointRecord = {
+    id: 't', place: 'walthamstow', slug: 't', name: 'T', description: 'T',
+    coords: { lat: 0, lng: 0 }, line: 'suffragette', stopPointId: '910GWLTHQRD',
+    anchorStop: 'Blackhorse Road',
+    directions: {
+      north: { label: '→ Barking Riverside', tflDirection: 'outbound', terminusName: 'Barking Riverside', offsetSeconds: 10 },
+      south: { label: '← Gospel Oak', tflDirection: 'inbound', terminusName: 'Gospel Oak', offsetSeconds: -10 },
+    },
+  };
+
+  it('defineViewpoint fills line data and the anchor index from a small record', () => {
+    const vp = defineViewpoint(record);
+    expect(vp.lineId).toBe('suffragette');
+    expect(vp.lineName).toBe('Suffragette');
+    expect(vp.lineColor).toBe(LINES.suffragette.color);
+    expect(vp.anchorIndex).toBe(5);
+    expect(vp.positionModel).toBe('station');
+    expect(vp.stops).toBe(LINES.suffragette.stops);
+    expect(vp.segments).toBe(LINES.suffragette.segments);
+  });
+
+  it('defineViewpoint rejects an anchor stop that is not on the line', () => {
+    expect(() => defineViewpoint({ ...record, line: 'weaver' })).toThrow();
+  });
+
+  it('the three live viewpoints keep their line data and timings', () => {
+    const snapshot = VIEWPOINTS.map((v) => [
+      v.id, v.lineId, v.lineName, v.stopPointId, v.anchorIndex, v.positionModel,
+      v.stops.length, v.segments.length, v.timeFromExpectedArrival ?? false, v.freightStationCode ?? null,
+      v.directions.north.offsetSeconds, v.directions.south.offsetSeconds,
+      (v.directions.north.berthSteps ?? []).length, (v.directions.south.berthSteps ?? []).length,
+    ]);
+    expect(snapshot).toEqual([
+      ['east-ave', 'weaver', 'Weaver', '910GWLTWCEN', 5, 'east-ave-bridge', 9, 8, true, null, 142, -22, 1, 2],
+      ['queens-road', 'suffragette', 'Suffragette', '910GWLTHQRD', 6, 'station', 13, 12, false, 'WMW', 0, 0, 0, 0],
+      ['northcote-rd', 'suffragette', 'Suffragette', '910GWLTHQRD', 6, 'station', 13, 12, false, 'WMW', -87, 87, 1, 1],
+    ]);
   });
 });
