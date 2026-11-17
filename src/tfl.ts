@@ -42,12 +42,17 @@ export interface Arrival {
   origin?: string;
 }
 
-export async function fetchArrivals(stopPointId: string, lineId: string): Promise<Arrival[]> {
+/** Every prediction at a stop, whatever the line. */
+export async function fetchStopArrivals(stopPointId: string): Promise<Arrival[]> {
   const response = await fetch(TFL_ARRIVALS_URL(stopPointId));
   if (!response.ok) {
     throw new Error(`TfL API error: ${response.status}`);
   }
-  const data = (await response.json()) as Arrival[];
+  return (await response.json()) as Arrival[];
+}
+
+export async function fetchArrivals(stopPointId: string, lineId: string): Promise<Arrival[]> {
+  const data = await fetchStopArrivals(stopPointId);
   // The /Arrivals endpoint returns predictions across every line that serves
   // the stop (Weaver + Suffragette at shared interchanges, plus any bus / tube
   // modes that share a NaPTAN). We only want the active viewpoint's line.
