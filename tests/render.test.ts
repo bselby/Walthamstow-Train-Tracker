@@ -58,7 +58,7 @@ function vm(overrides: Partial<ViewModel> = {}): ViewModel {
     walkingLabel: null,
     fact: { text: '', category: 'default' },
     viewpoint: QR,
-    favouriteViewpointId: QR.id,
+    favouriteIds: [QR.id],
     tap: NEUTRAL_TAP,
     ...overrides,
   };
@@ -70,7 +70,7 @@ const opts = {
   onDisableWalkingTime: noop,
   onAdvanceFact: noop,
   onSwitchViewpoint: noop,
-  onSetFavouriteViewpoint: noop,
+  onToggleFavourite: noop,
   onTap: noop,
   onHelpChoice: noop,
 };

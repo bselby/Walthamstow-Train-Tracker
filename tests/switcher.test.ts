@@ -8,9 +8,9 @@ const QUEENS_ROAD = getViewpointById('queens-road')!;
 function baseModel(overrides: Partial<SwitcherModel> = {}): SwitcherModel {
   return {
     activeViewpoint: EAST_AVE,
-    favouriteViewpointId: EAST_AVE.id,
+    favouriteIds: [EAST_AVE.id],
     onSwitch: vi.fn(),
-    onSetFavourite: vi.fn(),
+    onToggleFavourite: vi.fn(),
     ...overrides,
   };
 }
@@ -61,16 +61,16 @@ describe('renderSwitcher', () => {
     });
   });
 
-  it('clicking a row calls onSwitch with its id and does NOT call onSetFavourite', () => {
+  it('clicking a row calls onSwitch with its id and does NOT call onToggleFavourite', () => {
     const onSwitch = vi.fn();
-    const onSetFavourite = vi.fn();
-    const el = renderSwitcher(null, baseModel({ onSwitch, onSetFavourite }));
+    const onToggleFavourite = vi.fn();
+    const el = renderSwitcher(null, baseModel({ onSwitch, onToggleFavourite }));
     const header = el.querySelector<HTMLButtonElement>('.switcher-header')!;
     header.click();
     const queensRow = el.querySelector<HTMLButtonElement>(`.switcher-row[data-id="${QUEENS_ROAD.id}"]`)!;
     queensRow.click();
     expect(onSwitch).toHaveBeenCalledWith(QUEENS_ROAD.id);
-    expect(onSetFavourite).not.toHaveBeenCalled();
+    expect(onToggleFavourite).not.toHaveBeenCalled();
   });
 
   it('clicking a row closes the sheet and returns focus to header', () => {
@@ -86,22 +86,22 @@ describe('renderSwitcher', () => {
     expect(document.activeElement).toBe(header);
   });
 
-  it('clicking a star calls onSetFavourite with its id and does NOT call onSwitch', () => {
+  it('clicking a star calls onToggleFavourite with its id and does NOT call onSwitch', () => {
     const onSwitch = vi.fn();
-    const onSetFavourite = vi.fn();
-    const el = renderSwitcher(null, baseModel({ onSwitch, onSetFavourite }));
+    const onToggleFavourite = vi.fn();
+    const el = renderSwitcher(null, baseModel({ onSwitch, onToggleFavourite }));
     const header = el.querySelector<HTMLButtonElement>('.switcher-header')!;
     header.click();
     const queensStar = el.querySelector<HTMLButtonElement>(
       `.switcher-row[data-id="${QUEENS_ROAD.id}"] .switcher-star`,
     )!;
     queensStar.click();
-    expect(onSetFavourite).toHaveBeenCalledWith(QUEENS_ROAD.id);
+    expect(onToggleFavourite).toHaveBeenCalledWith(QUEENS_ROAD.id);
     expect(onSwitch).not.toHaveBeenCalled();
   });
 
   it('marks the current favourite with a filled star', () => {
-    const el = renderSwitcher(null, baseModel({ favouriteViewpointId: QUEENS_ROAD.id }));
+    const el = renderSwitcher(null, baseModel({ favouriteIds: [QUEENS_ROAD.id] }));
     const header = el.querySelector<HTMLButtonElement>('.switcher-header')!;
     header.click();
     const queensStar = el.querySelector<HTMLButtonElement>(
@@ -151,5 +151,29 @@ describe('renderSwitcher', () => {
     expect(second).toBe(first); // same node, updated in place
     const header = second.querySelector<HTMLElement>('.switcher-header')!;
     expect(header.textContent).toContain('Suffragette');
+  });
+
+  it('fills a star for every favourite and none for the rest', () => {
+    const el = renderSwitcher(null, baseModel({ favouriteIds: ['east-ave', 'northcote-rd'] }));
+    container.appendChild(el);
+    const pressed = Array.from(el.querySelectorAll('.switcher-star')).map((s) => s.getAttribute('aria-pressed'));
+    expect(pressed).toEqual(['true', 'false', 'true']);
+    expect(el.querySelectorAll('.switcher-star.filled').length).toBe(2);
+  });
+
+  it('shows no filled star when there are no favourites', () => {
+    const el = renderSwitcher(null, baseModel({ favouriteIds: [] }));
+    container.appendChild(el);
+    expect(el.querySelectorAll('.switcher-star.filled').length).toBe(0);
+  });
+
+  it('clicking a filled star calls onToggleFavourite with its id', () => {
+    const onSwitch = vi.fn();
+    const onToggleFavourite = vi.fn();
+    const el = renderSwitcher(null, baseModel({ onSwitch, onToggleFavourite }));
+    container.appendChild(el);
+    el.querySelector<HTMLElement>('.switcher-row[data-id="east-ave"] .switcher-star.filled')!.click();
+    expect(onToggleFavourite).toHaveBeenCalledWith('east-ave');
+    expect(onSwitch).not.toHaveBeenCalled();
   });
 });

@@ -3,9 +3,11 @@ import { escapeHtml } from './escapeHtml';
 
 export interface SwitcherModel {
   activeViewpoint: Viewpoint;
-  favouriteViewpointId: string;
+  /** Every starred viewpoint, in the order they were starred. */
+  favouriteIds: readonly string[];
   onSwitch: (id: string) => void;
-  onSetFavourite: (id: string) => void;
+  /** Star or un-star a viewpoint. */
+  onToggleFavourite: (id: string) => void;
 }
 
 // Module-level state for the open/closed toggle, keyed by element. Using a
@@ -81,7 +83,7 @@ function closeSheet(root: HTMLElement): void {
 }
 
 function updateDynamic(root: HTMLElement, model: SwitcherModel): void {
-  const { activeViewpoint, favouriteViewpointId, onSwitch, onSetFavourite } = model;
+  const { activeViewpoint, favouriteIds, onSwitch, onToggleFavourite } = model;
 
   // Header label: line name above as a small subtitle, viewpoint name below as the main title.
   const label = root.querySelector<HTMLElement>('.switcher-header-label')!;
@@ -134,17 +136,18 @@ function updateDynamic(root: HTMLElement, model: SwitcherModel): void {
     });
 
     // Star button (separate hit target).
+    const isFavourite = favouriteIds.includes(vp.id);
     const star = document.createElement('button');
     star.type = 'button';
-    star.className = `switcher-star${vp.id === favouriteViewpointId ? ' filled' : ''}`;
+    star.className = `switcher-star${isFavourite ? ' filled' : ''}`;
     star.setAttribute('aria-label', `Favourite: ${vp.name}`);
-    star.setAttribute('aria-pressed', vp.id === favouriteViewpointId ? 'true' : 'false');
-    star.innerHTML = vp.id === favouriteViewpointId
+    star.setAttribute('aria-pressed', isFavourite ? 'true' : 'false');
+    star.innerHTML = isFavourite
       ? '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1 L10 6 L15 6 L11 9 L12 14 L8 11 L4 14 L5 9 L1 6 L6 6 Z" fill="currentColor"/></svg>'
       : '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1 L10 6 L15 6 L11 9 L12 14 L8 11 L4 14 L5 9 L1 6 L6 6 Z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>';
     star.addEventListener('click', (e) => {
       e.stopPropagation();
-      onSetFavourite(vp.id);
+      onToggleFavourite(vp.id);
     });
     row.appendChild(star);
 

@@ -352,7 +352,7 @@ function buildViewModel(): ViewModel {
     walkingLabel: computeWalkingLabel(),
     fact: factAt(factIndex),
     viewpoint: activeViewpoint,
-    favouriteViewpointId,
+    favouriteIds: [favouriteViewpointId],
     tap: buildTapView(heroes, now),
   };
 }
@@ -438,7 +438,7 @@ function rerender(): void {
       rerender();
     },
     onSwitchViewpoint: switchToViewpoint,
-    onSetFavouriteViewpoint: setFavouriteViewpoint,
+    onToggleFavourite: setFavouriteViewpoint,
     onTap,
     onHelpChoice,
   });

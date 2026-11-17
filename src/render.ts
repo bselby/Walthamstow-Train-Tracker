@@ -23,7 +23,7 @@ export interface ViewModel {
   walkingLabel: string | null;  // null = feature disabled / not yet available
   fact: Fact;
   viewpoint: Viewpoint;   // active viewpoint — drives strip, header, theming
-  favouriteViewpointId: string;   // id of the user's current favourite
+  favouriteIds: readonly string[];   // every starred viewpoint, oldest first
   tap: TapView;   // "train's here" button per direction + the ask card
 }
 
@@ -34,7 +34,7 @@ export interface RenderOptions {
    *  fact immediately (giving Ben agency + the toddler something to poke at). */
   onAdvanceFact: () => void;
   onSwitchViewpoint: (id: string) => void;
-  onSetFavouriteViewpoint: (id: string) => void;
+  onToggleFavourite: (id: string) => void;
   /** `pressedAtMs` is when the finger landed, not when it lifted. */
   onTap: (direction: Direction, pressedAtMs: number) => void;
   onHelpChoice: (choice: 'helping' | 'declined') => void;
@@ -107,9 +107,9 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
   // Always (re-)append the switcher first so it sits at the top of the flex column.
   const switcher = renderSwitcher(existingSwitcher, {
     activeViewpoint: vm.viewpoint,
-    favouriteViewpointId: vm.favouriteViewpointId,
+    favouriteIds: vm.favouriteIds,
     onSwitch: options.onSwitchViewpoint,
-    onSetFavourite: options.onSetFavouriteViewpoint,
+    onToggleFavourite: options.onToggleFavourite,
   });
   out.push(switcher);
 
