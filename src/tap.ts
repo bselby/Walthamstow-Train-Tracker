@@ -60,7 +60,9 @@ export function updatePass(
 
   if (current) {
     if (current.viewpointId !== viewpoint.id || current.direction !== direction) return null;
-    if (offerable && hero && (hero.arrival.vehicleId ?? null) === current.vehicleId) {
+    const sameTrain =
+      current.vehicleId !== null && hero?.arrival.vehicleId === current.vehicleId;
+    if (offerable && hero && sameTrain && hero.bridgeTimeSeconds >= -TAP_LINGER_SECONDS) {
       return { ...current, latestPredictedMs: nowMs + hero.bridgeTimeSeconds * 1000 };
     }
     if (nowMs <= current.latestPredictedMs + TAP_LINGER_SECONDS * 1000) return current;

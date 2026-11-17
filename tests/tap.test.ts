@@ -19,7 +19,7 @@ const northcote = getViewpointById('northcote-rd')!;
 
 function hero(
   bridgeTimeSeconds: number,
-  overrides: { vehicleId?: string; destinationName?: string; category?: 'freight' } = {},
+  overrides: { vehicleId?: string | undefined; destinationName?: string; category?: 'freight' } = {},
   direction: Direction = 'north',
 ): BridgeEvent {
   return {
@@ -34,7 +34,7 @@ function hero(
       expectedArrival: '2026-11-17T10:00:00Z',
       modeName: 'overground',
       platformName: '1',
-      vehicleId: overrides.vehicleId ?? 'v1',
+      vehicleId: 'vehicleId' in overrides ? overrides.vehicleId : 'v1',
       category: overrides.category,
     },
   };
@@ -92,6 +92,30 @@ describe('updatePass', () => {
     expect(later.shownAtMs).toBe(first.shownAtMs);
     expect(later.predictedAtShowMs).toBe(first.predictedAtShowMs);
     expect(later.latestPredictedMs).toBe(NOW + 10_000 + 30_000);
+  });
+
+  it('accepts a new pass at exactly -45 s', () => {
+    expect(updatePass(null, input(hero(-45)))).not.toBeNull();
+  });
+
+  it('does not keep refreshing a pass for the same vehicle predicted long past', () => {
+    const first = updatePass(null, input(hero(10)))!;
+    const stale = hero(-60);
+    const edge = first.latestPredictedMs + 45_000;
+    // refresh must not push latestPredictedMs forward, so the pass still expires
+    expect(updatePass(first, input(stale, edge))).toEqual(first);
+    expect(updatePass(first, input(stale, edge + 1))).toBeNull();
+  });
+
+  it('does not treat two trains without vehicle ids as the same train', () => {
+    const first = updatePass(null, input(hero(10, { vehicleId: undefined, destinationName: 'Chingford' })))!;
+    const second = hero(25, { vehicleId: undefined, destinationName: 'Highams Park' });
+    expect(updatePass(first, input(second, NOW + 5_000))).toEqual(first);
+  });
+
+  it('returns null for a current pass in another direction', () => {
+    const first = updatePass(null, input(hero(10)))!;
+    expect(updatePass(first, { ...input(hero(10, {}, 'south')), direction: 'south' })).toBeNull();
   });
 
   it('holds the pass while another vehicle leads, until 45 s after the prediction', () => {
