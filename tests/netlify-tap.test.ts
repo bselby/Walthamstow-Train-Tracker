@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { createHandler, type TapStore } from '../netlify/functions/tap';
 import type { TapPayload } from '../src/tapClient';
 
@@ -102,5 +102,27 @@ describe('tap function', () => {
     const { handler } = setup(true);
     const res = await handler(post(validPayload()));
     expect(res.status).toBe(502);
+  });
+});
+
+describe('tap function module shape', () => {
+  it('default-exports a Request handler, has no named handler export, and does not touch Blobs at import', async () => {
+    vi.resetModules();
+    const getStore = vi.fn();
+    vi.doMock('@netlify/blobs', () => ({ getStore }));
+    const mod: Record<string, unknown> = await import('../netlify/functions/tap');
+    // A named `handler` export makes Netlify treat the function as a v1 Lambda.
+    expect('handler' in mod).toBe(false);
+    expect(typeof mod.default).toBe('function');
+    expect(getStore).not.toHaveBeenCalled();
+
+    // The store is fetched inside the request handler.
+    const setJSON = vi.fn(async () => undefined);
+    getStore.mockReturnValue({ setJSON });
+    const res = await (mod.default as (r: Request) => Promise<Response>)(post(validPayload()));
+    expect(res.status).toBe(204);
+    expect(getStore).toHaveBeenCalledWith('taps');
+    expect(setJSON).toHaveBeenCalledTimes(1);
+    vi.doUnmock('@netlify/blobs');
   });
 });

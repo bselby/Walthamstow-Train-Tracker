@@ -107,7 +107,8 @@ export function createHandler(
   };
 }
 
+// Netlify's v2 Request/Response API: a default export only. A named `handler`
+// export would make the bundler treat this as a v1 Lambda function.
 // getStore is called per request, not at module load, so importing this
 // module in tests does not need Netlify's runtime.
-export const handler = createHandler(() => getStore('taps'));
-export default handler;
+export default createHandler(() => getStore('taps'));
