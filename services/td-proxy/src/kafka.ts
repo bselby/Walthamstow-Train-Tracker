@@ -5,7 +5,10 @@ import type { BerthEvent, RawTDMessage } from './types.js';
 export type BerthEventHandler = (event: BerthEvent) => void;
 
 const BOOTSTRAP = 'pkc-z3p1v0.europe-west2.gcp.confluent.cloud:9092';
-const TOPIC = 'prod-1015-Combined-Train-Describer-feed1_0';
+// NWR Train Describer (TD) product on raildata.org.uk. The earlier "Combined
+// Train Describer" topic (prod-1015-Combined-Train-Describer-feed1_0) connects
+// but never delivers; this one was verified live on 2026-11-17.
+const TOPIC = process.env.KAFKA_TOPIC ?? 'TD_ALL_SIG_AREA';
 // Consumer group ID is assigned per-subscription by raildata.org.uk.
 const GROUP_ID = process.env.KAFKA_GROUP_ID ?? 'SC-d9034ca2-0de2-4797-9697-39d9c422171d';
 

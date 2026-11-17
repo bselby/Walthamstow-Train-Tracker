@@ -12,7 +12,7 @@
 import { Kafka, logLevel } from 'kafkajs';
 
 const BOOTSTRAP = 'pkc-z3p1v0.europe-west2.gcp.confluent.cloud:9092';
-const TOPIC = 'prod-1015-Combined-Train-Describer-feed1_0';
+const TOPIC = process.env.KAFKA_TOPIC ?? 'prod-1015-Combined-Train-Describer-feed1_0';
 const GROUP_ID = process.env.KAFKA_GROUP_ID ?? 'SC-d9034ca2-0de2-4797-9697-39d9c422171d';
 
 const KNOWN_BERTHS: Record<string, string> = {
