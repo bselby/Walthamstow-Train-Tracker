@@ -252,4 +252,63 @@ describe('render — train\'s here tap', () => {
     buttons[1].click();
     expect(onHelpChoice).toHaveBeenCalledWith('declined');
   });
+
+  // Every node removed from the document during a call, including subtrees.
+  function removedDuring(fn: () => void): Node[] {
+    const observer = new MutationObserver(() => {});
+    observer.observe(root, { childList: true, subtree: true });
+    fn();
+    const removed = observer.takeRecords().flatMap((r) => Array.from(r.removedNodes));
+    observer.disconnect();
+    return removed;
+  }
+
+  it.each([
+    ['button', { state: 'button', passKey: 'qr|north|1', destination: 'Barking Riverside', entry: null }],
+    ['thanks', { state: 'thanks', passKey: 'qr|north|1', destination: 'Barking Riverside',
+      entry: { tapMs: 1_000, predictedMs: 3_000, tapsBefore: 1 } }],
+  ] as const)('the %s slot stays in the document across redraws', (_name, north) => {
+    const tap: TapView = { ...NEUTRAL_TAP, taps: 2, north: north as TapDirectionView };
+    render(root, withRows(tap), opts);
+    const slot = root.querySelector('.tap-slot')!;
+    const rowBefore = slot.parentElement!;
+    const removed = removedDuring(() => {
+      render(root, withRows(tap), opts);
+      render(root, withRows(tap), opts);
+    });
+    expect(root.querySelector('.tap-slot')).toBe(slot);
+    expect(slot.isConnected).toBe(true);
+    // Neither the slot nor the row holding it was taken out of the document.
+    expect(removed.includes(slot)).toBe(false);
+    expect(removed.includes(rowBefore)).toBe(false);
+    // The row around it is still redrawn with the current countdown.
+    const row = slot.parentElement!;
+    expect(row).toBe(rowBefore);
+    expect(Array.from(row.children).map((c) => c.className.split(' ')[0])).toEqual(['label', 'value', 'tap-slot']);
+  });
+
+  it('a kept ask card stays in the document across redraws', () => {
+    const tap: TapView = { ...NEUTRAL_TAP, ask: 'first' };
+    render(root, withRows(tap), opts);
+    const card = root.querySelector('.ask-card')!;
+    const removed = removedDuring(() => render(root, withRows(tap), opts));
+    expect(root.querySelector('.ask-card')).toBe(card);
+    expect(removed.includes(card)).toBe(false);
+  });
+
+  it('page order is unchanged when a row is kept', () => {
+    const tap: TapView = {
+      ...NEUTRAL_TAP,
+      ask: 'first',
+      north: { state: 'button', passKey: 'qr|north|1', destination: 'Barking Riverside', entry: null },
+    };
+    render(root, withRows(tap), opts);
+    render(root, withRows(tap), opts);
+    expect(classes()).toEqual([
+      'switcher', 'map-link', 'walking-time',
+      'row', 'strip', 'ticker',
+      'row', 'strip', 'ticker',
+      'ask-card', 'footer', 'doc-links',
+    ]);
+  });
 });

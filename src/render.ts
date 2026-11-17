@@ -67,17 +67,23 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
   const existingSwitcher = root.querySelector<HTMLElement>('.switcher');
   const existingStripN = viewpointChanged ? null : root.querySelector<HTMLElement>('.strip-north');
   const existingStripS = viewpointChanged ? null : root.querySelector<HTMLElement>('.strip-south');
-  // Tap slots live inside the rebuilt rows, so they are picked up here and
-  // moved into the new rows; the ask card is kept while its kind and the tap
-  // count are unchanged. Either way a press in progress survives the redraw.
-  const existingSlotN = root.querySelector<HTMLElement>('.tap-slot[data-direction="north"]');
-  const existingSlotS = root.querySelector<HTMLElement>('.tap-slot[data-direction="south"]');
-  const existingAsk = root.querySelector<HTMLElement>('.ask-card');
-  const focused = document.activeElement;
+  // Tap slots and the ask card are kept too, and never taken out of the
+  // document: a row holding a kept slot is redrawn in place around it, so a
+  // press in progress survives, the ticket clip does not replay and the
+  // thank-you is not re-announced. The ask card is kept while its kind and
+  // the tap count are unchanged.
+  const slotN = tapSlot('north', root.querySelector<HTMLElement>('.tap-slot[data-direction="north"]'), vm.tap);
+  const slotS = tapSlot('south', root.querySelector<HTMLElement>('.tap-slot[data-direction="south"]'), vm.tap);
+  const keptRowN = keptRowFor(root, slotN);
+  const keptRowS = keptRowFor(root, slotS);
+  const ask = askCard(root.querySelector<HTMLElement>('.ask-card'), vm.tap);
   const preserved = new Set<Element>();
   if (existingSwitcher) preserved.add(existingSwitcher);
   if (existingStripN) preserved.add(existingStripN);
   if (existingStripS) preserved.add(existingStripS);
+  if (keptRowN) preserved.add(keptRowN);
+  if (keptRowS) preserved.add(keptRowS);
+  if (ask?.parentElement === root) preserved.add(ask);
 
   Array.from(root.children).forEach((child) => {
     if (!preserved.has(child)) root.removeChild(child);
@@ -93,6 +99,10 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
     clearPreviousPositions();
   }
 
+  // The page in order. Placed at the end without moving nodes that are
+  // already in position, so kept nodes stay in the document.
+  const out: HTMLElement[] = [];
+
   // Always (re-)append the switcher first so it sits at the top of the flex column.
   const switcher = renderSwitcher(existingSwitcher, {
     activeViewpoint: vm.viewpoint,
@@ -100,23 +110,24 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
     onSwitch: options.onSwitchViewpoint,
     onSetFavourite: options.onSetFavouriteViewpoint,
   });
-  root.appendChild(switcher);
+  out.push(switcher);
 
   // Map-verify link: tap to open Google Maps with the viewpoint's exact coords —
   // disambiguates "which Northcote Road bridge?" without an in-app thumbnail.
-  root.appendChild(renderMapLink(vm.viewpoint));
+  out.push(renderMapLink(vm.viewpoint));
 
   // Walking-time row immediately below the header (only when we're showing rows,
   // not in the error-only state — same treatment as the rows themselves).
   if (vm.freshness.state !== 'no-data' || !vm.error) {
-    root.appendChild(renderWalkingTime(vm.walkingLabel, options.onEnableWalkingTime, options.onDisableWalkingTime));
+    out.push(renderWalkingTime(vm.walkingLabel, options.onEnableWalkingTime, options.onDisableWalkingTime));
   }
 
   if (vm.freshness.state === 'no-data' && vm.error) {
     const err = document.createElement('div');
     err.className = 'error';
     err.textContent = vm.error;
-    root.appendChild(err);
+    out.push(err);
+    place(root, out);
     return;
   }
 
@@ -126,7 +137,7 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
     const connecting = document.createElement('div');
     connecting.className = 'empty';
     connecting.innerHTML = '<p>Connecting to TfL…</p>';
-    root.appendChild(connecting);
+    out.push(connecting);
   } else if (!vm.north && !vm.south) {
     const empty = document.createElement('div');
     empty.className = 'empty';
@@ -134,14 +145,15 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
       <p>No trains right now.</p>
       <a href="https://tfl.gov.uk/tube-dlr-overground/status/" target="_blank" rel="noopener">Check TfL status</a>
     `;
-    root.appendChild(empty);
+    out.push(empty);
   } else {
     // Northbound: row, strip, ticker
-    root.appendChild(renderDirection(
+    out.push(renderDirection(
       vm.viewpoint.directions.north.label,
       vm.north,
       `Next train to ${vm.viewpoint.directions.north.terminusName}`,
-      tapSlot('north', existingSlotN, vm.tap),
+      slotN,
+      keptRowN,
     ));
     const stripN = renderDirectionStrip(existingStripN, {
       direction: 'north',
@@ -154,16 +166,17 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
       lineNameForAria: `${vm.viewpoint.lineName} line`,
       isFreight: vm.north?.arrival.category === 'freight',
     });
-    root.appendChild(stripN);
+    out.push(stripN);
     const tickerN = renderTicker(vm.northTicker);
-    if (tickerN) root.appendChild(tickerN);
+    if (tickerN) out.push(tickerN);
 
     // Southbound: row, strip, ticker
-    root.appendChild(renderDirection(
+    out.push(renderDirection(
       vm.viewpoint.directions.south.label,
       vm.south,
       `Next train to ${vm.viewpoint.directions.south.terminusName}`,
-      tapSlot('south', existingSlotS, vm.tap),
+      slotS,
+      keptRowS,
     ));
     const stripS = renderDirectionStrip(existingStripS, {
       direction: 'south',
@@ -176,18 +189,12 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
       lineNameForAria: `${vm.viewpoint.lineName} line`,
       isFreight: vm.south?.arrival.category === 'freight',
     });
-    root.appendChild(stripS);
+    out.push(stripS);
     const tickerS = renderTicker(vm.southTicker);
-    if (tickerS) root.appendChild(tickerS);
+    if (tickerS) out.push(tickerS);
 
     // The ask sits in the page flow below both panels, never over a countdown.
-    const ask = askCard(existingAsk, vm.tap);
-    if (ask) root.appendChild(ask);
-  }
-
-  // A kept slot or card was detached with its old row; give focus back.
-  if (focused instanceof HTMLElement && focused !== document.activeElement && root.contains(focused)) {
-    focused.focus({ preventScroll: true });
+    if (ask) out.push(ask);
   }
 
   const footer = document.createElement('div');
@@ -195,13 +202,13 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
   footer.textContent = vm.freshness.state === 'no-data'
     ? 'connecting…'
     : formatAge(vm.freshness.ageMs);
-  root.appendChild(footer);
+  out.push(footer);
 
   // Quiet rotating line of verified Weaver-line trivia, below the "updated Xs ago"
   // footer and above the About/Privacy/Terms links. Never competes with the data.
   // Tap to advance — turns it into a tiny interactive toy for toddler prodding.
   const factLine = renderFactLine(vm.fact, options.onAdvanceFact);
-  if (factLine) root.appendChild(factLine);
+  if (factLine) out.push(factLine);
 
   const docs = document.createElement('nav');
   docs.className = 'doc-links';
@@ -212,7 +219,27 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
     '<a href="/privacy.html">Privacy</a>' +
     '<span aria-hidden="true">·</span>' +
     '<a href="/terms.html">Terms</a>';
-  root.appendChild(docs);
+  out.push(docs);
+  place(root, out);
+}
+
+/** Put `nodes` into `root` in order. Nodes already in place are not touched,
+ *  so a kept node is never taken out of the document; anything else goes. */
+function place(root: HTMLElement, nodes: HTMLElement[]): void {
+  const wanted = new Set<Element>(nodes);
+  Array.from(root.children).forEach((child) => {
+    if (!wanted.has(child)) root.removeChild(child);
+  });
+  nodes.forEach((node, i) => {
+    const at = root.children[i] ?? null;
+    if (at !== node) root.insertBefore(node, at);
+  });
+}
+
+/** The row to redraw in place: the one already holding a kept slot. */
+function keptRowFor(root: HTMLElement, slot: HTMLElement | null): HTMLElement | null {
+  const row = slot?.parentElement;
+  return row && row.parentElement === root && row.classList.contains('row') ? row : null;
 }
 
 function tapSlot(direction: Direction, existing: HTMLElement | null, tap: TapView): HTMLElement | null {
@@ -439,8 +466,18 @@ function renderDirection(
   event: BridgeEvent | undefined,
   ariaLabel: string,
   tapSlot: HTMLElement | null,
+  existingRow: HTMLElement | null,
 ): HTMLElement {
-  const row = document.createElement('section');
+  // A kept row is cleared around its slot, never detached.
+  const row = existingRow ?? document.createElement('section');
+  Array.from(row.children).forEach((child) => {
+    if (child !== tapSlot) row.removeChild(child);
+  });
+  const slotInRow = tapSlot !== null && tapSlot.parentElement === row;
+  const beforeSlot = (node: HTMLElement) => {
+    if (slotInRow) row.insertBefore(node, tapSlot);
+    else row.appendChild(node);
+  };
   row.className = 'row';
   row.setAttribute('aria-label', ariaLabel);
 
@@ -457,7 +494,7 @@ function renderDirection(
     labelEl.appendChild(document.createTextNode(' '));
     labelEl.appendChild(tag);
   }
-  row.appendChild(labelEl);
+  beforeSlot(labelEl);
 
   const valueEl = document.createElement('div');
   valueEl.className = 'value';
@@ -484,10 +521,10 @@ function renderDirection(
   }
   previousValueText[label] = currentText;
 
-  row.appendChild(valueEl);
+  beforeSlot(valueEl);
 
   // "Train's here" button or its thank-you, just under the countdown.
-  if (tapSlot) row.appendChild(tapSlot);
+  if (tapSlot && !slotInRow) row.appendChild(tapSlot);
 
   // Origin → destination subtitle, only when we have BOTH ends — half an arrow
   // ("Tilbury Riverside Yard →") looks broken, so skip the row instead.
