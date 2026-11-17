@@ -65,6 +65,10 @@ export interface Viewpoint {
     north: ViewpointDirection;
     south: ViewpointDirection;
   };
+  /** Count down to TfL's expected arrival time instead of its aged
+   *  timeToStation figure. Set only where the direction offsets were tuned
+   *  against expected arrival; see tflTiming.ts. */
+  timeFromExpectedArrival?: boolean;
   /** Realtime Trains station CRS (3-char code). When set, the freight proxy
    *  polls /rtt/location?code=gb-nr:<this> alongside TfL passenger arrivals
    *  and merges any inPassengerService=false rows in. Undefined → no freight
@@ -142,12 +146,17 @@ export const VIEWPOINTS: readonly Viewpoint[] = [
     segments: CHINGFORD_SEGMENTS,
     anchorIndex: 5, // Walthamstow Central
     positionModel: 'east-ave-bridge',
+    timeFromExpectedArrival: true,
     directions: {
       north: {
         label: '→ Chingford',
         tflDirection: 'outbound',
         terminusName: 'Chingford',
-        offsetSeconds: 90, // dwell at WC + cross bridge (TfL fallback)
+        // Bridge time minus TfL's expected arrival at WC, measured against
+        // signalled movements on 2026-11-17: 124-146 s over four trains.
+        // (TfL's northbound expected arrival runs about a minute ahead of the
+        // train actually stopping.) The berth step refines the last 22 s.
+        offsetSeconds: 142,
         // Step 1415→1419 = the train passing the Walthamstow Central starter
         // signal, about 11 s after it starts moving. The bridge is ~390 m on.
         // 22 s is worked out from distance and the measured run to Wood Street
@@ -158,7 +167,8 @@ export const VIEWPOINTS: readonly Viewpoint[] = [
         label: '← Walthamstow Central',
         tflDirection: 'inbound',
         terminusName: 'Liverpool Street',
-        offsetSeconds: -20, // crosses bridge 20s before reaching WC (TfL fallback)
+        // Same measurement southbound: -33 to +4 s over four trains.
+        offsetSeconds: -22,
         // Step 1422→1420 = leaving Wood Street: an early heads-up, ~48 s out.
         // Step 1418→1414 = the signal on the approach to Walthamstow Central,
         // which sits just before the bridge: ~5 s out. Both worked out from

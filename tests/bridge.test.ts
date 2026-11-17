@@ -19,20 +19,20 @@ function arrival(destinationName: string, timeToStation: number, id = 'x'): Arri
 }
 
 describe('computeBridgeTime', () => {
-  it('adds 90s for northbound on East Ave (train leaves WC then reaches bridge)', () => {
-    expect(computeBridgeTime(arrival('Chingford', 120), EAST_AVE)).toBe(210);
+  it('adds the northbound offset on East Ave (train leaves WC then reaches bridge)', () => {
+    expect(computeBridgeTime(arrival('Chingford', 120), EAST_AVE)).toBe(262);
   });
 
-  it('subtracts 20s for southbound on East Ave (train crosses bridge before WC)', () => {
-    expect(computeBridgeTime(arrival('Liverpool Street', 120), EAST_AVE)).toBe(100);
+  it('subtracts the southbound offset on East Ave (train crosses bridge before WC)', () => {
+    expect(computeBridgeTime(arrival('Liverpool Street', 120), EAST_AVE)).toBe(98);
   });
 
   it('handles a northbound train already at platform (tts=0)', () => {
-    expect(computeBridgeTime(arrival('Chingford', 0), EAST_AVE)).toBe(90);
+    expect(computeBridgeTime(arrival('Chingford', 0), EAST_AVE)).toBe(142);
   });
 
-  it('handles a southbound train already at platform (returns -20)', () => {
-    expect(computeBridgeTime(arrival('Liverpool Street', 0), EAST_AVE)).toBe(-20);
+  it('handles a southbound train already at platform (returns -22)', () => {
+    expect(computeBridgeTime(arrival('Liverpool Street', 0), EAST_AVE)).toBe(-22);
   });
 
   it('station viewpoint: offset=0 means bridgeTime equals timeToStation', () => {
@@ -54,9 +54,9 @@ describe('pickNextPerDirection', () => {
     const result = pickNextPerDirection(arrivals, EAST_AVE);
 
     expect(result.north?.arrival.id).toBe('n2');
-    expect(result.north?.bridgeTimeSeconds).toBe(150); // 60 + 90
+    expect(result.north?.bridgeTimeSeconds).toBe(202); // 60 + 142
     expect(result.south?.arrival.id).toBe('s2');
-    expect(result.south?.bridgeTimeSeconds).toBe(180); // 200 - 20
+    expect(result.south?.bridgeTimeSeconds).toBe(178); // 200 - 22
   });
 
   it('excludes arrivals whose bridge time is too far in the past (< -30s)', () => {
@@ -72,7 +72,7 @@ describe('pickNextPerDirection', () => {
     const arrivals = [arrival('Liverpool Street', 10, 's-just-crossed')];
     const result = pickNextPerDirection(arrivals, EAST_AVE);
     expect(result.south?.arrival.id).toBe('s-just-crossed');
-    expect(result.south?.bridgeTimeSeconds).toBe(-10);
+    expect(result.south?.bridgeTimeSeconds).toBe(-12);
   });
 
   it('returns undefined for a direction with no valid arrivals', () => {

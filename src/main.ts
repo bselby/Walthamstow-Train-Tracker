@@ -15,6 +15,8 @@ import { walkingEstimate, formatWalkingLabel } from './walkingTime';
 import { factAt } from './facts';
 import { subscribeBerthEvents } from './tdProxy';
 import { berthEtaFromStep, liveBerthEta, alreadyPassedPerBerth } from './berthEta';
+import { secondsToStation, holdDroppedTrains } from './tflTiming';
+import { classifyDirection } from './direction';
 import type { BerthEvent } from './tdProxy';
 import { fetchFreight, clampFreightPosition } from './freight';
 
@@ -375,16 +377,31 @@ function stopFreightPoller(): void {
 async function tick(): Promise<void> {
   const gen = tickGeneration;
   try {
-    const arrivals = await fetchArrivals(activeViewpoint.stopPointId, activeViewpoint.lineId);
-    const picked = pickNextNPerDirection(arrivals, TICKER_SIZE, activeViewpoint);
+    const fetched = await fetchArrivals(activeViewpoint.stopPointId, activeViewpoint.lineId);
     const now = Date.now();
     // Bail if the viewpoint switched while the fetch was in flight — these
     // arrivals belong to the old viewpoint and must not overwrite current state.
     if (gen !== tickGeneration) return;
-    snapshots = {
-      north: picked.north.length > 0 ? { events: picked.north, snapshottedAtMs: now } : undefined,
-      south: picked.south.length > 0 ? { events: picked.south, snapshottedAtMs: now } : undefined,
-    };
+    const fromExpected = activeViewpoint.timeFromExpectedArrival === true;
+    const arrivals = fetched.map((a) => ({ ...a, timeToStation: secondsToStation(a, now, fromExpected) }));
+    const picked = pickNextNPerDirection(arrivals, TICKER_SIZE, activeViewpoint);
+    const next: typeof snapshots = {};
+    for (const dir of DIRECTIONS) {
+      const feedVehicleIds = new Set(
+        arrivals
+          .filter((a) => classifyDirection(a, activeViewpoint) === dir && a.vehicleId)
+          .map((a) => a.vehicleId as string),
+      );
+      const events = holdDroppedTrains(
+        snapshots[dir],
+        picked[dir],
+        feedVehicleIds,
+        now,
+        activeViewpoint.directions[dir].offsetSeconds,
+      ).slice(0, TICKER_SIZE);
+      next[dir] = events.length > 0 ? { events, snapshottedAtMs: now } : undefined;
+    }
+    snapshots = next;
     lastFetchMs = now;
     lastError = undefined;
     advanceFact();
