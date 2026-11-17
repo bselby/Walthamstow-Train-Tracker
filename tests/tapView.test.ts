@@ -1,0 +1,147 @@
+import { describe, expect, it } from 'vitest';
+import type { BridgeEvent } from '../src/bridge';
+import type { TapPass } from '../src/tap';
+import type { TapState } from '../src/tapStore';
+import { newDeviceId, tapDirectionView, tflExpectedArrivalMs } from '../src/tapView';
+
+const NOW = 1_800_000_000_000;
+
+const pass: TapPass = {
+  viewpointId: 'east-ave',
+  direction: 'north',
+  vehicleId: 'v1',
+  berthTrainId: null,
+  destination: 'Chingford',
+  shownAtMs: NOW - 5_000,
+  predictedAtShowMs: NOW + 25_000,
+  latestPredictedMs: NOW + 20_000,
+};
+const KEY = `east-ave|north|${NOW + 25_000}`;
+
+function state(overrides: Partial<TapState> = {}): TapState {
+  return {
+    choice: 'unset',
+    declinedAtMs: null,
+    asksShown: 0,
+    taps: 0,
+    tappedPassKeys: [],
+    deviceId: 'abcdefgh-1234',
+    lastTap: null,
+    ...overrides,
+  };
+}
+
+const tapped = state({
+  choice: 'helping',
+  taps: 3,
+  tappedPassKeys: [KEY],
+  lastTap: { passKey: KEY, tapMs: NOW - 1_000, predictedMs: NOW + 2_000, tapsBefore: 2 },
+});
+
+describe('tapDirectionView', () => {
+  it('is none with no pass', () => {
+    expect(
+      tapDirectionView({ pass: null, tapState: state(), thanksUntilMs: undefined, thanksPassKey: undefined, nowMs: NOW }),
+    ).toEqual({ state: 'none', passKey: null, destination: null, entry: null });
+  });
+
+  it('is a button for an untapped pass', () => {
+    expect(
+      tapDirectionView({ pass, tapState: state(), thanksUntilMs: undefined, thanksPassKey: undefined, nowMs: NOW }),
+    ).toEqual({ state: 'button', passKey: KEY, destination: 'Chingford', entry: null });
+  });
+
+  it('is none for a pass when the user said not now', () => {
+    const declined = state({ choice: 'declined', declinedAtMs: NOW - 1, asksShown: 1 });
+    expect(
+      tapDirectionView({ pass, tapState: declined, thanksUntilMs: undefined, thanksPassKey: undefined, nowMs: NOW })
+        .state,
+    ).toBe('none');
+  });
+
+  it('shows thanks with the last tap as the entry while the minute runs', () => {
+    expect(
+      tapDirectionView({ pass, tapState: tapped, thanksUntilMs: NOW + 59_000, thanksPassKey: KEY, nowMs: NOW }),
+    ).toEqual({
+      state: 'thanks',
+      passKey: KEY,
+      destination: 'Chingford',
+      entry: { tapMs: NOW - 1_000, predictedMs: NOW + 2_000, tapsBefore: 2 },
+    });
+  });
+
+  it('keeps the thanks after the pass itself has expired', () => {
+    const view = tapDirectionView({ pass: null, tapState: tapped, thanksUntilMs: NOW + 10_000, thanksPassKey: KEY, nowMs: NOW });
+    expect(view.state).toBe('thanks');
+    expect(view.passKey).toBe(KEY);
+  });
+
+  it('is none for a tapped pass once the minute is up', () => {
+    expect(
+      tapDirectionView({ pass, tapState: tapped, thanksUntilMs: NOW, thanksPassKey: KEY, nowMs: NOW }).state,
+    ).toBe('none');
+  });
+
+  it('drops the thanks when the last tap was for another pass', () => {
+    const other = { ...tapped, lastTap: { ...tapped.lastTap!, passKey: 'east-ave|south|1' } };
+    expect(
+      tapDirectionView({ pass, tapState: other, thanksUntilMs: NOW + 30_000, thanksPassKey: KEY, nowMs: NOW }).state,
+    ).toBe('none');
+  });
+
+  it('falls back to a button for a new pass once the minute is up', () => {
+    const next: TapPass = { ...pass, predictedAtShowMs: NOW + 400_000 };
+    const view = tapDirectionView({ pass: next, tapState: tapped, thanksUntilMs: NOW - 1, thanksPassKey: KEY, nowMs: NOW });
+    expect(view.state).toBe('button');
+    expect(view.passKey).toBe(`east-ave|north|${NOW + 400_000}`);
+  });
+});
+
+describe('tflExpectedArrivalMs', () => {
+  function ev(vehicleId: string | undefined, expectedArrival: string): BridgeEvent {
+    return {
+      direction: 'north',
+      bridgeTimeSeconds: 10,
+      arrival: {
+        id: 'a',
+        stationName: 'S',
+        lineId: 'weaver',
+        destinationName: 'Chingford',
+        timeToStation: 10,
+        expectedArrival,
+        modeName: 'overground',
+        platformName: '1',
+        vehicleId,
+      },
+    };
+  }
+
+  it('parses the expected arrival of the matching vehicle', () => {
+    const events = [ev('v0', '2026-11-17T09:00:00Z'), ev('v1', '2026-11-17T10:00:00Z')];
+    expect(tflExpectedArrivalMs(events, 'v1')).toBe(Date.parse('2026-11-17T10:00:00Z'));
+  });
+
+  it('is null without a vehicle id, a match or a parseable time', () => {
+    const events = [ev('v1', 'not a date'), ev(undefined, '2026-11-17T10:00:00Z')];
+    expect(tflExpectedArrivalMs(events, null)).toBeNull();
+    expect(tflExpectedArrivalMs(events, 'v9')).toBeNull();
+    expect(tflExpectedArrivalMs(events, 'v1')).toBeNull();
+    expect(tflExpectedArrivalMs(undefined, 'v1')).toBeNull();
+  });
+});
+
+describe('newDeviceId', () => {
+  const RE = /^[a-z0-9-]{8,64}$/;
+
+  it('uses randomUUID in lower case when available', () => {
+    expect(newDeviceId(() => 'ABCDEF12-3456-7890-ABCD-EF1234567890')).toBe('abcdef12-3456-7890-abcd-ef1234567890');
+  });
+
+  it('falls back to a random id that the server accepts', () => {
+    const a = newDeviceId(undefined);
+    const b = newDeviceId(undefined);
+    expect(a).toMatch(RE);
+    expect(b).toMatch(RE);
+    expect(a).not.toBe(b);
+  });
+});

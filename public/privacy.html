@@ -19,15 +19,16 @@
       <a class="back" href="/">Back to trains</a>
       <h1>Privacy</h1>
       <p>
-        This app is a handful of static files served from a CDN, plus a
-        <em>single stateless function</em> (used only on the Suffragette
-        viewpoint) that proxies freight-data requests to
+        This app is a handful of static files served from a CDN, plus two
+        small functions. One, used only on the Suffragette viewpoint, is
+        stateless and proxies freight-data requests to
         <a href="https://www.realtimetrains.co.uk/about/" target="_blank" rel="noopener">Realtime Trains</a>
-        so that their API credentials stay server-side. The function logs
-        requests as part of normal Netlify operation; it does not see your
-        location, identity, or any in-app actions. Plus a privacy-friendly
-        pageview count via Cloudflare Web Analytics (details below).
-        Nothing you do <em>inside</em> the app — tapping the fact line,
+        so that their API credentials stay server-side. The other stores the
+        "train is passing" taps described below. Both log requests as part of
+        normal Netlify operation; neither sees your coordinates or who you are.
+        Plus a privacy-friendly pageview count via Cloudflare Web Analytics
+        (details below). Apart from a tap on a "train is passing" button,
+        nothing you do <em>inside</em> the app — tapping the fact line,
         enabling walking time, watching the countdown — is tracked or
         reported back to me.
       </p>
@@ -37,17 +38,52 @@
         <li>
           A single <code>localStorage</code> flag
           (<code>wtt_walking_enabled</code>) that remembers whether you've
-          turned the walking-time feature on. That's it. No other storage.
+          turned the walking-time feature on.
         </li>
         <li>
           A <code>wtt_favourite_viewpoint</code> flag remembering which viewpoint
           you've starred as your default.
         </li>
         <li>
+          A <code>wtt_fact_index</code> number, so the fact line doesn't start
+          on the same fact every time.
+        </li>
+        <li>
+          A <code>wtt_tap_state</code> record for the "train is passing"
+          button: whether you chose to help or "Not now", how many trains
+          you've booked, your latest tap, and a random id made on your device
+          (see below).
+        </li>
+        <li>
           The PWA's service worker caches the app shell (HTML, CSS, JS, icons)
           so the app works offline. None of this is shared with me.
         </li>
       </ul>
+
+      <h2>"Train is passing" taps</h2>
+      <p>
+        At some viewpoints a button appears as a train is due. If you tap it,
+        your browser sends one small record to this site's own function, which
+        stores it so the bridge timings can be tuned. A tap sends exactly
+        these fields:
+      </p>
+      <ul>
+        <li><code>viewpointId</code> and <code>direction</code> — which spot and which way the train was going.</li>
+        <li><code>msSinceTap</code> — how long ago you tapped, in milliseconds, so the server can work out the tap time.</li>
+        <li><code>predictedAtShowMs</code> and <code>predictedAtTapMs</code> — when the app predicted the train when the button appeared and when you tapped.</li>
+        <li><code>source</code> — whether that prediction came from signalling data (<code>berth</code>) or TfL (<code>tfl</code>).</li>
+        <li><code>berthStepMs</code> — when the signalling step behind the prediction fired, if there was one.</li>
+        <li><code>tflExpectedArrivalMs</code> — TfL's expected arrival time for that train, if known.</li>
+        <li><code>vehicleId</code> and <code>berthTrainId</code> — TfL's and the signalling system's ids for the train, if known.</li>
+        <li><code>atViewpoint</code> — just <code>yes</code>, <code>no</code> or <code>unknown</code>: whether you were within about 150 metres of the viewpoint. It is <code>unknown</code> unless walking time is on.</li>
+        <li><code>deviceId</code> — a random id made on your device and kept in <code>wtt_tap_state</code>, so repeat taps from one phone can be told apart. It isn't linked to you.</li>
+      </ul>
+      <p>
+        No coordinates are sent, and there is no account. The server adds the
+        time it received the tap. Taps are kept for 12 months and then
+        deleted. If you choose "Not now", no buttons appear and nothing is
+        sent.
+      </p>
 
       <h2>Geolocation</h2>
       <p>
@@ -56,7 +92,9 @@
         are used client-side only — to compute distance to whichever
         viewpoint you've selected — and are <strong>never transmitted
         anywhere</strong>. They
-        are not stored, logged, or sent.
+        are not stored, logged, or sent. A tap sends only whether you were
+        near the viewpoint (<code>yes</code> or <code>no</code>), never the
+        coordinates.
       </p>
       <p>
         You can turn the feature off at any time using the small
@@ -93,7 +131,8 @@
         </li>
         <li>
           <strong>Netlify</strong> — the CDN that serves this site. Netlify
-          logs requests as part of hosting the site.
+          logs requests as part of hosting the site, and stores the
+          "train is passing" taps (via <code>/.netlify/functions/tap</code>).
         </li>
         <li>
           <strong>Cloudflare</strong> — provides DNS for this domain and
@@ -135,7 +174,7 @@
         <a href="https://github.com/bselby/Walthamstow-Train-Tracker/issues" target="_blank" rel="noopener">github.com/bselby/Walthamstow-Train-Tracker/issues</a>.
       </p>
 
-      <p class="meta">Last updated 25 April 2026</p>
+      <p class="meta">Last updated 17 November 2026</p>
     </main>
     <!-- Cloudflare Web Analytics — pageview count only, no cookies, no personal data.
          See the Analytics section above for the full story. -->

@@ -19,6 +19,10 @@ import { secondsToStation, holdDroppedTrains } from './tflTiming';
 import { classifyDirection } from './direction';
 import type { BerthEvent } from './tdProxy';
 import { fetchFreight, clampFreightPosition } from './freight';
+import { atViewpoint, canOfferTap, passKey, updatePass, type TapPass } from './tap';
+import { askKind, chooseHelp, loadTapState, recordTap, resetChoice, saveTapState } from './tapStore';
+import { buildTapPayload, sendTap } from './tapClient';
+import { newDeviceId, tapDirectionView, tflExpectedArrivalMs } from './tapView';
 
 // A small hello for anyone peeking at devtools. One console log, no overhead.
 console.log(
@@ -53,6 +57,16 @@ let freightPollerStop: (() => void) | null = null;
 // reach the viewpoint, derived from a live TD berth step event.
 // Takes precedence over TfL-prediction timing for the hero train.
 const berthEtas: Partial<Record<Direction, number>> = {};
+// The berth step behind each ETA: when it fired and which train it was, for
+// the tap payload's berthStepMs and the pass's berthTrainId.
+const berthSteps: Partial<Record<Direction, { stepMs: number; trainId: string }>> = {};
+
+// "Train's here" tap: the open pass per direction, and the thank-you window
+// after a tap (until when, and for which pass, since the pass may expire first).
+const THANKS_DURATION_MS = 60_000;
+const tapPasses: Record<Direction, TapPass | null> = { north: null, south: null };
+const thanksUntilMs: Partial<Record<Direction, number>> = {};
+const thanksPassKey: Partial<Record<Direction, string>> = {};
 
 // Generation counter — incremented on every viewpoint switch. tick() captures
 // the current value at invocation time and discards results if it has changed
@@ -93,16 +107,27 @@ function safeLocalRemove(key: string): void {
   }
 }
 
+let tapState = loadTapState(safeLocalRead, () => newDeviceId());
+
 // QA / debugging: visiting `?reset=walking` clears the walkingEnabled flag so
-// the opt-in row reappears on next load. The param is stripped from the URL
-// after reading so a normal refresh doesn't keep resetting.
+// the opt-in row reappears on next load. `?help=1` (the About page's "Help
+// tune this spot" link) undoes a "Not now" so the ask card comes back. Both
+// params are stripped from the URL after reading so a refresh doesn't repeat them.
 try {
   const url = new URL(window.location.href);
+  let changed = false;
   if (url.searchParams.get('reset') === 'walking') {
     safeLocalRemove(WALKING_STORAGE_KEY);
     url.searchParams.delete('reset');
-    window.history.replaceState({}, '', url.toString());
+    changed = true;
   }
+  if (url.searchParams.get('help') === '1') {
+    tapState = resetChoice(tapState);
+    saveTapState(safeLocalWrite, tapState);
+    url.searchParams.delete('help');
+    changed = true;
+  }
+  if (changed) window.history.replaceState({}, '', url.toString());
 } catch {
   /* no-op: URL / history API may be unavailable in exotic environments */
 }
@@ -173,6 +198,13 @@ export function switchToViewpoint(id: string): void {
   lastError = undefined;
   delete berthEtas.north;
   delete berthEtas.south;
+  delete berthSteps.north;
+  delete berthSteps.south;
+  for (const dir of DIRECTIONS) {
+    tapPasses[dir] = null;
+    delete thanksUntilMs[dir];
+    delete thanksPassKey[dir];
+  }
   // Invalidate any in-flight tick so it discards its results when it resolves.
   tickGeneration++;
   // Update the document title: viewpoint name first so browser tabs are readable.
@@ -321,14 +353,76 @@ function buildViewModel(): ViewModel {
     fact: factAt(factIndex),
     viewpoint: activeViewpoint,
     favouriteViewpointId,
-    // Neutral until Task 6 wires the tap state in: no ask, no buttons.
-    tap: {
-      ask: null,
-      taps: 0,
-      north: { state: 'none', passKey: null, destination: null, entry: null },
-      south: { state: 'none', passKey: null, destination: null, entry: null },
-    },
+    tap: buildTapView(heroes, now),
   };
+}
+
+/** Advance each direction's pass against its hero and build the tap view. */
+function buildTapView(heroes: Partial<Record<Direction, BridgeEvent>>, now: number): ViewModel['tap'] {
+  const views = {} as Record<Direction, ViewModel['tap']['north']>;
+  for (const dir of DIRECTIONS) {
+    const liveStep = liveBerthEta(berthEtas[dir], now) !== undefined ? berthSteps[dir] : undefined;
+    tapPasses[dir] = updatePass(tapPasses[dir], {
+      viewpoint: activeViewpoint,
+      direction: dir,
+      hero: heroes[dir],
+      berthTrainId: liveStep?.trainId ?? null,
+      nowMs: now,
+    });
+    views[dir] = tapDirectionView({
+      pass: tapPasses[dir],
+      tapState,
+      thanksUntilMs: thanksUntilMs[dir],
+      thanksPassKey: thanksPassKey[dir],
+      nowMs: now,
+    });
+  }
+  const offerable = DIRECTIONS.some((dir) => canOfferTap(activeViewpoint, dir, heroes[dir]));
+  return {
+    ask: offerable ? askKind(tapState, now) : null,
+    taps: tapState.taps,
+    north: views.north,
+    south: views.south,
+  };
+}
+
+/** The "train is passing" button: book the tap, show the thank-you, send it. */
+function onTap(dir: Direction): void {
+  const tapMs = Date.now();
+  const pass = tapPasses[dir];
+  // The pass expired between the last redraw and the press: the redraw drops
+  // the button, so there is nothing to book.
+  if (!pass) {
+    rerender();
+    return;
+  }
+  const key = passKey(pass);
+  const predictedAtTapMs = pass.latestPredictedMs;
+  tapState = recordTap(tapState, key, tapMs, predictedAtTapMs);
+  saveTapState(safeLocalWrite, tapState);
+  thanksUntilMs[dir] = tapMs + THANKS_DURATION_MS;
+  thanksPassKey[dir] = key;
+
+  const berthLive = liveBerthEta(berthEtas[dir], tapMs) !== undefined;
+  const position = walkingEnabled ? getLocationState().position : null;
+  const payload = buildTapPayload(pass, {
+    tapMs,
+    nowMs: Date.now(),
+    predictedAtTapMs,
+    source: berthLive ? 'berth' : 'tfl',
+    berthStepMs: berthLive ? berthSteps[dir]?.stepMs ?? null : null,
+    tflExpectedArrivalMs: tflExpectedArrivalMs(snapshots[dir]?.events, pass.vehicleId),
+    atViewpoint: atViewpoint(position, activeViewpoint.coords),
+    deviceId: tapState.deviceId,
+  });
+  void sendTap(payload);
+  rerender();
+}
+
+function onHelpChoice(choice: 'helping' | 'declined'): void {
+  tapState = chooseHelp(tapState, choice, Date.now());
+  saveTapState(safeLocalWrite, tapState);
+  rerender();
 }
 
 function rerender(): void {
@@ -344,9 +438,8 @@ function rerender(): void {
     },
     onSwitchViewpoint: switchToViewpoint,
     onSetFavouriteViewpoint: setFavouriteViewpoint,
-    // No-ops until Task 6 wires the tap state in.
-    onTap: () => {},
-    onHelpChoice: () => {},
+    onTap,
+    onHelpChoice,
   });
 }
 
@@ -475,6 +568,7 @@ function onBerthEvent(event: BerthEvent): void {
     const eta = berthEtaFromStep(event, activeViewpoint.directions[dir].berthSteps);
     if (eta === null) continue;
     berthEtas[dir] = eta;
+    berthSteps[dir] = { stepMs: event.timestamp, trainId: event.trainId };
 
     console.log(
       `[td] ${dir} berth hit: train ${event.trainId} @ ${event.station}` +
