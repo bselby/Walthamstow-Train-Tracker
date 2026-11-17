@@ -1053,3 +1053,229 @@ html, body {
     transition: none;
   }
 }
+
+/* ───── "Train's here" tap ─────
+   The button sits under its countdown and stays plainly worded; the parent is
+   railway staff booking a train in. Nothing here is louder than the countdown.
+   The only movement is the ticket hole being clipped. */
+
+.tap-button {
+  appearance: none;
+  margin-top: 0.35rem;
+  min-height: 3rem;
+  padding: 0.6rem 1rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font-family: 'Big Shoulders Text', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.tap-button:active,
+.tap-button.pressed {
+  background: var(--ink);
+  color: var(--bg);
+}
+.tap-button:focus-visible {
+  outline: 2px solid var(--overground);
+  outline-offset: 3px;
+}
+
+/* Thank-you: a line in the train register. */
+.tap-thanks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 1rem;
+  margin-top: 0.35rem;
+  font-family: 'Big Shoulders Text', sans-serif;
+  color: var(--ink);
+}
+.tap-thanks > p { margin: 0; flex-basis: 100%; }
+.tap-heading {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.tap-notice-head {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--overground);
+}
+.tap-notice-kit,
+.tap-gap {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--dim);
+}
+.tap-register {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 0.1rem 0.75rem;
+  margin: 0;
+  flex-basis: 100%;
+  justify-content: start;
+  font-variant-numeric: tabular-nums;
+}
+.tap-register-row { display: contents; }
+.tap-register-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+  align-self: baseline;
+}
+.tap-register-time {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  align-self: baseline;
+}
+
+/* Ask card: in the page flow below both panels, never over a countdown. */
+.ask-card {
+  margin-top: clamp(0.75rem, 3vw, 1.5rem);
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  font-family: 'Big Shoulders Text', sans-serif;
+  color: var(--ink);
+}
+.ask-heading {
+  margin: 0 0 0.35rem;
+  font-family: 'Big Shoulders Display', 'Helvetica Neue', Impact, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.05;
+}
+.ask-body {
+  margin: 0 0 0.9rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--dim);
+}
+.ask-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.ask-help,
+.ask-decline {
+  appearance: none;
+  min-height: 2.75rem;
+  padding: 0.5rem 1.1rem;
+  border-radius: 999px;
+  font-family: 'Big Shoulders Text', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.ask-help {
+  border: 2px solid var(--ink);
+  background: var(--ink);
+  color: var(--bg);
+}
+.ask-decline {
+  border: 2px solid transparent;
+  background: transparent;
+  color: var(--dim);
+}
+.ask-help:focus-visible,
+.ask-decline:focus-visible {
+  outline: 2px solid var(--overground);
+  outline-offset: 3px;
+}
+.ask-card-invite {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+}
+.ask-invite {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* The ticket: an old card railway ticket in buff, inked in navy. One hole per
+   tap needed for the next grade; clipped holes show the paper beneath. */
+.ticket {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 11rem;
+  padding: 0.5rem 0.75rem 0.55rem;
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+  background: color-mix(in oklch, var(--overground) 16%, var(--bg));
+  color: var(--ink);
+  font-family: 'Big Shoulders Text', sans-serif;
+}
+.ticket-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.2rem;
+  border-bottom: 1px dashed var(--ink);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.ticket-kind { color: var(--line-color); }
+.ticket-grade {
+  font-family: 'Big Shoulders Display', 'Helvetica Neue', Impact, sans-serif;
+  font-size: 1.6rem;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+.ticket-holes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.ticket-hole {
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 1.5px dotted var(--ink);
+  border-radius: 50%;
+  opacity: 0.55;
+}
+.ticket-hole.clipped {
+  border: 1.5px solid var(--ink);
+  background: var(--bg);
+  opacity: 1;
+}
+.ticket-hole.just-clipped {
+  animation: ticket-clip 300ms ease-out;
+}
+.ticket-next {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+@keyframes ticket-clip {
+  from { transform: scale(0.3); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticket-hole.just-clipped {
+    animation: none;
+  }
+}
