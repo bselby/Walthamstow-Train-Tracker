@@ -41,10 +41,12 @@
           turned the walking-time feature on.
         </li>
         <li>
-          A <code>wtt_favourites</code> list remembering which viewpoints
-          you've starred, in the order you starred them. (An older
-          <code>wtt_favourite_viewpoint</code> flag is replaced by this list
-          the first time the app opens.)
+          A <code>wtt_favourites</code> list of your starred viewpoints, in
+          the order they were starred. It is saved the first time the app
+          opens, even if empty. If you used the app before stars became a
+          list, it starts with the viewpoint you had starred, or East Avenue
+          if you had none, and the older
+          <code>wtt_favourite_viewpoint</code> flag is removed.
         </li>
         <li>
           A <code>wtt_fact_index</code> number, so the fact line doesn't start
