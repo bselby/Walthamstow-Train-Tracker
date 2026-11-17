@@ -241,8 +241,34 @@ describe('render — train\'s here tap', () => {
     render(root, withRows(tap), { ...opts, onTap });
     const second = root.querySelector('.tap-slot');
     expect(second).toBe(first);
-    second!.dispatchEvent(new Event('pointerdown', { bubbles: true }));
-    expect(onTap).toHaveBeenCalledWith('south');
+    second!.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, isPrimary: true }));
+    second!.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, isPrimary: true }));
+    expect(onTap).toHaveBeenCalledTimes(1);
+    expect(onTap.mock.calls[0][0]).toBe('south');
+  });
+
+  it('a press that spans a redraw still books once, with the pointerdown time', () => {
+    vi.useFakeTimers();
+    try {
+      const pressMs = 1_800_000_000_000;
+      vi.setSystemTime(pressMs);
+      const onTap = vi.fn();
+      const tap: TapView = {
+        ...NEUTRAL_TAP,
+        north: { state: 'button', passKey: 'qr|north|1', destination: 'Chingford', entry: null },
+      };
+      render(root, withRows(tap), { ...opts, onTap });
+      root.querySelector('.tap-slot')!
+        .dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, isPrimary: true }));
+      vi.setSystemTime(pressMs + 1200);
+      render(root, withRows(tap), { ...opts, onTap });
+      root.querySelector('.tap-slot')!
+        .dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, isPrimary: true }));
+      expect(onTap).toHaveBeenCalledTimes(1);
+      expect(onTap).toHaveBeenCalledWith('north', pressMs);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('ask card choices reach onHelpChoice', () => {

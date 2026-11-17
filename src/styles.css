@@ -1076,6 +1076,7 @@ html, body {
   touch-action: manipulation;
 }
 .tap-button:active,
+.tap-button.pressing,
 .tap-button.pressed {
   background: var(--ink);
   color: var(--bg);

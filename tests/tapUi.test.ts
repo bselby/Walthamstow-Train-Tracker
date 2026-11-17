@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import {
   renderTapSlot,
   renderAskCard,
@@ -76,22 +76,94 @@ describe('renderTapSlot', () => {
     expect(next!.textContent).toBe('Chingford train is passing');
   });
 
-  it('calls onTap once on pointerdown and ignores a second press', () => {
-    const onTap = vi.fn();
-    const el = renderTapSlot(null, buttonView(), 0, onTap)!;
-    el.dispatchEvent(new Event('pointerdown', { bubbles: true }));
-    expect(onTap).toHaveBeenCalledTimes(1);
-    el.dispatchEvent(new Event('pointerdown', { bubbles: true }));
-    el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    expect(onTap).toHaveBeenCalledTimes(1);
-  });
+  describe('booking a press', () => {
+    const PRESS_MS = 1_800_000_000_000;
 
-  it('a keyboard click (no pointerdown) also books the train once', () => {
-    const onTap = vi.fn();
-    const el = renderTapSlot(null, buttonView(), 0, onTap)!;
-    el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    expect(onTap).toHaveBeenCalledTimes(1);
+    function pointer(type: string, init: PointerEventInit = {}): PointerEvent {
+      return new PointerEvent(type, { bubbles: true, button: 0, isPrimary: true, ...init });
+    }
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(PRESS_MS);
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('books on release with the press time, once, ignoring the follow-up click', () => {
+      const onTap = vi.fn();
+      const el = renderTapSlot(null, buttonView(), 0, onTap)!;
+      el.dispatchEvent(pointer('pointerdown'));
+      expect(onTap).not.toHaveBeenCalled();
+      vi.setSystemTime(PRESS_MS + 400);
+      el.dispatchEvent(pointer('pointerup'));
+      el.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+      expect(onTap).toHaveBeenCalledTimes(1);
+      expect(onTap).toHaveBeenCalledWith(PRESS_MS);
+    });
+
+    it('books nothing when the press is cancelled (a scroll)', () => {
+      const onTap = vi.fn();
+      const el = renderTapSlot(null, buttonView(), 0, onTap)!;
+      el.dispatchEvent(pointer('pointerdown'));
+      el.dispatchEvent(pointer('pointercancel'));
+      el.dispatchEvent(pointer('pointerup'));
+      expect(onTap).not.toHaveBeenCalled();
+      expect(el.classList.contains('pressed')).toBe(false);
+    });
+
+    it('books nothing when the pointer leaves the button before release', () => {
+      const onTap = vi.fn();
+      const el = renderTapSlot(null, buttonView(), 0, onTap)!;
+      el.dispatchEvent(pointer('pointerdown'));
+      el.dispatchEvent(pointer('pointerleave', { bubbles: false }));
+      el.dispatchEvent(pointer('pointerup'));
+      expect(onTap).not.toHaveBeenCalled();
+    });
+
+    it('books nothing for a non-primary button or pointer', () => {
+      const onTap = vi.fn();
+      const el = renderTapSlot(null, buttonView(), 0, onTap)!;
+      el.dispatchEvent(pointer('pointerdown', { button: 2 }));
+      el.dispatchEvent(pointer('pointerup', { button: 2 }));
+      el.dispatchEvent(pointer('pointerdown', { isPrimary: false }));
+      el.dispatchEvent(pointer('pointerup', { isPrimary: false }));
+      expect(onTap).not.toHaveBeenCalled();
+    });
+
+    it('a keyboard click (no pointerdown) books the train once, at the click time', () => {
+      const onTap = vi.fn();
+      const el = renderTapSlot(null, buttonView(), 0, onTap)!;
+      el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      expect(onTap).toHaveBeenCalledTimes(1);
+      expect(onTap).toHaveBeenCalledWith(PRESS_MS);
+    });
+
+    it('a keyboard activation after an abandoned pointer press still books', () => {
+      const onTap = vi.fn();
+      const el = renderTapSlot(null, buttonView(), 0, onTap)!;
+      el.dispatchEvent(pointer('pointerdown'));
+      el.dispatchEvent(pointer('pointerleave', { bubbles: false }));
+      el.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }));
+      el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      expect(onTap).toHaveBeenCalledTimes(1);
+    });
+
+    it('vibrates on the commit, not the press', () => {
+      const vibrate = vi.fn();
+      Object.defineProperty(navigator, 'vibrate', { value: vibrate, configurable: true });
+      try {
+        const el = renderTapSlot(null, buttonView(), 0, noop)!;
+        el.dispatchEvent(pointer('pointerdown'));
+        expect(vibrate).not.toHaveBeenCalled();
+        el.dispatchEvent(pointer('pointerup'));
+        expect(vibrate).toHaveBeenCalledTimes(1);
+      } finally {
+        delete (navigator as unknown as Record<string, unknown>).vibrate;
+      }
+    });
   });
 
   it('clips the new hole only when the thank-you replaces the button', () => {

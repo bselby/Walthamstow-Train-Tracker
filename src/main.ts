@@ -386,9 +386,10 @@ function buildTapView(heroes: Partial<Record<Direction, BridgeEvent>>, now: numb
   };
 }
 
-/** The "train is passing" button: book the tap, show the thank-you, send it. */
-function onTap(dir: Direction): void {
-  const tapMs = Date.now();
+/** The "train is passing" button: book the tap, show the thank-you, send it.
+ *  `pressedAtMs` is when the finger landed; the send time is taken below. */
+function onTap(dir: Direction, pressedAtMs: number): void {
+  const tapMs = pressedAtMs;
   const pass = tapPasses[dir];
   // The pass expired between the last redraw and the press: the redraw drops
   // the button, so there is nothing to book.
