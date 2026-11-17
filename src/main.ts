@@ -20,9 +20,9 @@ import { classifyDirection } from './direction';
 import type { BerthEvent } from './tdProxy';
 import { fetchFreight, clampFreightPosition } from './freight';
 import { atViewpoint, canOfferTap, passKey, updatePass, type TapPass } from './tap';
-import { askKind, chooseHelp, loadTapState, recordTap, resetChoice, saveTapState } from './tapStore';
+import { chooseHelp, loadTapState, recordTap, resetChoice, saveTapState } from './tapStore';
 import { buildTapPayload, sendTap } from './tapClient';
-import { newDeviceId, tapDirectionView, tflExpectedArrivalMs } from './tapView';
+import { newDeviceId, tapAsk, tapDirectionView, tflExpectedArrivalMs } from './tapView';
 
 // A small hello for anyone peeking at devtools. One console log, no overhead.
 console.log(
@@ -379,7 +379,7 @@ function buildTapView(heroes: Partial<Record<Direction, BridgeEvent>>, now: numb
   }
   const offerable = DIRECTIONS.some((dir) => canOfferTap(activeViewpoint, dir, heroes[dir]));
   return {
-    ask: offerable ? askKind(tapState, now) : null,
+    ask: tapAsk({ tapState, nowMs: now, offerable, views: [views.north, views.south] }),
     taps: tapState.taps,
     north: views.north,
     south: views.south,

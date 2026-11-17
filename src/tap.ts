@@ -77,11 +77,21 @@ export function updatePass(
     direction,
     vehicleId: hero.arrival.vehicleId ?? null,
     berthTrainId,
-    destination: hero.arrival.destinationName,
+    destination: tidyDestination(hero.arrival.destinationName),
     shownAtMs: nowMs,
     predictedAtShowMs: predictedMs,
     latestPredictedMs: predictedMs,
   };
+}
+
+/** TfL's destination as a person would say it: "London Liverpool Street Rail
+ *  Station" becomes "Liverpool Street". */
+export function tidyDestination(name: string): string {
+  let tidy = name.replace(/\s+/g, ' ').trim();
+  tidy = tidy.replace(/ (rail )?station$/i, '').trim();
+  const withoutLondon = tidy.replace(/^london /i, '').trim();
+  if (withoutLondon) tidy = withoutLondon;
+  return tidy || name.trim();
 }
 
 export function passKey(pass: TapPass): string {
