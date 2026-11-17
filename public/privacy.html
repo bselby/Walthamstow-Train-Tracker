@@ -50,9 +50,12 @@
         </li>
         <li>
           A <code>wtt_tap_state</code> record for the "train is passing"
-          button: whether you chose to help or "Not now", how many trains
-          you've booked, your latest tap, and a random id made on your device
-          (see below).
+          button: whether you chose to help or "Not now" (with when you said
+          "Not now" and how many times you've been asked), how many trains
+          you've booked, a short key for each of the last 20 trains you booked
+          (viewpoint, direction and predicted time, so the same train isn't
+          counted twice), the times of your latest tap so its register entry
+          can be shown, and a random id made on your device (see below).
         </li>
         <li>
           The PWA's service worker caches the app shell (HTML, CSS, JS, icons)
@@ -69,18 +72,18 @@
       </p>
       <ul>
         <li><code>viewpointId</code> and <code>direction</code> — which spot and which way the train was going.</li>
-        <li><code>msSinceTap</code> — how long ago you tapped, in milliseconds, so the server can work out the tap time.</li>
+        <li><code>msSinceTap</code> — how long ago you tapped when the record was sent, in milliseconds, so the server can work out the tap time.</li>
         <li><code>predictedAtShowMs</code> and <code>predictedAtTapMs</code> — when the app predicted the train when the button appeared and when you tapped.</li>
         <li><code>source</code> — whether that prediction came from signalling data (<code>berth</code>) or TfL (<code>tfl</code>).</li>
         <li><code>berthStepMs</code> — when the signalling step behind the prediction fired, if there was one.</li>
         <li><code>tflExpectedArrivalMs</code> — TfL's expected arrival time for that train, if known.</li>
         <li><code>vehicleId</code> and <code>berthTrainId</code> — TfL's and the signalling system's ids for the train, if known.</li>
-        <li><code>atViewpoint</code> — just <code>yes</code>, <code>no</code> or <code>unknown</code>: whether you were within about 150 metres of the viewpoint. It is <code>unknown</code> unless walking time is on.</li>
+        <li><code>atViewpoint</code> — just <code>yes</code>, <code>no</code> or <code>unknown</code>: whether you were within about 150 metres of the viewpoint. It is <code>unknown</code> unless walking time is on and your phone has found its location.</li>
         <li><code>deviceId</code> — a random id made on your device and kept in <code>wtt_tap_state</code>, so repeat taps from one phone can be told apart. It isn't linked to you.</li>
       </ul>
       <p>
         No coordinates are sent, and there is no account. The server adds the
-        time it received the tap. Taps are kept for 12 months and then
+        time it received the tap and the tap time worked out from it. Taps are kept for 12 months and then
         deleted. If you choose "Not now", no buttons appear and nothing is
         sent.
       </p>
