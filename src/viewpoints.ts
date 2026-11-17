@@ -1,3 +1,4 @@
+import type { BerthStep } from './berthEta';
 import type { Stop, Segment } from './stops';
 import { STOPS as CHINGFORD_STOPS } from './stops';
 
@@ -7,16 +8,6 @@ import { STOPS as CHINGFORD_STOPS } from './stops';
 // These are opaque labels — they do NOT need to align with geographic north/south.
 
 export type LineId = 'weaver' | 'suffragette';
-
-export interface BerthConfig {
-  /** The berth step that signals the train departed the reference station.
-   *  Matched against events from the TD proxy. */
-  fromBerth: string;
-  toBerth: string;
-  /** Seconds from actual station departure to viewpoint crossing.
-   *  Initial values are estimates — calibrate from live observations. */
-  travelSecondsFromDeparture: number;
-}
 
 export interface ViewpointDirection {
   /** Short label above the countdown — e.g. '→ Chingford', '← Walthamstow Central'. */
@@ -30,9 +21,11 @@ export interface ViewpointDirection {
    *  -ve = train passes BEFORE arriving (southbound bridge).
    *   0  = station viewpoint (no offset — the viewpoint IS the station). */
   offsetSeconds: number;
-  /** When set, a live TD berth event replaces the TfL-prediction countdown
-   *  with a timestamp-anchored ETA for more precise timing. */
-  berthConfig?: BerthConfig;
+  /** Signalling berth steps that place a train a known time from the
+   *  viewpoint. When one fires, its ETA replaces the TfL-prediction countdown.
+   *  List them in the order a train meets them; a later step supersedes an
+   *  earlier one. */
+  berthSteps?: readonly BerthStep[];
 }
 
 /** How trainPosition estimates the train's strip position around the anchor station.
@@ -155,17 +148,26 @@ export const VIEWPOINTS: readonly Viewpoint[] = [
         tflDirection: 'outbound',
         terminusName: 'Chingford',
         offsetSeconds: 90, // dwell at WC + cross bridge (TfL fallback)
-        // Berth 1415→1419 = WC northbound departure (step fires 11s before departure).
-        // travelSecondsFromDeparture is an estimate — calibrate from live data.
-        berthConfig: { fromBerth: '1415', toBerth: '1419', travelSecondsFromDeparture: 60 },
+        // Step 1415→1419 = the train passing the Walthamstow Central starter
+        // signal, about 11 s after it starts moving. The bridge is ~390 m on.
+        // 22 s is worked out from distance and the measured run to Wood Street
+        // (recording of 2026-11-17); it has not been checked at the bridge.
+        berthSteps: [{ fromBerth: '1415', toBerth: '1419', secondsToViewpoint: 22 }],
       },
       south: {
         label: '← Walthamstow Central',
         tflDirection: 'inbound',
         terminusName: 'Liverpool Street',
         offsetSeconds: -20, // crosses bridge 20s before reaching WC (TfL fallback)
-        // Berth 1422→1420 = Wood Street southbound departure (step fires 25s before departure).
-        berthConfig: { fromBerth: '1422', toBerth: '1420', travelSecondsFromDeparture: 85 },
+        // Step 1422→1420 = leaving Wood Street: an early heads-up, ~48 s out.
+        // Step 1418→1414 = the signal on the approach to Walthamstow Central,
+        // which sits just before the bridge: ~5 s out. Both worked out from
+        // distance and measured running times (recording of 2026-11-17); not
+        // yet checked at the bridge.
+        berthSteps: [
+          { fromBerth: '1422', toBerth: '1420', secondsToViewpoint: 48 },
+          { fromBerth: '1418', toBerth: '1414', secondsToViewpoint: 5 },
+        ],
       },
     },
   },

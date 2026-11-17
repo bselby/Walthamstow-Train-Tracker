@@ -15,9 +15,6 @@ export interface BerthEvent {
 
 export type BerthCallback = (event: BerthEvent) => void;
 
-/** How long a berth-based ETA remains valid before we fall back to TfL timing. */
-export const BERTH_ETA_TTL_MS = 3 * 60 * 1000;
-
 const callbacks = new Set<BerthCallback>();
 let source: EventSource | null = null;
 

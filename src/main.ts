@@ -13,7 +13,8 @@ import type { Direction } from './direction';
 import { subscribe as subscribeLocation, start as startLocation, stop as stopLocation, getState as getLocationState } from './geolocation';
 import { walkingEstimate, formatWalkingLabel } from './walkingTime';
 import { factAt } from './facts';
-import { subscribeBerthEvents, BERTH_ETA_TTL_MS } from './tdProxy';
+import { subscribeBerthEvents } from './tdProxy';
+import { berthEtaFromStep, liveBerthEta } from './berthEta';
 import type { BerthEvent } from './tdProxy';
 import { fetchFreight, clampFreightPosition } from './freight';
 
@@ -256,8 +257,7 @@ function buildViewModel(): ViewModel {
       // Berth ETA is a passenger-only signal (TD steps fire on Weaver-line
       // berths). Apply only when the eventual hero is a passenger event;
       // freight predictions stay on RTT-derived TfL-equivalent timing.
-      const eta = berthEtas[dir];
-      const validEta = !hero.isFreight && eta !== undefined && now - eta < BERTH_ETA_TTL_MS ? eta : undefined;
+      const validEta = hero.isFreight ? undefined : liveBerthEta(berthEtas[dir], now);
       heroes[dir] = validEta !== undefined
         ? { ...hero.event, bridgeTimeSeconds: (validEta - now) / 1000 }
         : hero.event;
@@ -435,20 +435,15 @@ document.title = `E17 Trains — ${activeViewpoint.name}`;
 
 // ── TD berth integration ──────────────────────────────────────────────────────
 // When a live berth event arrives from the proxy, check if it matches the
-// active viewpoint's berthConfig for either direction. If so, compute a
+// active viewpoint's berthSteps for either direction. If so, compute a
 // precise ETA for when the train will reach the viewpoint and store it.
 // The 1s render loop picks this up via liveEvent() and uses it instead of
 // the TfL-prediction-based countdown.
 function onBerthEvent(event: BerthEvent): void {
   for (const dir of DIRECTIONS) {
-    const cfg = activeViewpoint.directions[dir].berthConfig;
-    if (!cfg) continue;
-    if (event.fromBerth !== cfg.fromBerth || event.toBerth !== cfg.toBerth) continue;
-
-    // offsetSeconds is negative for departure events (step fires before departure).
-    // Actual departure = timestamp + |offsetSeconds| * 1000.
-    const actualDepartureMs = event.timestamp + Math.abs(event.offsetSeconds) * 1000;
-    berthEtas[dir] = actualDepartureMs + cfg.travelSecondsFromDeparture * 1000;
+    const eta = berthEtaFromStep(event, activeViewpoint.directions[dir].berthSteps);
+    if (eta === null) continue;
+    berthEtas[dir] = eta;
 
     console.log(
       `[td] ${dir} berth hit: train ${event.trainId} @ ${event.station}` +
