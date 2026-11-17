@@ -35,7 +35,8 @@ export interface RenderOptions {
   onAdvanceFact: () => void;
   onSwitchViewpoint: (id: string) => void;
   onSetFavouriteViewpoint: (id: string) => void;
-  onTap: (direction: Direction) => void;
+  /** `pressedAtMs` is when the finger landed, not when it lifted. */
+  onTap: (direction: Direction, pressedAtMs: number) => void;
   onHelpChoice: (choice: 'helping' | 'declined') => void;
 }
 
@@ -243,7 +244,7 @@ function keptRowFor(root: HTMLElement, slot: HTMLElement | null): HTMLElement | 
 }
 
 function tapSlot(direction: Direction, existing: HTMLElement | null, tap: TapView): HTMLElement | null {
-  const slot = renderTapSlot(existing, tap[direction], tap.taps, () => currentOptions?.onTap(direction));
+  const slot = renderTapSlot(existing, tap[direction], tap.taps, (pressedAtMs) => currentOptions?.onTap(direction, pressedAtMs));
   if (slot) slot.dataset.direction = direction;
   return slot;
 }

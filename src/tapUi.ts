@@ -48,7 +48,7 @@ export function renderTapSlot(
   existing: HTMLElement | null,
   view: TapDirectionView,
   taps: number,
-  onTap: () => void,
+  onTap: (pressedAtMs: number) => void,
 ): HTMLElement | null {
   if (view.state === 'none' || view.passKey === null) return null;
 
@@ -78,24 +78,65 @@ export function renderTapSlot(
   return slot;
 }
 
-function renderTapButton(destination: string, onTap: () => void): HTMLElement {
+function renderTapButton(destination: string, onTap: (pressedAtMs: number) => void): HTMLElement {
   const button = el('button', 'tap-slot tap-button', `${destination} train is passing`);
   button.type = 'button';
-  let pressed = false;
-  // pointerdown so the moment is caught when the finger lands, not when it
-  // lifts; click covers keyboard activation. One booking per button.
-  const press = () => {
-    if (pressed) return;
-    pressed = true;
+  let committed = false;
+  // The time the finger landed, while a press is pending.
+  let pressedAtMs: number | null = null;
+  // A pointer press started on this button: the browser's click that may
+  // follow belongs to it, not to the keyboard.
+  let pointerSequence = false;
+
+  const discard = () => {
+    pressedAtMs = null;
+    button.classList.remove('pressing');
+  };
+  // One booking per button, stamped with the moment the finger landed.
+  const commit = (atMs: number) => {
+    if (committed) return;
+    committed = true;
+    discard();
     button.classList.add('pressed');
     button.setAttribute('aria-disabled', 'true');
     if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
       navigator.vibrate(20);
     }
-    onTap();
+    onTap(atMs);
   };
-  button.addEventListener('pointerdown', press);
-  button.addEventListener('click', press);
+
+  // pointerdown only records the press: the browser does not yet know whether
+  // the touch starts a scroll. The tap is booked on release on the button.
+  button.addEventListener('pointerdown', (event) => {
+    if (committed || event.button !== 0 || event.isPrimary === false) return;
+    pointerSequence = true;
+    pressedAtMs = Date.now();
+    button.classList.add('pressing');
+  });
+  button.addEventListener('pointerup', (event) => {
+    if (pressedAtMs === null || event.button !== 0 || event.isPrimary === false) return;
+    commit(pressedAtMs);
+  });
+  // A scroll took over the touch: no click follows, so a later keyboard
+  // activation stands on its own.
+  button.addEventListener('pointercancel', () => {
+    discard();
+    pointerSequence = false;
+  });
+  button.addEventListener('pointerleave', discard);
+  // A key press starts a keyboard activation, even if an abandoned pointer
+  // press (released off the button) left pointerSequence set.
+  button.addEventListener('keydown', () => {
+    pointerSequence = false;
+  });
+  // Keyboard activation has no pointerdown before it.
+  button.addEventListener('click', () => {
+    if (pointerSequence) {
+      pointerSequence = false;
+      return;
+    }
+    commit(Date.now());
+  });
   return button;
 }
 
