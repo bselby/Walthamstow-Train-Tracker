@@ -239,6 +239,10 @@ export const VIEWPOINTS: readonly Viewpoint[] = [
         // Bridge is ~718m from BHR, ~634m from WQR (55% of BHR→WQR from the BHR side).
         // Train passes the bridge ~87s before arriving at WQR.
         offsetSeconds: -87,
+        // Step ST21→ST23 = leaving Blackhorse Road. 36 s is from
+        // scripts/calibrate (bridge 785 m along a 1416 m, 112 s run); not yet
+        // checked against a train at the bridge.
+        berthSteps: [{ fromBerth: 'ST21', toBerth: 'ST23', secondsToViewpoint: 36 }],
       },
       south: {
         label: '← Gospel Oak',
@@ -246,6 +250,9 @@ export const VIEWPOINTS: readonly Viewpoint[] = [
         terminusName: 'Gospel Oak',
         // Train departs WQR and passes the bridge ~87s later.
         offsetSeconds: 87,
+        // Step ST22→ST20 = leaving Queens Road. 21 s is from scripts/calibrate
+        // (bridge 631 m along a 1416 m, 108 s run); not yet checked at the bridge.
+        berthSteps: [{ fromBerth: 'ST22', toBerth: 'ST20', secondsToViewpoint: 21 }],
       },
     },
   },

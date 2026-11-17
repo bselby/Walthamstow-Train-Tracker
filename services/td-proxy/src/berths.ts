@@ -35,6 +35,12 @@ const WATCHED: WatchedBerth[] = [
   { td: 'Q4', from: '1413', to: '1415', station: 'STJAMESST', event: 'depart-north', offsetSeconds: -33 },
   { td: 'Q4', from: '1412', to: '1410', station: 'STJAMESST', event: 'arrive-south', offsetSeconds: 28  },
   { td: 'Q4', from: '1410', to: '1408', station: 'STJAMESST', event: 'depart-south', offsetSeconds: -25 },
+
+  // ── Suffragette line (TD area SO), either side of Northcote Road ──────────
+  // From SMART. One berth spans each station-to-station run here, so the
+  // departure step at one station is also the arrival step for the next.
+  { td: 'SO', from: 'ST21', to: 'ST23', station: 'BLKHORSRD', event: 'depart-north', offsetSeconds: -24 },
+  { td: 'SO', from: 'ST22', to: 'ST20', station: 'WLTHMSTQR', event: 'depart-south', offsetSeconds: -28 },
 ];
 
 // Build a lookup map: "TD:from:to" → WatchedBerth for O(1) matching
