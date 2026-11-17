@@ -19,11 +19,12 @@ export function landingFor(route: Route, favouriteIds: readonly string[]): Landi
   return { screen: 'home' };
 }
 
-/** Stand-in for home until the home screen exists: the first favourite, else
- *  East Avenue. */
+/** Stand-in for home until the home screen exists: the most recently starred
+ *  favourite, else East Avenue. Starring a viewpoint has always made it the
+ *  one the app opens on, and still does. */
 export function fallbackViewpoint(favouriteIds: readonly string[]): Viewpoint {
-  for (const id of favouriteIds) {
-    const viewpoint = getViewpointById(id);
+  for (let i = favouriteIds.length - 1; i >= 0; i--) {
+    const viewpoint = getViewpointById(favouriteIds[i]);
     if (viewpoint) return viewpoint;
   }
   return getViewpointById(DEFAULT_VIEWPOINT_ID)!;

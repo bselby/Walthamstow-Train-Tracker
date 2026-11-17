@@ -34,9 +34,14 @@ describe('landingFor', () => {
 });
 
 describe('fallbackViewpoint', () => {
-  it('is the first favourite, else East Avenue', () => {
-    expect(fallbackViewpoint(['queens-road', 'east-ave']).id).toBe('queens-road');
+  it('is the most recently starred favourite, as starring always set the opening screen', () => {
+    expect(fallbackViewpoint(['east-ave', 'queens-road']).id).toBe('queens-road');
+    expect(fallbackViewpoint(['queens-road', 'east-ave', 'northcote-rd']).id).toBe('northcote-rd');
+  });
+
+  it('is East Avenue with no favourites, or none still in the data', () => {
     expect(fallbackViewpoint([]).id).toBe('east-ave');
     expect(fallbackViewpoint(['gone']).id).toBe('east-ave');
+    expect(fallbackViewpoint(['queens-road', 'gone']).id).toBe('queens-road');
   });
 });
