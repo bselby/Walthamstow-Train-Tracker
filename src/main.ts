@@ -7,7 +7,7 @@ import { render, type ViewModel } from './render';
 import { formatCountdown } from './display';
 import { estimatePosition } from './trainPosition';
 import { POLL_INTERVAL_MS, FREIGHT_POLL_INTERVAL_MS } from './constants';
-import { getViewpointById, DEFAULT_VIEWPOINT_ID } from './viewpoints';
+import { getViewpointById } from './viewpoints';
 import type { Viewpoint } from './viewpoints';
 import type { Direction } from './direction';
 import { subscribe as subscribeLocation, start as startLocation, stop as stopLocation, getState as getLocationState } from './geolocation';
@@ -23,6 +23,9 @@ import { atViewpoint, canOfferTap, passKey, updatePass, type TapPass } from './t
 import { chooseHelp, loadTapState, recordTap, resetChoice, saveTapState } from './tapStore';
 import { buildTapPayload, sendTap } from './tapClient';
 import { newDeviceId, tapAsk, tapDirectionView, tflExpectedArrivalMs } from './tapView';
+import { parseRoute, viewpointPath } from './routes';
+import { loadFavourites, saveFavourites, toggleFavourite } from './favourites';
+import { fallbackViewpoint, landingFor } from './landing';
 
 // A small hello for anyone peeking at devtools. One console log, no overhead.
 console.log(
@@ -77,7 +80,6 @@ let tickGeneration = 0;
 const previousKind: Partial<Record<Direction, string>> = {};
 
 const WALKING_STORAGE_KEY = 'wtt_walking_enabled';
-const FAVOURITE_STORAGE_KEY = 'wtt_favourite_viewpoint';
 
 // Safe wrappers around localStorage. In Safari private browsing `localStorage`
 // exists but `setItem` / `removeItem` throw; in other hardened browsers either
@@ -135,19 +137,36 @@ try {
 let walkingEnabled = safeLocalRead(WALKING_STORAGE_KEY) === '1';
 const celebrateSetAt: Partial<Record<Direction, number>> = {};
 
-/** Load the stored favourite viewpoint id, validating that it points at a
- *  real viewpoint. Falls back to DEFAULT_VIEWPOINT_ID if missing or stale. */
-function loadFavouriteViewpointId(): string {
-  const stored = safeLocalRead(FAVOURITE_STORAGE_KEY);
-  if (stored && getViewpointById(stored)) return stored;
-  return DEFAULT_VIEWPOINT_ID;
+// Starred viewpoints, oldest first. The first load after favourites became a
+// list migrates the old single favourite (or seeds a returning user with East
+// Avenue) and saves the result, even when empty, so it is only ever done once.
+let favouriteIds: string[] = (() => {
+  const loaded = loadFavourites(safeLocalRead);
+  if (loaded.migrated) saveFavourites(safeLocalWrite, safeLocalRemove, loaded.ids);
+  return loaded.ids;
+})();
+
+/** Point the address bar at a viewpoint without adding a history entry, so
+ *  the back button still leaves the app as it always has. */
+function showViewpointInAddressBar(viewpoint: Viewpoint): void {
+  try {
+    const path = viewpointPath(viewpoint);
+    if (window.location.pathname !== path) {
+      window.history.replaceState({}, '', path + window.location.search + window.location.hash);
+    }
+  } catch {
+    /* no-op: history API may be unavailable in exotic environments */
+  }
 }
 
-let favouriteViewpointId = loadFavouriteViewpointId();
-
-// Active viewpoint for this session. Starts at the user's favourite if stored,
-// else the default (East Ave).
-let activeViewpoint: Viewpoint = getViewpointById(favouriteViewpointId)!;
+// Active viewpoint for this session: the one the URL names, else wherever the
+// landing rule sends the root URL. There is no home screen yet, so "home"
+// opens on the first favourite, or East Avenue.
+let activeViewpoint: Viewpoint = (() => {
+  const landing = landingFor(parseRoute(window.location.pathname), favouriteIds);
+  return landing.screen === 'viewpoint' ? landing.viewpoint : fallbackViewpoint(favouriteIds);
+})();
+showViewpointInAddressBar(activeViewpoint);
 
 // Facts rotation — persist a monotonically-increasing index in localStorage so the
 // user doesn't always see the same fact first on each app open. Advance once per
@@ -176,10 +195,9 @@ export function disableWalkingTime(): void {
   stopLocation();
 }
 
-export function setFavouriteViewpoint(id: string): void {
-  if (!getViewpointById(id)) return; // guard against stale ids
-  favouriteViewpointId = id;
-  safeLocalWrite(FAVOURITE_STORAGE_KEY, id);
+export function toggleFavouriteViewpoint(id: string): void {
+  favouriteIds = toggleFavourite(favouriteIds, id);
+  saveFavourites(safeLocalWrite, safeLocalRemove, favouriteIds);
   rerender();
 }
 
@@ -187,6 +205,7 @@ export function switchToViewpoint(id: string): void {
   const next = getViewpointById(id);
   if (!next || next.id === activeViewpoint.id) return;
   activeViewpoint = next;
+  showViewpointInAddressBar(next);
   // Clear snapshots AND lastFetchMs so the freshness state flips to 'no-data'
   // and the UI shows "Connecting to TfL…" — otherwise the previous viewpoint's
   // fresh poll satisfies classifyFreshness and we flash "No trains right now"
@@ -352,7 +371,7 @@ function buildViewModel(): ViewModel {
     walkingLabel: computeWalkingLabel(),
     fact: factAt(factIndex),
     viewpoint: activeViewpoint,
-    favouriteIds: [favouriteViewpointId],
+    favouriteIds,
     tap: buildTapView(heroes, now),
   };
 }
@@ -438,7 +457,7 @@ function rerender(): void {
       rerender();
     },
     onSwitchViewpoint: switchToViewpoint,
-    onToggleFavourite: setFavouriteViewpoint,
+    onToggleFavourite: toggleFavouriteViewpoint,
     onTap,
     onHelpChoice,
   });
@@ -556,7 +575,7 @@ document.addEventListener('visibilitychange', () => {
 // Sync CSS + title to the booted viewpoint. These normally update on switch,
 // but first-paint needs them too.
 document.documentElement.style.setProperty('--line-color', activeViewpoint.lineColor);
-document.title = `E17 Trains — ${activeViewpoint.name}`;
+document.title = `E17 Trains — ${activeViewpoint.lineName} · ${activeViewpoint.name}`;
 
 // ── TD berth integration ──────────────────────────────────────────────────────
 // When a live berth event arrives from the proxy, check if it matches the
