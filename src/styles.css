@@ -1280,3 +1280,248 @@ html, body {
     animation: none;
   }
 }
+
+/* ───── Home ─────
+   The list of spots at `/`. One column of rows divided by hairlines, no
+   cards: the countdown on the right of each row is the loudest thing in it,
+   set in the same display face as the countdown screen's hero number. */
+
+/* Home reads top-down like a list; the countdown screen stays centred. */
+#app:has(> .home-header) {
+  justify-content: flex-start;
+  gap: clamp(1rem, 4vw, 1.5rem);
+}
+
+.home-header h1 {
+  margin: 0;
+  font-family: 'Big Shoulders Display', 'Helvetica Neue', Impact, sans-serif;
+  font-size: clamp(2rem, 9vw, 2.75rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.home-header h1::after {
+  content: '';
+  display: block;
+  width: 2.5rem;
+  height: 5px;
+  margin-top: 0.5rem;
+  background: var(--overground);
+  border-radius: 3px;
+}
+
+.home-section h2 {
+  margin: 0 0 0.25rem;
+  font-family: 'Big Shoulders Text', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.home-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.home-row {
+  display: flex;
+  align-items: stretch;
+  border-top: 1px solid var(--line);
+}
+
+.home-row:last-child { border-bottom: 1px solid var(--line); }
+
+.home-row-link {
+  flex: 1;
+  min-width: 0;
+  min-height: 4.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.5rem 0.6rem 0.25rem;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 6px;
+  transition: background-color 120ms ease;
+}
+
+.home-row-link:hover { background-color: oklch(from var(--bg) calc(l - 0.03) c h); }
+.home-row-link:active { background-color: oklch(from var(--bg) calc(l - 0.06) c h); }
+.home-row-link:focus-visible {
+  outline: 2px solid var(--overground);
+  outline-offset: -2px;
+}
+
+.home-row-dot {
+  flex-shrink: 0;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  /* background-color is the row's line colour, set inline by home.ts */
+}
+
+.home-row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.home-row-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.home-row-meta {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.home-row-countdown {
+  flex-shrink: 0;
+  font-family: 'Big Shoulders Display', 'Helvetica Neue', Impact, sans-serif;
+  font-size: 2rem;
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.home-row-countdown.now { color: var(--now); }
+
+/* Nothing to count down to: say so quietly, in the text face. */
+.home-row-countdown.loading,
+.home-row-countdown.stale,
+.home-row-countdown.none {
+  font-family: 'Big Shoulders Text', sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.home-star {
+  appearance: none;
+  flex-shrink: 0;
+  width: 2.75rem;
+  min-height: 2.75rem;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: oklch(from var(--ink) l c h / 0.5);
+  cursor: pointer;
+  transition: transform 120ms ease, color 120ms ease;
+}
+
+.home-star svg { width: 22px; height: 22px; display: block; }
+.home-star.filled { color: var(--overground); }
+.home-star:hover:not(.filled) { color: oklch(from var(--ink) l c h / 0.75); }
+.home-star:active { transform: scale(0.88); transition-duration: 60ms; }
+.home-star:focus-visible {
+  outline: 2px solid var(--overground);
+  outline-offset: -2px;
+}
+
+.home-locate {
+  appearance: none;
+  width: 100%;
+  min-height: 3rem;
+  margin: 0;
+  padding: 0.6rem 1rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.home-locate:hover,
+.home-locate:active {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.home-locate:focus-visible {
+  outline: 2px solid var(--overground);
+  outline-offset: 3px;
+}
+
+.home-location {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.home-location-off {
+  appearance: none;
+  min-height: 2.75rem;
+  padding: 0 0.75rem;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  color: var(--dim);
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.home-location-off:hover { color: var(--ink); }
+.home-location-off:focus-visible {
+  outline: 2px solid var(--overground);
+  outline-offset: -2px;
+}
+
+.home-notice {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--error);
+}
+
+/* Push the site links to the foot of a short list. */
+#app:has(> .home-header) > .doc-links { margin-top: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  .home-row-link,
+  .home-star,
+  .home-locate {
+    transition: none;
+  }
+  .home-star:active { transform: none; }
+}
