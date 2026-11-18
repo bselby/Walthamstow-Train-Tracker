@@ -164,8 +164,8 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
       celebrate: vm.celebrate.north,
       stops: vm.viewpoint.stops,
       anchorIndex: vm.viewpoint.anchorIndex,
-      bridgeStripPosition: vm.viewpoint.positionModel === 'east-ave-bridge' ? 5.5 : null,
-      bridgeLabel: vm.viewpoint.positionModel === 'east-ave-bridge' ? 'East Av' : null,
+      pinPosition: vm.viewpoint.pinPosition,
+      lineId: vm.viewpoint.lineId,
       lineNameForAria: `${vm.viewpoint.lineName} line`,
       isFreight: vm.north?.arrival.category === 'freight',
     });
@@ -187,8 +187,8 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
       celebrate: vm.celebrate.south,
       stops: vm.viewpoint.stops,
       anchorIndex: vm.viewpoint.anchorIndex,
-      bridgeStripPosition: vm.viewpoint.positionModel === 'east-ave-bridge' ? 5.5 : null,
-      bridgeLabel: vm.viewpoint.positionModel === 'east-ave-bridge' ? 'East Av' : null,
+      pinPosition: vm.viewpoint.pinPosition,
+      lineId: vm.viewpoint.lineId,
       lineNameForAria: `${vm.viewpoint.lineName} line`,
       isFreight: vm.south?.arrival.category === 'freight',
     });

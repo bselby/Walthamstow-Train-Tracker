@@ -63,6 +63,9 @@ export interface Viewpoint {
   segments: readonly Segment[];
   /** Which stop in `stops` IS (or is closest to) the viewpoint — used by trainPosition. */
   anchorIndex: number;
+  /** Where the "You" pin sits on the line diagram, in stop indices. A whole
+   *  number is a station; a fraction is a spot between two stations. */
+  pinPosition: number;
   /** Position model tag — 'east-ave-bridge' or 'station'. Picked by trainPosition. */
   positionModel: PositionModel;
   /** Per-direction config. */
@@ -164,12 +167,14 @@ export interface ViewpointRecord {
   directions: { north: ViewpointDirection; south: ViewpointDirection };
   /** Defaults to 'station'. */
   positionModel?: PositionModel;
+  /** Line diagram pin, in stop indices. Defaults to the anchor stop. */
+  pinPosition?: number;
   timeFromExpectedArrival?: boolean;
   freightStationCode?: string;
 }
 
 export function defineViewpoint(record: ViewpointRecord): Viewpoint {
-  const { line: lineId, anchorStop, positionModel, ...rest } = record;
+  const { line: lineId, anchorStop, positionModel, pinPosition, ...rest } = record;
   const line = LINES[lineId];
   const anchorIndex = line.stops.findIndex((s) => s.fullName === anchorStop);
   if (anchorIndex === -1) {
@@ -183,6 +188,7 @@ export function defineViewpoint(record: ViewpointRecord): Viewpoint {
     stops: line.stops,
     segments: line.segments,
     anchorIndex,
+    pinPosition: pinPosition ?? anchorIndex,
     positionModel: positionModel ?? 'station',
   };
 }
@@ -198,6 +204,8 @@ export const VIEWPOINTS: readonly Viewpoint[] = [
     stopPointId: '910GWLTWCEN',
     coords: { lat: 51.583486, lng: -0.014564 },
     anchorStop: 'Walthamstow Central',
+    // The bridge is just north of Walthamstow Central, towards Wood Street.
+    pinPosition: 5.5,
     positionModel: 'east-ave-bridge',
     timeFromExpectedArrival: true,
     directions: {
@@ -272,6 +280,9 @@ export const VIEWPOINTS: readonly Viewpoint[] = [
     stopPointId: '910GWLTHQRD',
     coords: { lat: 51.5850951, lng: -0.0310174 },
     anchorStop: 'Walthamstow Queens Road',
+    // Between Blackhorse Road (5) and Queens Road (6), about 55% of the way
+    // from Blackhorse Road (see the offsets below).
+    pinPosition: 5.55,
     // Same physical track as Queens Road, ~634m down the line — every freight
     // movement past WMW also passes under this bridge ±87s later. The freight
     // DTO's timeToStation is "seconds until the train passes WMW", and

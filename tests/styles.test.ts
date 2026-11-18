@@ -35,4 +35,10 @@ describe('picture book tokens', () => {
   it('declares both colour schemes', () => {
     expect(css).toMatch(/color-scheme:\s*light dark/);
   });
+  it('has no dead freight or bridge marker rules', () => {
+    expect(css).not.toMatch(/\.strip-freight-svg|\.freight-(body|roof|window|bogie|container)|\.strip-bridge/);
+  });
+  it('outlines the freight drawing on the dark card', () => {
+    expect(css).toMatch(/@media \(prefers-color-scheme: dark\)[^}]*\{[^}]*\.train-freight[^{]*\{[^}]*(drop-shadow|stroke)/);
+  });
 });
