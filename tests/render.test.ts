@@ -112,6 +112,11 @@ describe('render — freight', () => {
     expect(text).toContain(', off to Willesden Euroterminal');
     expect(text.endsWith('.')).toBe(true);
     expect(text).not.toContain('→');
+    // Read aloud, each region is set apart from its place name.
+    expect(text).toBe('Coming from Tilbury Riverside Yard (Thames Estuary), off to Willesden Euroterminal (Home).');
+    for (const hidden of Array.from(journeys[0].querySelectorAll('.visually-hidden'))) {
+      expect(hidden.closest('.region-chip')).not.toBeNull();
+    }
     const card = journeys[0].closest('.direction-card')!;
     expect(Array.from(card.children).map((c) => c.className.split(' ')[0]))
       .toEqual(['card-top', 'value', 'freight-journey', 'strip']);
@@ -608,6 +613,8 @@ describe('render — the rest of the spot screen', () => {
     expect(root.textContent).not.toContain('HTTP');
     expect(root.textContent).not.toContain('503');
     expect(card.querySelector<HTMLAnchorElement>('a')!.getAttribute('href')).toBe(TFL_STATUS);
+    // Never a cause it can't know: a TfL outage is not a signal problem.
+    expect(card.textContent).not.toMatch(/signal/i);
   });
 
   it('live times lost: the paused notice and cards with a dash (board 12)', () => {
@@ -615,16 +622,47 @@ describe('render — the rest of the spot screen', () => {
     const notice = root.querySelector('.lost-notice')!;
     expect(notice.getAttribute('role')).toBe('status');
     expect(notice.textContent).toContain('Live times paused');
-    expect(notice.textContent).toContain("Lost the signal. We'll keep trying.");
+    expect(notice.textContent).toContain("Can't reach the live times right now. We'll keep trying.");
+    expect(notice.textContent).not.toMatch(/signal/i);
     expect(classes().slice(0, 4)).toEqual(['spot-header', 'lost-notice', 'direction-card', 'direction-card']);
     for (const card of Array.from(root.querySelectorAll('.direction-card'))) {
       expect(card.classList.contains('lost')).toBe(true);
       expect(card.querySelector('.card-dest')).not.toBeNull();
       expect(card.querySelector('.value')!.textContent).toBe('–');
-      expect(card.textContent).toContain('Back when the live times are');
-      expect(card.querySelector('.strip, .tap-slot, .card-then')).toBeNull();
+      expect(card.textContent).toContain('Back when the live times return');
+      expect(card.querySelector('.strip, .card-then')).toBeNull();
     }
     expect(root.querySelector('.footer')!.textContent).toBe('Last live times 3 minutes ago');
+  });
+
+  it('live times lost: the timing slot stays as it is, only the countdown becomes a dash', () => {
+    const pending: TapDirectionView = { ...NO_TAP, state: 'button', passKey: 'ea|north|1', destination: 'Chingford' };
+    const thanksOffline: TapDirectionView = {
+      ...NO_TAP, state: 'thanks', passKey: 'ea|south|1', destination: 'Walthamstow Central',
+      entry: { tapMs: 1_000, predictedMs: 3_000, tapsBefore: 1 }, offline: true,
+    };
+    const tap: TapView = { ...NEUTRAL_TAP, taps: 2, north: pending, south: { ...NO_TAP, state: 'reserved' } };
+    render(root, both({ viewpoint: EA, tap }), opts);
+    const northSlot = root.querySelector('.direction-card[data-direction="north"] .tap-slot')!;
+    const button = northSlot.querySelector('.tap-button')!;
+    render(root, both({ viewpoint: EA, tap, freshness: { state: 'stale', ageMs: 90_000 } }), opts);
+    const [north, south] = Array.from(root.querySelectorAll<HTMLElement>('.direction-card'));
+    expect(north.classList.contains('lost')).toBe(true);
+    // The same slot and button, mid-pass.
+    expect(north.querySelector('.tap-slot')).toBe(northSlot);
+    expect(northSlot.querySelector('.tap-button')).toBe(button);
+    expect(northSlot.className).toBe('tap-slot');
+    // The reserved slot keeps its height, empty.
+    const reserved = south.querySelector('.tap-slot')!;
+    expect(reserved.className).toBe('tap-slot');
+    expect(reserved.children).toHaveLength(0);
+    // A thank-you while lost, with the no-signal line.
+    render(root, both({ viewpoint: EA, tap: { ...tap, south: thanksOffline }, freshness: { state: 'stale', ageMs: 90_000 } }), opts);
+    const southSlot = root.querySelector('.direction-card[data-direction="south"] .tap-slot')!;
+    expect(southSlot.className).toBe('tap-slot');
+    expect(southSlot.textContent).toContain(NO_SIGNAL_LINE);
+    expect(Array.from(root.querySelectorAll('.direction-card[data-direction="south"] > *')).map((c) => c.className.split(' ')[0]))
+      .toEqual(['card-top', 'value', 'card-lost-note', 'tap-slot']);
   });
 
   it('back from lost: the same cards fill in again', () => {
