@@ -105,7 +105,7 @@ describe('applyStopArrivals + nextTrain', () => {
 
 describe('pollHome', () => {
   it('asks each stop once and feeds every spot', async () => {
-    const fetchStop = vi.fn(async () => [arr({ timeToStation: 60 }), arr({ id: 'w', lineId: 'weaver', timeToStation: 60 })]);
+    const fetchStop = vi.fn(async (_stopPointId: string) => [arr({ timeToStation: 60 }), arr({ id: 'w', lineId: 'weaver', timeToStation: 60 })]);
     const r = await pollHome(VIEWPOINTS, {}, fetchStop, () => NOW);
     expect(fetchStop.mock.calls.map((c) => c[0])).toEqual(['910GWLTWCEN', '910GWLTHQRD']);
     expect(r.failed).toBe(0);

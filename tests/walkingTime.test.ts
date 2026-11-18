@@ -4,7 +4,8 @@ import {
   walkingEstimate,
   formatWalkingLabel,
   WALKING_SPEED_MPS,
-} from '../src/walkingTime';
+  formatWalkShort,
+ } from '../src/walkingTime';
 
 describe('haversineMetres', () => {
   it('returns 0 for identical points', () => {
@@ -53,5 +54,15 @@ describe('formatWalkingLabel', () => {
   it('rounds walking minutes up (ceil) so we never overpromise arrival', () => {
     // 61 seconds → 2 minutes (ceil), not 1
     expect(formatWalkingLabel({ metres: 150, seconds: 61 })).toBe('2 min walk · 150 m');
+  });
+});
+
+describe('formatWalkShort', () => {
+  it("says you're here within 50 m", () => {
+    expect(formatWalkShort({ metres: 30, seconds: 21 })).toBe("You're here");
+  });
+  it('rounds minutes up', () => {
+    expect(formatWalkShort({ metres: 300, seconds: 300 / 1.4 })).toBe('4 min walk');
+    expect(formatWalkShort({ metres: 60, seconds: 43 })).toBe('1 min walk');
   });
 });
