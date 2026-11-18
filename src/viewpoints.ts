@@ -133,9 +133,9 @@ const SUFFRAGETTE_SEGMENTS: readonly Segment[] = [
 ];
 
 // Line colours sourced from TfL's November 2024 Overground rebrand palette.
-// OKLCH values tuned to look right on the app's cream background in daylight.
-const WEAVER_BURGUNDY = 'oklch(35% 0.12 10)';
-const SUFFRAGETTE_GREEN = 'oklch(55% 0.15 155)';
+// CSS variables so the dark-mode palette applies (see :root in styles.css).
+const WEAVER_BURGUNDY = 'var(--weaver-text)';
+const SUFFRAGETTE_GREEN = 'var(--suffragette-text)';
 
 /** Everything about a line that every viewpoint on it shares. */
 export const LINES: Record<LineId, {
