@@ -940,6 +940,9 @@ html, body {
   overflow: hidden;
 }
 
+/* A freight hero's "Coming from X, off to Y." in the slot it leaves empty. */
+.tap-slot > .freight-journey { margin: auto 0; }
+
 .tap-placeholder {
   flex: 1;
   display: flex;
@@ -1458,16 +1461,28 @@ html, body {
     padding: 10px 12px;
   }
   .direction-card > * { grid-column: 1 / -1; }
-  .direction-card > .card-top {
+  /* The head is the destination beside the number, both from the top of the
+     card; "then …" gets its own full-width line under them, so the head is
+     never more than the destination's two lines plus one. */
+  .direction-card > .card-top { display: contents; }
+  .direction-card > .card-top > .card-dest {
     grid-column: 1;
+    margin-top: 2px;
     grid-row: 1;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0;
+    align-self: start;
+    font-size: 1rem;
+    line-height: 1.25;
+  }
+  .direction-card > .card-top > .card-then {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    font-size: 0.8125rem;
+    line-height: 1.25;
   }
   .direction-card > .value {
     grid-column: 2;
     grid-row: 1;
+    align-self: start;
     justify-self: end;
   }
   .value-num { font-size: 3.5rem; }
