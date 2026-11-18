@@ -335,7 +335,7 @@ describe('render — direction cards and the timing slot', () => {
     const [north, south] = cards();
     expect(north.querySelector('.tap-slot')).toBeNull();
     expect(kids(south)).toEqual(['card-top', 'value', 'strip', 'tap-slot']);
-    expect(south.querySelector('.tap-placeholder')!.textContent).toBe('Yellow button pops up here in 5 min');
+    expect(south.querySelector('.tap-placeholder-title')!.textContent).toBe('Help make this time spot-on');
   });
 
   it('a pass due for someone who has not answered: the yellow button in the card', () => {

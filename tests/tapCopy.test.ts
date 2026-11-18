@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   NO_SIGNAL_LINE,
-  placeholderLine,
+  PLACEHOLDER,
   progressLine,
   rankUpLines,
   ticketBadgeLabel,
@@ -70,20 +70,12 @@ describe('rankUpLines', () => {
   });
 });
 
-describe('placeholderLine', () => {
-  it('rounds down to whole minutes, never above the countdown', () => {
-    expect(placeholderLine(120000)).toBe('Yellow button pops up here in 2 min');
-    expect(placeholderLine(539000)).toBe('Yellow button pops up here in 8 min');
-  });
-
-  it('says "1 min" from one minute to just under two', () => {
-    expect(placeholderLine(119999)).toBe('Yellow button pops up here in 1 min');
-    expect(placeholderLine(60000)).toBe('Yellow button pops up here in 1 min');
-  });
-
-  it('says "in a moment" under a minute', () => {
-    expect(placeholderLine(59999)).toBe('Yellow button pops up here in a moment');
-    expect(placeholderLine(4000)).toBe('Yellow button pops up here in a moment');
+describe('PLACEHOLDER', () => {
+  it('says what the button is for and where it appears, with no minute count', () => {
+    expect(PLACEHOLDER.title).toBe('Help make this time spot-on');
+    expect(PLACEHOLDER.body).toBe('Just before the train comes, a yellow button appears here. Tap it as the train passes you.');
+    expect(PLACEHOLDER.cue).toBe("What's this?");
+    expect(Object.values(PLACEHOLDER).join(' ')).not.toMatch(/!/);
   });
 });
 

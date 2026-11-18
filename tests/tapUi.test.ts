@@ -4,7 +4,7 @@ import {
   renderAskCard,
   type TapDirectionView,
 } from '../src/tapUi';
-import { NO_SIGNAL_LINE, progressLine } from '../src/tapCopy';
+import { NO_SIGNAL_LINE, PLACEHOLDER, progressLine } from '../src/tapCopy';
 
 const TAP_MS = 1_800_000_000_000;
 const PREDICTED_MS = TAP_MS + 12_000;
@@ -38,9 +38,10 @@ function thanksView(tapsBefore: number, offline = false, passKey = 'east-ave|nor
 }
 
 const noop = () => {};
-const handlers = (over: Partial<{ onTap: (ms: number) => void; onOpenTicket: () => void }> = {}) => ({
+const handlers = (over: Partial<{ onTap: (ms: number) => void; onOpenTicket: () => void; onOpenHow: () => void }> = {}) => ({
   onTap: noop,
   onOpenTicket: noop,
+  onOpenHow: noop,
   ...over,
 });
 
@@ -49,19 +50,32 @@ describe('renderTapSlot', () => {
     expect(renderTapSlot(null, BASE, handlers())).toBeNull();
   });
 
-  it('placeholder: a dashed box saying when the button comes', () => {
+  it('placeholder: explains what the button is and where it will appear', () => {
     const el = renderTapSlot(null, placeholderView(300_000), handlers())!;
     expect(el.classList.contains('tap-slot')).toBe(true);
     const box = el.querySelector('.tap-placeholder')!;
-    expect(box.textContent).toBe('Yellow button pops up here in 5 min');
+    expect(box.querySelector('.tap-placeholder-title')!.textContent).toBe(PLACEHOLDER.title);
+    expect(box.querySelector('.tap-placeholder-body')!.textContent).toBe(PLACEHOLDER.body);
+    expect(box.querySelector('.tap-placeholder-cue')!.textContent).toBe(PLACEHOLDER.cue);
+    expect(box.textContent).not.toMatch(/\d+ min/);
     expect(el.querySelector('.tap-button')).toBeNull();
   });
 
-  it('placeholder updates its minutes in place, keeping the element', () => {
+  it('placeholder is one big button that opens How it works', () => {
+    const onOpenHow = vi.fn();
+    const el = renderTapSlot(null, placeholderView(300_000), handlers({ onOpenHow }))!;
+    const box = el.querySelector<HTMLButtonElement>('button.tap-placeholder')!;
+    expect(box.type).toBe('button');
+    box.click();
+    expect(onOpenHow).toHaveBeenCalledTimes(1);
+  });
+
+  it('placeholder keeps its element across redraws', () => {
     const first = renderTapSlot(null, placeholderView(300_000), handlers())!;
+    const box = first.querySelector('.tap-placeholder');
     const next = renderTapSlot(first, placeholderView(170_000), handlers())!;
     expect(next).toBe(first);
-    expect(next.textContent).toBe('Yellow button pops up here in 2 min');
+    expect(next.querySelector('.tap-placeholder')).toBe(box);
   });
 
   it('button state is the big yellow button', () => {
