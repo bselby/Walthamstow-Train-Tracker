@@ -2,7 +2,7 @@ import type { Stop } from './stops';
 import type { Direction } from './direction';
 import { currentTheme, type Theme } from './season';
 import { toot } from './toot';
-import { FREIGHT_TRAIN_SVG } from './freightSvg';
+import { freightTrainSvg } from './trainArt';
 
 export interface StripModel {
   direction: Direction;
@@ -156,7 +156,7 @@ function createTrainElement(
 
   const inner = document.createElement('div');
   inner.className = 'strip-train-inner';
-  inner.innerHTML = isFreight ? FREIGHT_TRAIN_SVG : themedTrainSvg(theme);
+  inner.innerHTML = isFreight ? freightTrainSvg() : themedTrainSvg(theme);
   el.appendChild(inner);
 
   el.addEventListener('click', () => {
@@ -178,7 +178,7 @@ function refreshTrainCategory(strip: HTMLElement, isFreight: boolean, theme: The
   train.dataset.theme = theme ?? '';
   train.classList.toggle('freight', isFreight);
   const inner = train.querySelector<HTMLElement>('.strip-train-inner');
-  if (inner) inner.innerHTML = isFreight ? FREIGHT_TRAIN_SVG : themedTrainSvg(theme);
+  if (inner) inner.innerHTML = isFreight ? freightTrainSvg() : themedTrainSvg(theme);
 }
 
 const previousPos: Partial<Record<Direction, number>> = {};
