@@ -48,3 +48,10 @@ export function formatWalkingLabel(est: WalkingEstimate): string {
   const km = Math.round(est.metres / 100) / 10;
   return `${minutes} min walk · ${km.toFixed(1)} km`;
 }
+
+/** Short label for a row in a list: "You're here" within 50 m, else
+ *  "N min walk" with minutes rounded up. */
+export function formatWalkShort(est: WalkingEstimate): string {
+  if (est.metres < 50) return "You're here";
+  return `${Math.ceil(est.seconds / 60)} min walk`;
+}
