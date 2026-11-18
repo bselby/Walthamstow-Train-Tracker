@@ -1,6 +1,6 @@
 // Where the app opens. Pure.
 import type { Route } from './routes';
-import { DEFAULT_VIEWPOINT_ID, getViewpointById, type Viewpoint } from './viewpoints';
+import { getViewpointById, type Viewpoint } from './viewpoints';
 
 export type Landing = { screen: 'home' } | { screen: 'viewpoint'; viewpoint: Viewpoint };
 
@@ -17,15 +17,4 @@ export function landingFor(route: Route, favouriteIds: readonly string[]): Landi
     if (viewpoint) return { screen: 'viewpoint', viewpoint };
   }
   return { screen: 'home' };
-}
-
-/** Stand-in for home until the home screen exists: the most recently starred
- *  favourite, else East Avenue. Starring a viewpoint has always made it the
- *  one the app opens on, and still does. */
-export function fallbackViewpoint(favouriteIds: readonly string[]): Viewpoint {
-  for (let i = favouriteIds.length - 1; i >= 0; i--) {
-    const viewpoint = getViewpointById(favouriteIds[i]);
-    if (viewpoint) return viewpoint;
-  }
-  return getViewpointById(DEFAULT_VIEWPOINT_ID)!;
 }

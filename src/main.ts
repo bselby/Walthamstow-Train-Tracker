@@ -1,4 +1,4 @@
-import { fetchArrivals } from './tfl';
+import { fetchArrivals, fetchStopArrivals } from './tfl';
 import { pickNextNPerDirection } from './bridge';
 import type { BridgeEvent } from './bridge';
 import { classifyFreshness } from './freshness';
@@ -7,7 +7,7 @@ import { render, type ViewModel } from './render';
 import { formatCountdown } from './display';
 import { estimatePosition } from './trainPosition';
 import { POLL_INTERVAL_MS, FREIGHT_POLL_INTERVAL_MS } from './constants';
-import { getViewpointById } from './viewpoints';
+import { getViewpointById, DEFAULT_VIEWPOINT_ID, VIEWPOINTS } from './viewpoints';
 import type { Viewpoint } from './viewpoints';
 import type { Direction } from './direction';
 import { subscribe as subscribeLocation, start as startLocation, stop as stopLocation, getState as getLocationState } from './geolocation';
@@ -22,9 +22,12 @@ import { atViewpoint, canOfferTap, passKey, updatePass, type TapPass } from './t
 import { chooseHelp, loadTapState, recordTap, resetChoice, saveTapState } from './tapStore';
 import { buildTapPayload, sendTap } from './tapClient';
 import { newDeviceId, tapAsk, tapDirectionView, tflExpectedArrivalMs } from './tapView';
-import { parseRoute, viewpointPath } from './routes';
+import { parseRoute, viewpointPath, HOME_PATH } from './routes';
 import { loadFavourites, saveFavourites, toggleFavourite } from './favourites';
-import { fallbackViewpoint, landingFor } from './landing';
+import { landingFor } from './landing';
+import { renderHome } from './home';
+import { buildHomeModel, homeRowOrder } from './homeModel';
+import { pollHome, HOME_POLL_INTERVAL_MS, HOME_STALE_MS, type HomeSnapshots } from './homeArrivals';
 
 // A small hello for anyone peeking at devtools. One console log, no overhead.
 console.log(
@@ -75,7 +78,10 @@ let tickGeneration = 0;
 
 const previousKind: Partial<Record<Direction, string>> = {};
 
-const WALKING_STORAGE_KEY = 'wtt_walking_enabled';
+// One consent for every use of location: sorting home by distance and the
+// walking-time label. The key keeps its original name so anyone who already
+// turned walking time on stays opted in.
+const LOCATION_STORAGE_KEY = 'wtt_walking_enabled';
 
 // Safe wrappers around localStorage. In Safari private browsing `localStorage`
 // exists but `setItem` / `removeItem` throw; in other hardened browsers either
@@ -107,7 +113,7 @@ function safeLocalRemove(key: string): void {
 
 let tapState = loadTapState(safeLocalRead, () => newDeviceId());
 
-// QA / debugging: visiting `?reset=walking` clears the walkingEnabled flag so
+// QA / debugging: visiting `?reset=walking` clears the locationEnabled flag so
 // the opt-in row reappears on next load. `?help=1` (the About page's "Help
 // tune this spot" link) undoes a "Not now" so the ask card comes back. Both
 // params are stripped from the URL after reading so a refresh doesn't repeat them.
@@ -115,7 +121,7 @@ try {
   const url = new URL(window.location.href);
   let changed = false;
   if (url.searchParams.get('reset') === 'walking') {
-    safeLocalRemove(WALKING_STORAGE_KEY);
+    safeLocalRemove(LOCATION_STORAGE_KEY);
     url.searchParams.delete('reset');
     changed = true;
   }
@@ -130,7 +136,7 @@ try {
   /* no-op: URL / history API may be unavailable in exotic environments */
 }
 
-let walkingEnabled = safeLocalRead(WALKING_STORAGE_KEY) === '1';
+let locationEnabled = safeLocalRead(LOCATION_STORAGE_KEY) === '1';
 const celebrateSetAt: Partial<Record<Direction, number>> = {};
 
 // Starred viewpoints, oldest first. The first load after favourites became a
@@ -142,11 +148,9 @@ let favouriteIds: string[] = (() => {
   return loaded.ids;
 })();
 
-/** Point the address bar at a viewpoint without adding a history entry, so
- *  the back button still leaves the app as it always has. */
-function showViewpointInAddressBar(viewpoint: Viewpoint): void {
+/** Correct the address bar without adding a history entry. */
+function replaceAddress(path: string): void {
   try {
-    const path = viewpointPath(viewpoint);
     if (window.location.pathname !== path) {
       window.history.replaceState({}, '', path + window.location.search + window.location.hash);
     }
@@ -155,18 +159,30 @@ function showViewpointInAddressBar(viewpoint: Viewpoint): void {
   }
 }
 
-// Active viewpoint for this session: the one the URL names, else wherever the
-// landing rule sends the root URL. There is no home screen yet, so "home"
-// opens on the first favourite, or East Avenue.
-let activeViewpoint: Viewpoint = (() => {
-  const landing = landingFor(parseRoute(window.location.pathname), favouriteIds);
-  return landing.screen === 'viewpoint' ? landing.viewpoint : fallbackViewpoint(favouriteIds);
-})();
-showViewpointInAddressBar(activeViewpoint);
+// Where the app opens: the viewpoint the URL names; else, from the root URL,
+// straight to the favourite when there is exactly one, and otherwise home.
+// This rule is for opening the app only. Going to home from a countdown
+// shows home whatever the favourites are.
+const landing = landingFor(parseRoute(window.location.pathname), favouriteIds);
+let screen: 'home' | 'countdown' = landing.screen === 'viewpoint' ? 'countdown' : 'home';
+// The viewpoint the countdown screen shows. Kept while home is showing, so
+// the countdown code never has to handle there being none.
+let activeViewpoint: Viewpoint = landing.screen === 'viewpoint'
+  ? landing.viewpoint
+  : getViewpointById(DEFAULT_VIEWPOINT_ID)!;
+replaceAddress(screen === 'countdown' ? viewpointPath(activeViewpoint) : HOME_PATH);
+
+// Home's arrivals, per viewpoint, and whether the latest home poll reached TfL.
+let homeSnapshots: HomeSnapshots = {};
+let lastHomePollFailed = false;
+let homePollerStop: (() => void) | null = null;
+let countdownPollerStop: (() => void) | null = null;
 
 // Facts rotation — persist a monotonically-increasing index in localStorage so the
 // user doesn't always see the same fact first on each app open. Advance once per
 // successful TfL poll.
+const HOME_TITLE = 'E17 Trains — Live Walthamstow train tracker';
+
 const FACT_STORAGE_KEY = 'wtt_fact_index';
 let factIndex = (() => {
   const raw = safeLocalRead(FACT_STORAGE_KEY);
@@ -179,15 +195,17 @@ function advanceFact(): void {
   safeLocalWrite(FACT_STORAGE_KEY, String(factIndex));
 }
 
-export function enableWalkingTime(): void {
-  walkingEnabled = true;
-  safeLocalWrite(WALKING_STORAGE_KEY, '1');
+/** Turn location on. Only ever called from a tap: "Use my location" on home
+ *  or "Enable walking time" on a countdown. */
+export function enableLocation(): void {
+  locationEnabled = true;
+  safeLocalWrite(LOCATION_STORAGE_KEY, '1');
   startLocation();
 }
 
-export function disableWalkingTime(): void {
-  walkingEnabled = false;
-  safeLocalRemove(WALKING_STORAGE_KEY);
+export function disableLocation(): void {
+  locationEnabled = false;
+  safeLocalRemove(LOCATION_STORAGE_KEY);
   stopLocation();
 }
 
@@ -197,16 +215,13 @@ export function toggleFavouriteViewpoint(id: string): void {
   rerender();
 }
 
-export function switchToViewpoint(id: string): void {
-  const next = getViewpointById(id);
-  if (!next || next.id === activeViewpoint.id) return;
-  activeViewpoint = next;
-  showViewpointInAddressBar(next);
+/** Forget everything the countdown screen knew about the viewpoint it was
+ *  showing, and make any poll still in flight discard its answer. */
+function resetCountdownState(): void {
   // Clear snapshots AND lastFetchMs so the freshness state flips to 'no-data'
   // and the UI shows "Connecting to TfL…" — otherwise the previous viewpoint's
   // fresh poll satisfies classifyFreshness and we flash "No trains right now"
-  // for up to a few hundred ms until the new tick resolves. Also reset
-  // prediction samples since they're keyed on the old vehicleIds.
+  // for up to a few hundred ms until the new tick resolves.
   snapshots = {};
   freightSnapshots = {};
   lastFetchMs = null;
@@ -222,23 +237,75 @@ export function switchToViewpoint(id: string): void {
   }
   // Invalidate any in-flight tick so it discards its results when it resolves.
   tickGeneration++;
-  // Update the document title: viewpoint name first so browser tabs are readable.
-  document.title = `E17 Trains — ${activeViewpoint.lineName} · ${activeViewpoint.name}`;
-  // Update the --line-color CSS custom property so the header + train livery
-  // pick up the new colour immediately.
-  document.documentElement.style.setProperty('--line-color', activeViewpoint.lineColor);
-  rerender();
-  // Fire an immediate fetch against the new stoppoint — don't wait for the
-  // next scheduled poll (20 s away).
-  void tick();
-  // Restart the freight poller against the new viewpoint. start/stop are no-ops
-  // when the new viewpoint has no freightStationCode (e.g. East Ave).
-  stopFreightPoller();
-  startFreightPoller();
 }
 
+/** Show a viewpoint's countdown. Always starts clean, including when it is
+ *  the viewpoint that was showing before a visit to home. */
+function showCountdown(viewpoint: Viewpoint): void {
+  stopHomePoller();
+  stopCountdownPollers();
+  screen = 'countdown';
+  activeViewpoint = viewpoint;
+  resetCountdownState();
+  // Home has usually just fetched this viewpoint's arrivals: start from those
+  // so the numbers are there at once, and let the first poll refresh them.
+  const fromHome = homeSnapshots[viewpoint.id];
+  if (fromHome && Date.now() - fromHome.fetchedAtMs <= HOME_STALE_MS) {
+    snapshots = fromHome.snapshots;
+    lastFetchMs = fromHome.fetchedAtMs;
+  }
+  // Viewpoint name in the title so browser tabs are readable.
+  document.title = `E17 Trains — ${activeViewpoint.lineName} · ${activeViewpoint.name}`;
+  // The header + train livery take the line's colour.
+  document.documentElement.style.setProperty('--line-color', activeViewpoint.lineColor);
+  rerender();
+  // Each poller fetches at once, then on its interval. The freight one is a
+  // no-op where the viewpoint has no freightStationCode (e.g. East Ave).
+  startCountdownPollers();
+}
+
+function showHome(): void {
+  stopCountdownPollers();
+  screen = 'home';
+  resetCountdownState();
+  document.title = HOME_TITLE;
+  document.documentElement.style.removeProperty('--line-color');
+  rerender();
+  startHomePoller();
+}
+
+/** Open a viewpoint from home: a new history entry, so back returns to home. */
+function openViewpoint(id: string): void {
+  const viewpoint = getViewpointById(id);
+  if (!viewpoint) return;
+  try {
+    window.history.pushState({}, '', viewpointPath(viewpoint));
+  } catch {
+    /* no-op: the screen still changes */
+  }
+  showCountdown(viewpoint);
+  window.scrollTo(0, 0);
+}
+
+function goHome(): void {
+  try {
+    window.history.pushState({}, '', HOME_PATH);
+  } catch {
+    /* no-op: the screen still changes */
+  }
+  showHome();
+  window.scrollTo(0, 0);
+}
+
+// Back and forward: show whatever the address bar now names.
+window.addEventListener('popstate', () => {
+  const route = parseRoute(window.location.pathname);
+  if (route.kind === 'viewpoint') showCountdown(route.viewpoint);
+  else showHome();
+});
+
 function computeWalkingLabel(): string | null {
-  if (!walkingEnabled) return null;
+  if (!locationEnabled) return null;
   const { status, position } = getLocationState();
   if (status === 'unavailable') return null;                 // API missing — hide feature
   if (status === 'denied') return 'Location unavailable';    // user refused
@@ -420,7 +487,7 @@ function onTap(dir: Direction, pressedAtMs: number): void {
   thanksPassKey[dir] = key;
 
   const berthLive = liveBerthEta(berthEtas[dir], tapMs) !== undefined;
-  const position = walkingEnabled ? getLocationState().position : null;
+  const position = locationEnabled ? getLocationState().position : null;
   const payload = buildTapPayload(pass, {
     tapMs,
     nowMs: Date.now(),
@@ -442,9 +509,30 @@ function onHelpChoice(choice: 'helping' | 'declined'): void {
 }
 
 function rerender(): void {
+  if (screen === 'home') {
+    renderHome(
+      root,
+      buildHomeModel({
+        viewpoints: VIEWPOINTS,
+        favouriteIds,
+        locationEnabled,
+        geo: getLocationState(),
+        snapshots: homeSnapshots,
+        lastPollFailed: lastHomePollFailed,
+        nowMs: Date.now(),
+      }),
+      {
+        onOpen: openViewpoint,
+        onToggleFavourite: toggleFavouriteViewpoint,
+        onUseLocation: enableLocation,
+        onLocationOff: disableLocation,
+      },
+    );
+    return;
+  }
   render(root, buildViewModel(), {
-    onEnableWalkingTime: enableWalkingTime,
-    onDisableWalkingTime: disableWalkingTime,
+    onEnableWalkingTime: enableLocation,
+    onDisableWalkingTime: disableLocation,
     onAdvanceFact: () => {
       // Tap on the fact line — advance + repaint immediately so the tap feels
       // instant (not "next time the 1 s loop fires"). Persisted index survives
@@ -452,7 +540,7 @@ function rerender(): void {
       advanceFact();
       rerender();
     },
-    onHome: () => {}, // wired to the home screen in the next commit
+    onHome: goHome,
     onToggleFavourite: toggleFavouriteViewpoint,
     onTap,
     onHelpChoice,
@@ -460,6 +548,7 @@ function rerender(): void {
 }
 
 async function freightTick(): Promise<void> {
+  if (screen !== 'countdown') return;
   const stationCode = activeViewpoint.freightStationCode;
   if (!stationCode) return; // viewpoint without freight (e.g. East Ave) — no-op
   const gen = tickGeneration;
@@ -486,6 +575,44 @@ function startFreightPoller(): void {
   freightPollerStop = startPoller(freightTick, FREIGHT_POLL_INTERVAL_MS);
 }
 
+function startCountdownPollers(): void {
+  if (countdownPollerStop === null) countdownPollerStop = startPoller(tick, POLL_INTERVAL_MS);
+  startFreightPoller();
+}
+
+function stopCountdownPollers(): void {
+  if (countdownPollerStop !== null) {
+    countdownPollerStop();
+    countdownPollerStop = null;
+  }
+  stopFreightPoller();
+}
+
+/** One home poll: each TfL stop behind the rows on screen, asked once. */
+async function homeTick(): Promise<void> {
+  const position = locationEnabled ? getLocationState().position : null;
+  const result = await pollHome(
+    homeRowOrder(VIEWPOINTS, favouriteIds, position),
+    homeSnapshots,
+    fetchStopArrivals,
+    Date.now,
+  );
+  homeSnapshots = result.snapshots;
+  lastHomePollFailed = result.polled > 0 && result.failed === result.polled;
+  rerender();
+}
+
+function startHomePoller(): void {
+  if (homePollerStop === null) homePollerStop = startPoller(homeTick, HOME_POLL_INTERVAL_MS);
+}
+
+function stopHomePoller(): void {
+  if (homePollerStop !== null) {
+    homePollerStop();
+    homePollerStop = null;
+  }
+}
+
 function stopFreightPoller(): void {
   if (freightPollerStop !== null) {
     freightPollerStop();
@@ -494,6 +621,8 @@ function stopFreightPoller(): void {
 }
 
 async function tick(): Promise<void> {
+  // A retry timer can fire after the user has gone to home.
+  if (screen !== 'countdown') return;
   const gen = tickGeneration;
   try {
     const fetched = await fetchArrivals(activeViewpoint.stopPointId, activeViewpoint.lineId);
@@ -517,7 +646,7 @@ async function tick(): Promise<void> {
   rerender();
 }
 
-if (walkingEnabled) startLocation();
+if (locationEnabled) startLocation();
 
 // Re-render whenever the geolocation state changes so the walking label
 // reflects locating → granted → position transitions.
@@ -542,17 +671,19 @@ function stopRenderLoop(): void {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
     startRenderLoop();
-    if (walkingEnabled) startLocation();
+    if (locationEnabled) startLocation();
   } else {
     stopRenderLoop();
-    if (walkingEnabled) stopLocation();
+    if (locationEnabled) stopLocation();
   }
 });
 
 // Sync CSS + title to the booted viewpoint. These normally update on switch,
 // but first-paint needs them too.
-document.documentElement.style.setProperty('--line-color', activeViewpoint.lineColor);
-document.title = `E17 Trains — ${activeViewpoint.lineName} · ${activeViewpoint.name}`;
+if (screen === 'countdown') {
+  document.documentElement.style.setProperty('--line-color', activeViewpoint.lineColor);
+  document.title = `E17 Trains — ${activeViewpoint.lineName} · ${activeViewpoint.name}`;
+}
 
 // ── TD berth integration ──────────────────────────────────────────────────────
 // When a live berth event arrives from the proxy, check if it matches the
@@ -561,6 +692,8 @@ document.title = `E17 Trains — ${activeViewpoint.lineName} · ${activeViewpoin
 // The 1s render loop picks this up via liveEvent() and uses it instead of
 // the TfL-prediction-based countdown.
 function onBerthEvent(event: BerthEvent): void {
+  // Home shows TfL times only; a countdown starts clean when it is opened.
+  if (screen !== 'countdown') return;
   for (const dir of DIRECTIONS) {
     const eta = berthEtaFromStep(event, activeViewpoint.directions[dir].berthSteps);
     if (eta === null) continue;
@@ -577,5 +710,5 @@ function onBerthEvent(event: BerthEvent): void {
 subscribeBerthEvents(onBerthEvent);
 
 startRenderLoop();
-startPoller(tick, POLL_INTERVAL_MS);
-startFreightPoller();
+if (screen === 'countdown') startCountdownPollers();
+else startHomePoller();
