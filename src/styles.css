@@ -1087,6 +1087,9 @@ html, body {
   outline: 2px solid var(--overground);
   outline-offset: 3px;
 }
+.ask-invite + .ask-body {
+  margin: 0.25rem 0 0;
+}
 .ask-card-invite {
   display: flex;
   flex-wrap: wrap;

@@ -197,6 +197,20 @@ export function renderAskCard(
     return card;
   }
 
+  if (ask === 'ready') {
+    card.setAttribute('aria-label', 'Help tune this spot');
+    card.setAttribute('role', 'status');
+    card.appendChild(el('p', 'ask-invite', "Thanks, you're on the staff."));
+    card.appendChild(
+      el(
+        'p',
+        'ask-body',
+        'When a train is 30 seconds away, a button appears under its countdown. Tap it as the front of the train reaches you.',
+      ),
+    );
+    return card;
+  }
+
   card.setAttribute('aria-labelledby', 'ask-card-heading');
   const heading = el('h2', 'ask-heading', 'Help make this spot-on');
   heading.id = 'ask-card-heading';

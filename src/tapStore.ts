@@ -18,7 +18,7 @@ export interface TapState {
   lastTap: { passKey: string; tapMs: number; predictedMs: number; tapsBefore: number } | null;
 }
 
-export type AskKind = 'first' | 'again' | 'invite' | null;
+export type AskKind = 'first' | 'again' | 'ready' | 'invite' | null;
 
 function freshState(newId: () => string): TapState {
   return {
@@ -89,7 +89,8 @@ export function askKind(state: TapState, nowMs: number): AskKind {
     return null;
   }
   if (state.taps > 0) return 'invite';
-  return state.choice === 'unset' ? 'first' : null;
+  // Said yes, nothing booked yet: say what happens next, so the yes is not met with silence.
+  return state.choice === 'unset' ? 'first' : 'ready';
 }
 
 export function buttonsEnabled(state: TapState): boolean {

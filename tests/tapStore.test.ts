@@ -82,8 +82,8 @@ describe('askKind', () => {
     expect(askKind(s, 0)).toBe('invite');
   });
 
-  it('is null for helping with zero taps', () => {
-    expect(askKind(chooseHelp(fresh(), 'helping', 0), 0)).toBeNull();
+  it('confirms the choice for a helper who has not booked a train yet', () => {
+    expect(askKind(chooseHelp(fresh(), 'helping', 0), 0)).toBe('ready');
   });
 });
 

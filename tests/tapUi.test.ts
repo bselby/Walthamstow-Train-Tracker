@@ -267,3 +267,12 @@ describe('renderTicket', () => {
     expect(t.querySelector('.just-clipped')).toBeNull();
   });
 });
+
+describe('renderAskCard after "I\'ll help"', () => {
+  it('says thanks and what happens next, with no buttons', () => {
+    const card = renderAskCard('ready', 0, () => {})!;
+    expect(card.textContent).toContain("Thanks, you're on the staff.");
+    expect(card.textContent).toContain('30 seconds away');
+    expect(card.querySelector('button')).toBeNull();
+  });
+});
