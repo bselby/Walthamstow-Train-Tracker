@@ -78,6 +78,36 @@ describe('renderHowItWorks', () => {
     expect(h2.onBack).toHaveBeenCalledTimes(1);
   });
 
+  it('for someone not yet helping, page 2 offers Count me in and Not now', () => {
+    renderHowItWorks(root, handlers(), { choice: 'unset' });
+    button('Next: your ticket').click();
+    expect(button('Count me in')).toBeDefined();
+    expect(root.querySelector('.how-secondary')!.textContent).toBe('Not now');
+  });
+
+  it('for someone already helping, page 2 shows Close only and never declines', () => {
+    const h = handlers();
+    renderHowItWorks(root, h, { choice: 'helping' });
+    button('Next: your ticket').click();
+    expect(button('Count me in')).toBeUndefined();
+    expect(button('Not now')).toBeUndefined();
+    const close = root.querySelector<HTMLButtonElement>('.how-secondary')!;
+    expect(close.textContent).toBe('Close');
+    close.click();
+    expect(h.onBack).toHaveBeenCalledTimes(1);
+    expect(h.onNotNow).not.toHaveBeenCalled();
+    expect(h.onCountMeIn).not.toHaveBeenCalled();
+  });
+
+  it('for someone already helping, page 1 shows Close in place of Not now', () => {
+    const h = handlers();
+    renderHowItWorks(root, h, { choice: 'helping' });
+    expect(button('Not now')).toBeUndefined();
+    root.querySelector<HTMLButtonElement>('.how-secondary')!.click();
+    expect(h.onBack).toHaveBeenCalledTimes(1);
+    expect(h.onNotNow).not.toHaveBeenCalled();
+  });
+
   it('labels the drawings or hides them from screen readers', () => {
     renderHowItWorks(root, handlers());
     root.querySelectorAll('svg').forEach((s) => {
