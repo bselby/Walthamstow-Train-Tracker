@@ -10,7 +10,7 @@
   --weaver:         #7A2E54;
   --weaver-text:    #7A2E54;
   --suffragette:    #1E7B4B;
-  --suffragette-text: #1E7B4B;
+  --suffragette-text: #1A6F43;
   --yellow:         #FFC93C;
   --ticket:         #FFF4CF;
   --pin:            #E4572E;
@@ -156,7 +156,7 @@ html, body {
 .value {
   font-family: var(--font-display);
   font-size: clamp(4rem, 16vw, 7rem);
-  font-weight: 900;
+  font-weight: 800;
   line-height: 0.92;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
@@ -1209,7 +1209,7 @@ html, body {
 .ticket-grade {
   font-family: var(--font-display);
   font-size: 1.6rem;
-  font-weight: 900;
+  font-weight: 800;
   line-height: 1;
   text-transform: uppercase;
   letter-spacing: 0.01em;
@@ -1268,7 +1268,7 @@ html, body {
   margin: 0;
   font-family: var(--font-display);
   font-size: clamp(2rem, 9vw, 2.75rem);
-  font-weight: 900;
+  font-weight: 800;
   line-height: 1;
   letter-spacing: 0.01em;
   text-transform: uppercase;
@@ -1366,7 +1366,7 @@ html, body {
   flex-shrink: 0;
   font-family: var(--font-display);
   font-size: 2rem;
-  font-weight: 900;
+  font-weight: 800;
   line-height: 1;
   font-variant-numeric: tabular-nums;
   color: var(--ink);

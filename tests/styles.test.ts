@@ -16,6 +16,12 @@ describe('picture book tokens', () => {
       expect(css).toMatch(new RegExp(`--${t}:`));
     }
   });
+  it('keeps Baloo 2 weights within the loaded 600-800', () => {
+    expect(css).not.toMatch(/font-weight:\s*900/);
+  });
+  it('uses a darker light-mode Suffragette text green', () => {
+    expect(css).toMatch(/--suffragette-text:\s*#(?!1E7B4B)[0-9a-f]{6}/i);
+  });
   it('has a dark palette', () => {
     expect(css).toMatch(/@media \(prefers-color-scheme: dark\)[\s\S]*--bg:\s*#121829/i);
     expect(css).toMatch(/@media \(prefers-color-scheme: dark\)[\s\S]*--card:\s*#1D2539/i);
