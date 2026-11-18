@@ -222,6 +222,7 @@ const STRIP_HOW =
  * The permanent strip below the panels once the ask has been answered: the
  * ticket, and inside it how the buttons work and the switch for them. It is a
  * <details>, so it opens without script and keeps its state across redraws.
+ * It starts closed; render.ts opens it when it has just replaced an answer.
  */
 function renderStrip(
   kind: 'ready' | 'invite' | 'off',
@@ -229,8 +230,6 @@ function renderStrip(
   onChoice: (choice: 'helping' | 'declined') => void,
 ): HTMLElement {
   const card = el('details', 'ask-card ask-strip');
-  // Straight after "I'll help" the how-it-works text is the answer to the tap.
-  card.open = kind === 'ready';
 
   const summary = el('summary', 'ask-strip-summary');
   summary.appendChild(el('span', 'ask-invite', STRIP_SUMMARY[kind]));

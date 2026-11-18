@@ -129,6 +129,7 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
     err.className = 'error';
     err.textContent = vm.error;
     out.push(err);
+    if (ask) out.push(ask);
     place(root, out);
     return;
   }
@@ -195,9 +196,11 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
     const tickerS = renderTicker(vm.southTicker);
     if (tickerS) out.push(tickerS);
 
-    // The ask sits in the page flow below both panels, never over a countdown.
-    if (ask) out.push(ask);
   }
+
+  // The ask or ticket strip sits in the page flow below the panels, never over
+  // a countdown, and stays through spells with no trains to show.
+  if (ask) out.push(ask);
 
   const footer = document.createElement('div');
   footer.className = `footer ${vm.freshness.state}`;
@@ -236,7 +239,15 @@ function place(root: HTMLElement, nodes: HTMLElement[]): void {
     const at = root.children[i] ?? null;
     if (at !== node) root.insertBefore(node, at);
   });
+  if (focusAfterPlace) {
+    focusAfterPlace.focus();
+    focusAfterPlace = null;
+  }
 }
+
+// A strip that replaced the card holding the keyboard focus: focused once it
+// is in the document.
+let focusAfterPlace: HTMLElement | null = null;
 
 /** The row to redraw in place: the one already holding a kept slot. */
 function keptRowFor(root: HTMLElement, slot: HTMLElement | null): HTMLElement | null {
@@ -259,6 +270,15 @@ function askCard(existing: HTMLElement | null, tap: TapView): HTMLElement | null
   if (card) {
     card.dataset.ask = tap.ask;
     card.dataset.taps = String(tap.taps);
+    if (existing && card instanceof HTMLDetailsElement) {
+      // An answer or a switch just changed the strip: show the result open, so
+      // the press is visibly acknowledged. A new clip alone keeps it as it was.
+      const answered = existing.dataset.ask !== tap.ask;
+      card.open = answered || (existing instanceof HTMLDetailsElement && existing.open);
+      // The pressed button is about to leave the page; hand its focus to the
+      // new strip, which also reads out its new line.
+      if (existing.contains(document.activeElement)) focusAfterPlace = card.querySelector('summary');
+    }
   }
   return card;
 }

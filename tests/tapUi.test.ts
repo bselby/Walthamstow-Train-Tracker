@@ -272,10 +272,10 @@ describe('the ticket strip', () => {
   const strip = (kind: 'ready' | 'invite' | 'off', taps: number, onChoice = () => {}) =>
     renderAskCard(kind, taps, onChoice) as HTMLDetailsElement;
 
-  it('ready: thanks, an empty ticket, and the how-it-works text already open', () => {
+  it('ready: thanks, an empty ticket, and the how-it-works text inside', () => {
     const card = strip('ready', 0);
     expect(card.tagName).toBe('DETAILS');
-    expect(card.open).toBe(true);
+    expect(card.open).toBe(false);
     expect(card.querySelector('summary')!.textContent).toContain("Thanks, you're on the staff.");
     expect(card.querySelector('summary .ticket')).not.toBeNull();
     expect(card.textContent).toContain('30 seconds away');

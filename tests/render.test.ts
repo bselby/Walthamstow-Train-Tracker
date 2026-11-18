@@ -271,6 +271,61 @@ describe('render — train\'s here tap', () => {
     }
   });
 
+  it.each([
+    ['connecting', vm({ freshness: { state: 'no-data' }, tap: { ...NEUTRAL_TAP, ask: 'invite', taps: 3 } })],
+    ['no trains', vm({ tap: { ...NEUTRAL_TAP, ask: 'invite', taps: 3 } })],
+  ] as const)('the ticket strip is there while %s', (_name, model) => {
+    render(root, model, opts);
+    expect(root.querySelector('.empty')).not.toBeNull();
+    expect(root.querySelector('.ask-card .ticket')).not.toBeNull();
+  });
+
+  it('a strip that was opened survives a spell with no trains', () => {
+    const tap: TapView = { ...NEUTRAL_TAP, ask: 'invite', taps: 3 };
+    render(root, withRows(tap), opts);
+    const card = root.querySelector<HTMLDetailsElement>('.ask-card')!;
+    card.open = true;
+    render(root, vm({ tap }), opts);
+    render(root, withRows(tap), opts);
+    expect(root.querySelector('.ask-card')).toBe(card);
+    expect(card.open).toBe(true);
+  });
+
+  it('answering the ask opens the strip that replaces it and moves focus to it', () => {
+    render(root, withRows({ ...NEUTRAL_TAP, ask: 'first' }), opts);
+    root.querySelector<HTMLButtonElement>('.ask-card button')!.focus();
+    render(root, withRows({ ...NEUTRAL_TAP, ask: 'ready' }), opts);
+    const strip = root.querySelector<HTMLDetailsElement>('.ask-card')!;
+    expect(strip.open).toBe(true);
+    expect(document.activeElement).toBe(strip.querySelector('summary'));
+  });
+
+  it('switching the buttons off keeps the strip open and focused, so the change is seen and heard', () => {
+    render(root, withRows({ ...NEUTRAL_TAP, ask: 'invite', taps: 3 }), opts);
+    const before = root.querySelector<HTMLDetailsElement>('.ask-card')!;
+    before.open = true;
+    before.querySelector<HTMLButtonElement>('button')!.focus();
+    render(root, withRows({ ...NEUTRAL_TAP, ask: 'off', taps: 3 }), opts);
+    const strip = root.querySelector<HTMLDetailsElement>('.ask-card')!;
+    expect(strip.open).toBe(true);
+    expect(document.activeElement).toBe(strip.querySelector('summary'));
+  });
+
+  it('a strip drawn fresh, on page load, starts closed and takes no focus', () => {
+    render(root, withRows({ ...NEUTRAL_TAP, ask: 'ready' }), opts);
+    const strip = root.querySelector<HTMLDetailsElement>('.ask-card')!;
+    expect(strip.open).toBe(false);
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('a new clip on the ticket does not open the strip or take focus', () => {
+    render(root, withRows({ ...NEUTRAL_TAP, ask: 'invite', taps: 3 }), opts);
+    render(root, withRows({ ...NEUTRAL_TAP, ask: 'invite', taps: 4 }), opts);
+    const strip = root.querySelector<HTMLDetailsElement>('.ask-card')!;
+    expect(strip.open).toBe(false);
+    expect(document.activeElement).toBe(document.body);
+  });
+
   it('ask card choices reach onHelpChoice', () => {
     const onHelpChoice = vi.fn();
     render(root, withRows({ ...NEUTRAL_TAP, ask: 'first' }), { ...opts, onHelpChoice });
