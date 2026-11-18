@@ -12,8 +12,8 @@ import type { TapDirectionView } from './tapUi';
  * One direction's slot. `thanks` while the minute after the tap runs and the
  * latest tap is the one made here (the pass itself may already have expired);
  * otherwise, at a spot that can be tuned and unless the user said no, a
- * button for an untapped pass, for someone who said yes a placeholder until
- * the button is due, else an empty reserved slot. `none` (no slot) only
+ * button for an untapped pass, a placeholder until the button is due, else
+ * an empty reserved slot. `none` (no slot) only
  * where timing is off.
  */
 export function tapDirectionView(input: {
@@ -55,7 +55,9 @@ export function tapDirectionView(input: {
     }
     return reserved;
   }
-  if (tapState.choice === 'helping' && input.msUntilButton !== null && input.msUntilButton > 0) {
+  // Anyone who hasn't said no (helping, or not yet answered) sees when the
+  // button comes, so the reserved space is never blank while a train is due.
+  if (input.msUntilButton !== null && input.msUntilButton > 0) {
     return { ...none, state: 'placeholder', msUntilButton: input.msUntilButton };
   }
   return reserved;
