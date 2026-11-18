@@ -9,7 +9,6 @@ export const TAP_LEAD_SECONDS = 30;
 export const TAP_LINGER_SECONDS = 45;
 
 const AT_VIEWPOINT_METRES = 150;
-const RIGHT_TIME_SECONDS = 3;
 
 export const LEVELS: readonly { name: string; taps: number; kit: string }[] = [
   { name: 'Spotter', taps: 1, kit: 'Notebook at the ready.' },
@@ -124,13 +123,6 @@ export function levelFor(taps: number): {
     stepsDone: taps - floor,
     stepsTotal: nextLevel ? nextLevel.taps - floor : 0,
   };
-}
-
-/** The gap between the tap and the app's prediction, in plain words. */
-export function registerGapLine(tapMs: number, predictedMs: number): string {
-  const gap = Math.round((predictedMs - tapMs) / 1000);
-  if (Math.abs(gap) <= RIGHT_TIME_SECONDS) return 'Right time.';
-  return `We were ${Math.abs(gap)} seconds ${gap < 0 ? 'early' : 'late'}. Noted.`;
 }
 
 /** The grade reached by this tap, or null when the tap did not cross a threshold. */

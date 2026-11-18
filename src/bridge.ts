@@ -42,11 +42,3 @@ export function pickNextNPerDirection(
     south: events.filter((e) => e.direction === 'south').slice(0, n),
   };
 }
-
-export function pickNextPerDirection(
-  arrivals: Arrival[],
-  viewpoint: Viewpoint,
-): { north?: BridgeEvent; south?: BridgeEvent } {
-  const nexts = pickNextNPerDirection(arrivals, 1, viewpoint);
-  return { north: nexts.north[0], south: nexts.south[0] };
-}
