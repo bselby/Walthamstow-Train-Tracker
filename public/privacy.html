@@ -61,10 +61,12 @@
                 button: whether the buttons are on or off (with when you last
                 switched them off or said "Not now", and how many times you've
                 answered or changed it), how many trains
-                you've booked, a short key for each of the last 20 trains you booked
+                you've timed, a short key for each of the last 20 trains you timed
                 (spot, direction and predicted time, so the same train isn't
-                counted twice), the times of your latest tap so its register entry
-                can be shown, and a random id made on your device (see below).
+                counted twice), a list of the spots where you've timed a train
+                (kept even after those trains drop off the list of 20, so your
+                ticket can name them), the times of your latest tap so its
+                thank-you can be shown, and a random id made on your device (see below).
               </li>
               <li>
                 A <code>wtt_seen_freight_regions</code> list in
@@ -104,7 +106,8 @@
               No coordinates are sent, and there is no account. The server adds the
               time it received the tap and the tap time worked out from it. Taps are
               kept for 12 months and then deleted. If you choose "Not now" or "No thanks", or
-              switch the buttons off from the ticket under the train times, no
+              turn off <strong>Show the yellow button</strong> on your ticket page
+              (open it from the ticket button at the top of the screen), no
               buttons appear and nothing is sent.
             </p>
           </div>
@@ -126,8 +129,8 @@
             </p>
             <p>
               You can turn this off at any time using the small
-              <strong>off</strong> link next to "Using your location" on the home
-              screen or next to the walking label on a spot. That stops the
+              <strong>Turn off</strong> button next to "Nearest first" on the home
+              screen or next to the walking time on a spot. That stops the
               location watch and removes the localStorage flag. The app never asks
               for your location until you tap one of those two buttons.
             </p>
