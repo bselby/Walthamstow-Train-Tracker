@@ -1176,89 +1176,107 @@ html, body {
   border-radius: 26px;
 }
 
-/* ───── Home ─────
-   The list of spots at `/`. One column of rows divided by hairlines, no
-   cards: the countdown on the right of each row is the loudest thing in it,
-   set in the same display face as the countdown screen's hero number. */
+/* ───── Home (board 9) ─────
+   The list of spots at `/`: a header card with a train, then every spot as a
+   white card with its line's colour down the left edge, the name and line in
+   the middle, and the next countdown as the big number on the right. */
 
 /* Home reads top-down like a list; the countdown screen stays centred. */
 #app:has(> .home-header) {
   justify-content: flex-start;
-  gap: clamp(1rem, 4vw, 1.5rem);
+  gap: 14px;
+}
+
+.home-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  background: var(--card);
+  border-radius: var(--radius-card);
+}
+
+.home-train {
+  display: block;
+  width: 140px;
+  height: 58px;
+  color: var(--weaver);
 }
 
 .home-header h1 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(2rem, 9vw, 2.75rem);
+  font-size: 2.5rem;
   font-weight: 800;
   line-height: 1;
-  letter-spacing: 0.01em;
-  text-transform: uppercase;
   color: var(--ink);
 }
 
-.home-header h1::after {
-  content: '';
-  display: block;
-  width: 2.5rem;
-  height: 5px;
-  margin-top: 0.5rem;
-  background: var(--yellow);
-  border-radius: 3px;
+.home-tagline {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--dim);
+}
+
+.home-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .home-section h2 {
-  margin: 0 0 0.25rem;
-  font-family: var(--font-body);
-  font-size: 0.8125rem;
-  font-weight: 800;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--dim);
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--ink);
 }
 
 .home-list {
   list-style: none;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   padding: 0;
 }
 
 .home-row {
+  --row-line: var(--line-color);
   display: flex;
   align-items: stretch;
-  border-top: 1px solid var(--border);
+  background: var(--card);
+  border-radius: var(--radius-card);
 }
 
-.home-row:last-child { border-bottom: 1px solid var(--border); }
+.home-row.line-weaver { --row-line: var(--weaver); --row-text: var(--weaver-text); }
+.home-row.line-suffragette { --row-line: var(--suffragette); --row-text: var(--suffragette-text); }
 
 .home-row-link {
   flex: 1;
   min-width: 0;
-  min-height: 4.25rem;
+  min-height: 5rem;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.6rem 0.5rem 0.6rem 0.25rem;
+  gap: 12px;
+  padding: 14px 4px 14px 16px;
   color: inherit;
   text-decoration: none;
-  border-radius: 6px;
-  transition: background-color 120ms ease;
+  border-radius: var(--radius-card);
 }
 
-.home-row-link:hover { background-color: oklch(from var(--bg) calc(l - 0.03) c h); }
-.home-row-link:active { background-color: oklch(from var(--bg) calc(l - 0.06) c h); }
 .home-row-link:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: -2px;
+  outline: 3px solid var(--row-line);
+  outline-offset: 2px;
 }
 
-.home-row-dot {
+.home-row-bar {
   flex-shrink: 0;
-  width: 0.8rem;
-  height: 0.8rem;
-  border-radius: 50%;
-  /* background-color is the row's line colour, set inline by home.ts */
+  width: 6px;
+  align-self: stretch;
+  border-radius: 3px;
+  background: var(--row-line);
 }
 
 .home-row-text {
@@ -1266,49 +1284,64 @@ html, body {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: 2px;
 }
 
 .home-row-name {
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 1.125rem;
+  font-weight: 800;
   line-height: 1.15;
   color: var(--ink);
   overflow-wrap: anywhere;
 }
 
 .home-row-meta {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--dim);
 }
 
 .home-row-countdown {
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   font-family: var(--font-display);
-  font-size: 2rem;
-  font-weight: 800;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink);
+  color: var(--row-text, var(--weaver-text));
   text-align: right;
   white-space: nowrap;
 }
 
-.home-row-countdown.now { color: var(--now); }
+.home-count-num {
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+
+.home-count-unit {
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.home-count-unit:empty { display: none; }
+
+.home-row-countdown.now .home-count-num { color: var(--now); }
 
 /* Nothing to count down to: say so quietly, in the text face. */
 .home-row-countdown.loading,
 .home-row-countdown.stale,
 .home-row-countdown.none {
   font-family: var(--font-body);
+  color: var(--dim);
+}
+
+.home-row-countdown.loading .home-count-num,
+.home-row-countdown.stale .home-count-num,
+.home-row-countdown.none .home-count-num {
   font-size: 0.9375rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--dim);
+  line-height: 1.2;
 }
 
 .home-star {
@@ -1316,108 +1349,111 @@ html, body {
   flex-shrink: 0;
   width: 2.75rem;
   min-height: 2.75rem;
-  margin: 0;
+  margin: 0 4px 0 0;
   padding: 0;
+  align-self: center;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: 6px;
+  border-radius: 50%;
   background: transparent;
-  color: oklch(from var(--ink) l c h / 0.5);
+  color: var(--dim);
   cursor: pointer;
   transition: transform 120ms ease, color 120ms ease;
 }
 
 .home-star svg { width: 22px; height: 22px; display: block; }
-.home-star.filled { color: var(--ink); }
-.home-star:hover:not(.filled) { color: oklch(from var(--ink) l c h / 0.75); }
+.home-star.filled { color: var(--star); }
+.home-star:hover:not(.filled) { color: var(--ink); }
 .home-star:active { transform: scale(0.88); transition-duration: 60ms; }
 .home-star:focus-visible {
-  outline: 2px solid var(--ink);
+  outline: 3px solid var(--row-line);
   outline-offset: -2px;
+}
+
+.home-locate,
+.home-location {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  background: var(--card);
+  border-radius: var(--radius-card);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--ink);
 }
 
 .home-locate {
   appearance: none;
   width: 100%;
-  min-height: 3rem;
   margin: 0;
-  padding: 0.6rem 1rem;
-  border: 2px solid var(--ink);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--ink);
-  font: inherit;
-  font-size: 1rem;
+  border: 0;
+  font-family: var(--font-body);
   font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  text-align: left;
   cursor: pointer;
-  transition: background-color 120ms ease, color 120ms ease;
 }
 
-.home-locate:hover,
-.home-locate:active {
-  background: var(--ink);
-  color: var(--bg);
+.home-locate::before {
+  content: '';
+  flex-shrink: 0;
+  width: 16px;
+  height: 20px;
+  background: var(--pin);
+  clip-path: path('M8 19 C5.5 14.5 0.7 11 0.7 7.3 A7.3 7.3 0 0 1 15.3 7.3 C15.3 11 10.5 14.5 8 19 Z');
 }
 
-.home-locate:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 3px;
-}
+.home-pin { flex-shrink: 0; width: 16px; height: 20px; }
+.home-location-text { flex-grow: 1; }
 
-.home-location {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--dim);
+.home-locate:focus-visible,
+.home-location-off:focus-visible {
+  outline: 3px solid var(--line-color);
+  outline-offset: 2px;
 }
 
 .home-location-off {
   appearance: none;
-  min-height: 2.75rem;
-  padding: 0 0.75rem;
-  border: none;
+  min-height: 44px;
+  min-width: 44px;
+  margin: 0 -8px 0 0;
+  padding: 0 8px;
+  border: 0;
   background: transparent;
-  font: inherit;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: lowercase;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 800;
   text-decoration: underline;
-  text-underline-offset: 3px;
-  color: var(--dim);
   cursor: pointer;
-  border-radius: 3px;
-}
-
-.home-location-off:hover { color: var(--ink); }
-.home-location-off:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: -2px;
+  border-radius: 8px;
 }
 
 .home-notice {
   margin: 0;
+  padding: 12px 16px;
+  background: var(--card);
+  border-radius: var(--radius-card);
   font-size: 0.9375rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--error);
+}
+
+/* The header train needs a light edge on the dark card, like the freight one. */
+@media (prefers-color-scheme: dark) {
+  .home-train svg {
+    filter: drop-shadow(0 0 0.6px var(--dim)) drop-shadow(0 0 0.6px var(--dim));
+  }
 }
 
 /* Push the site links to the foot of a short list. */
 #app:has(> .home-header) > .doc-links { margin-top: auto; }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-row-link,
-  .home-star,
-  .home-locate {
-    transition: none;
-  }
+  .home-star { transition: none; }
   .home-star:active { transform: none; }
 }
 
