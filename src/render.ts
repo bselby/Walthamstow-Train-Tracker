@@ -600,6 +600,7 @@ function renderCard(existing: HTMLElement | null, vm: ViewModel, dir: Direction)
     {
       onTap: (pressedAtMs) => currentOptions?.onTap(dir, pressedAtMs),
       onOpenTicket: () => currentOptions?.onOpenTicket(),
+      onOpenHow: () => currentOptions?.onOpenHow(),
     },
   );
   if (slot) {

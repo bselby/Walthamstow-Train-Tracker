@@ -5,7 +5,7 @@
 import type { AskKind } from './tapStore';
 import { promotionFor } from './tap';
 import { HOW_PATH, TICKET_PATH } from './routes';
-import { NO_SIGNAL_LINE, placeholderLine, progressLine, rankUpLines } from './tapCopy';
+import { NO_SIGNAL_LINE, PLACEHOLDER, progressLine, rankUpLines } from './tapCopy';
 
 export interface TapDirectionView {
   /** `reserved`: timing is on at this spot but nothing is due, so the slot
@@ -15,7 +15,8 @@ export interface TapDirectionView {
   destination: string | null;
   /** Set in the 'thanks' state. */
   entry: { tapMs: number; predictedMs: number; tapsBefore: number } | null;
-  /** Set in the 'placeholder' state: how long until the button opens. */
+  /** Set in the 'placeholder' state: how long until the button opens
+   *  (not shown; the box explains the button instead). */
   msUntilButton: number | null;
   /** In the 'thanks' state: the tap could not be sent. */
   offline: boolean;
@@ -32,6 +33,7 @@ export interface TapSlotHandlers {
   /** `pressedAtMs` is when the finger landed, not when it lifted. */
   onTap: (pressedAtMs: number) => void;
   onOpenTicket: () => void;
+  onOpenHow: () => void;
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(
@@ -73,13 +75,7 @@ export function renderTapSlot(
   if (view.state === 'reserved') {
     if (!same) slot.replaceChildren();
   } else if (view.state === 'placeholder') {
-    const line = placeholderLine(view.msUntilButton ?? 0);
-    const box = same ? slot.querySelector<HTMLElement>('.tap-placeholder') : null;
-    if (box) {
-      if (box.textContent !== line) box.textContent = line;
-    } else {
-      slot.replaceChildren(el('div', 'tap-placeholder', line));
-    }
+    if (!same) slot.replaceChildren(renderPlaceholder(handlers));
   } else if (view.state === 'button') {
     if (!same) slot.replaceChildren(renderTapButton(handlers));
   } else if (same) {
@@ -96,6 +92,16 @@ export function renderTapSlot(
   slot.dataset.passKey = key;
   slot.dataset.entry = entryKey;
   return slot;
+}
+
+function renderPlaceholder(handlers: TapSlotHandlers): HTMLElement {
+  const box = el('button', 'tap-placeholder');
+  box.type = 'button';
+  box.appendChild(el('span', 'tap-placeholder-title', PLACEHOLDER.title));
+  box.appendChild(el('span', 'tap-placeholder-body', PLACEHOLDER.body));
+  box.appendChild(el('span', 'tap-placeholder-cue', PLACEHOLDER.cue));
+  box.addEventListener('click', () => handlers.onOpenHow());
+  return box;
 }
 
 function renderTapButton(handlers: TapSlotHandlers): HTMLElement {
