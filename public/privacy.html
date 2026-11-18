@@ -64,6 +64,12 @@
           can be shown, and a random id made on your device (see below).
         </li>
         <li>
+          A <code>wtt_seen_freight_regions</code> list in
+          <code>sessionStorage</code> (cleared when the tab closes), noting
+          which freight regions have already been shown so a new one can be
+          highlighted once.
+        </li>
+        <li>
           The PWA's service worker caches the app shell (HTML, CSS, JS, icons)
           so the app works offline. None of this is shared with me.
         </li>
@@ -137,6 +143,17 @@
           covers what they log. My proxy forwards your browser's freight
           request to their API and returns their response unchanged; no
           user-identifying data is added.
+        </li>
+        <li>
+          <strong>Live signalling feed</strong>
+          (<code>e17trains-td-proxy.fly.dev</code>, a small service I run on
+          <a href="https://fly.io/legal/privacy-policy/" target="_blank" rel="noopener">Fly.io</a>)
+          — only while a spot's countdown is open, never from the home
+          screen. Your browser holds a connection open to it and receives
+          train movements from Network Rail's signalling data, which sharpen
+          the countdown. Your browser sends it nothing beyond the connection
+          itself. The service records only that a connection opened or
+          closed; Fly.io, which hosts it, may log your IP address.
         </li>
         <li>
           <strong>Google Fonts</strong> (<code>fonts.googleapis.com</code> and
