@@ -60,8 +60,11 @@ describe('renderHowItWorks', () => {
     button('Next: your ticket').click();
     button('Count me in').click();
     expect(h.onCountMeIn).toHaveBeenCalledTimes(1);
+    const h2 = handlers();
+    renderHowItWorks(root, h2);
+    button('Next: your ticket').click();
     button('Not now').click();
-    expect(h.onNotNow).toHaveBeenCalledTimes(1);
+    expect(h2.onNotNow).toHaveBeenCalledTimes(1);
   });
 
   it('Not now on page 1 and Close both leave', () => {
@@ -69,8 +72,10 @@ describe('renderHowItWorks', () => {
     renderHowItWorks(root, h);
     button('Not now').click();
     expect(h.onNotNow).toHaveBeenCalledTimes(1);
+    const h2 = handlers();
+    renderHowItWorks(root, h2);
     root.querySelector<HTMLButtonElement>('button[aria-label="Close"]')!.click();
-    expect(h.onBack).toHaveBeenCalledTimes(1);
+    expect(h2.onBack).toHaveBeenCalledTimes(1);
   });
 
   it('labels the drawings or hides them from screen readers', () => {
@@ -78,5 +83,20 @@ describe('renderHowItWorks', () => {
     root.querySelectorAll('svg').forEach((s) => {
       expect(s.getAttribute('aria-hidden') === 'true' || s.hasAttribute('aria-label')).toBe(true);
     });
+  });
+
+  it('exits only once, whichever exit is tapped first', () => {
+    const h = handlers();
+    renderHowItWorks(root, h);
+    button('Next: your ticket').click();
+    const yes = button('Count me in');
+    const no = button('Not now');
+    yes.click();
+    yes.click();
+    no.click();
+    expect(h.onCountMeIn).toHaveBeenCalledTimes(1);
+    expect(h.onNotNow).not.toHaveBeenCalled();
+    root.querySelector<HTMLButtonElement>('button[aria-label="Close"]')!.click();
+    expect(h.onBack).not.toHaveBeenCalled();
   });
 });
