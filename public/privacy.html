@@ -30,7 +30,7 @@
         (details below). Apart from a tap on a "train is passing" button,
         and which viewpoint's page you open (part of the pageview count),
         nothing you do <em>inside</em> the app — tapping the fact line,
-        enabling walking time, starring a viewpoint, watching the countdown —
+        turning on location, starring a viewpoint, watching the countdown —
         is tracked or reported back to me.
       </p>
 
@@ -39,7 +39,8 @@
         <li>
           A single <code>localStorage</code> flag
           (<code>wtt_walking_enabled</code>) that remembers whether you've
-          turned the walking-time feature on.
+          turned location on (for sorting spots by distance and showing
+          walking times).
         </li>
         <li>
           A <code>wtt_favourites</code> list of your starred viewpoints, in
@@ -83,7 +84,7 @@
         <li><code>berthStepMs</code> — when the signalling step behind the prediction fired, if there was one.</li>
         <li><code>tflExpectedArrivalMs</code> — TfL's expected arrival time for that train, if known.</li>
         <li><code>vehicleId</code> and <code>berthTrainId</code> — TfL's and the signalling system's ids for the train, if known.</li>
-        <li><code>atViewpoint</code> — just <code>yes</code>, <code>no</code> or <code>unknown</code>: whether you were within about 150 metres of the viewpoint. It is <code>unknown</code> unless walking time is on and your phone has found its location.</li>
+        <li><code>atViewpoint</code> — just <code>yes</code>, <code>no</code> or <code>unknown</code>: whether you were within about 150 metres of the viewpoint. It is <code>unknown</code> unless location is on and your phone has found its location.</li>
         <li><code>deviceId</code> — a random id made on your device and kept in <code>wtt_tap_state</code>, so repeat taps from one phone can be told apart. It isn't linked to you.</li>
       </ul>
       <p>
@@ -95,19 +96,22 @@
 
       <h2>Geolocation</h2>
       <p>
-        If you opt into the walking-time feature, your browser hands your
-        latitude/longitude to this app's JavaScript code. Those coordinates
-        are used client-side only — to compute distance to whichever
-        viewpoint you've selected — and are <strong>never transmitted
-        anywhere</strong>. They
-        are not stored, logged, or sent. A tap sends only whether you were
-        near the viewpoint (<code>yes</code> or <code>no</code>), never the
-        coordinates.
+        If you tap <strong>Use my location</strong> on the home screen or
+        <strong>Enable walking time</strong> on a spot, your browser hands
+        your latitude/longitude to this app's JavaScript code. Those
+        coordinates are used on your device only — to work out how far you
+        are from each spot, so the list can be sorted nearest first and
+        walking times shown — and are <strong>never transmitted
+        anywhere</strong>. They are not stored, logged, or sent. A tap sends
+        only whether you were near the viewpoint (<code>yes</code> or
+        <code>no</code>), never the coordinates.
       </p>
       <p>
-        You can turn the feature off at any time using the small
-        <strong>off</strong> link next to the walking label, which stops the
-        location watch and removes the localStorage flag.
+        You can turn this off at any time using the small
+        <strong>off</strong> link next to "Using your location" on the home
+        screen or next to the walking label on a spot. That stops the
+        location watch and removes the localStorage flag. The app never asks
+        for your location until you tap one of those two buttons.
       </p>
 
       <h2>Third parties your browser talks to</h2>
@@ -121,12 +125,14 @@
           <strong>TfL Unified API</strong> (<code>api.tfl.gov.uk</code>) — for
           live train arrivals. TfL's own
           <a href="https://tfl.gov.uk/corporate/privacy-and-cookies" target="_blank" rel="noopener">privacy policy</a>
-          covers what they do with their logs.
+          covers what they do with their logs. The home screen asks TfL for
+          arrivals at the stations behind the spots listed, about every 30
+          seconds while it is open.
         </li>
         <li>
           <strong>Realtime Trains</strong> (via
-          <code>/.netlify/functions/freight</code>) — only when viewing the
-          Queens Road viewpoint. Their
+          <code>/.netlify/functions/freight</code>) — only while a Suffragette-line spot's countdown is open (Queens Road
+          Station or Northcote Road Bridge), never from the home screen. Their
           <a href="https://www.realtimetrains.co.uk/about/privacy/" target="_blank" rel="noopener">privacy policy</a>
           covers what they log. My proxy forwards your browser's freight
           request to their API and returns their response unchanged; no
@@ -160,7 +166,7 @@
         <li><strong>No fingerprinting.</strong> No device, canvas, or font fingerprinting.</li>
         <li><strong>No cross-site tracking.</strong> Cloudflare doesn't build a profile of you across the web.</li>
         <li><strong>What it does see:</strong> the page URL, referrer (if any), user agent, and a coarse country estimate from your IP. Each viewpoint has its own URL (for example <code>/walthamstow/east-avenue-bridge</code>), so the count shows which viewpoints are opened.</li>
-        <li><strong>What it doesn't see:</strong> anything else you do <em>inside</em> the app — the walking time, the facts you tap, the viewpoints you star, the buttons you press.</li>
+        <li><strong>What it doesn't see:</strong> anything else you do <em>inside</em> the app — whether location is on, the facts you tap, the viewpoints you star, the buttons you press.</li>
       </ul>
       <p>
         Cloudflare publish their own
