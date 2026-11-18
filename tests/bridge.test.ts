@@ -75,7 +75,7 @@ describe('pickNextNPerDirection with n = 1', () => {
     expect(result.south[0]?.bridgeTimeSeconds).toBe(-12);
   });
 
-  it('returns undefined for a direction with no valid arrivals', () => {
+  it('returns an empty list for a direction with no valid arrivals', () => {
     const arrivals = [arrival('Chingford', 120, 'n1')];
     const result = pickNextNPerDirection(arrivals, 1, EAST_AVE);
     expect(result.north[0]?.arrival.id).toBe('n1');

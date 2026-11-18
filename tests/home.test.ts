@@ -62,7 +62,7 @@ describe('renderHome', () => {
     renderHome(root, model({ others: [row('queens-road')] }), opts);
     const header = root.querySelector('.home-header')!;
     expect(header.querySelector('svg.train-passenger')).not.toBeNull();
-    expect(header.querySelector('svg')!.getAttribute('aria-hidden')).toBe('true');
+    expect(header.querySelector('svg.train-passenger')!.getAttribute('aria-hidden')).toBe('true');
     expect(header.querySelector('.home-tagline')!.textContent).toBe('When the next train passes, to the second.');
   });
 
