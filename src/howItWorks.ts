@@ -2,6 +2,12 @@
 // page 2 shows the ticket and the ranks. Rebuilt on every page change; the
 // caller paints it once per visit.
 import { LEVELS } from './tap';
+import type { TapState } from './tapStore';
+
+export interface HowOptions {
+  /** Someone already helping is here to read: no yes/no, just Close. */
+  choice: TapState['choice'];
+}
 
 export interface HowHandlers {
   onCountMeIn(): void;
@@ -59,7 +65,16 @@ function step(n: number, title: string, ...rest: HTMLElement[]): HTMLElement {
   return wrap;
 }
 
-function pageOne(go: (p: 1 | 2) => void, handlers: HowHandlers): HTMLElement[] {
+/** "Not now" (declines) for someone not yet helping; "Close" (just leaves)
+ *  for someone already helping. */
+function secondary(handlers: HowHandlers, helping: boolean): HTMLButtonElement {
+  const b = el('button', 'how-secondary', helping ? 'Close' : 'Not now');
+  b.type = 'button';
+  b.addEventListener('click', () => (helping ? handlers.onBack() : handlers.onNotNow()));
+  return b;
+}
+
+function pageOne(go: (p: 1 | 2) => void, handlers: HowHandlers, helping: boolean): HTMLElement[] {
   const head = el('div', 'how-head');
   head.append(
     el('span', 'how-new', 'New'),
@@ -92,13 +107,10 @@ function pageOne(go: (p: 1 | 2) => void, handlers: HowHandlers): HTMLElement[] {
   next.type = 'button';
   next.insertAdjacentHTML('beforeend', NEXT_ICON);
   next.addEventListener('click', () => go(2));
-  const notNow = el('button', 'how-secondary', 'Not now');
-  notNow.type = 'button';
-  notNow.addEventListener('click', () => handlers.onNotNow());
-  return [head, steps, el('div', 'how-spacer'), next, notNow];
+  return [head, steps, el('div', 'how-spacer'), next, secondary(handlers, helping)];
 }
 
-function pageTwo(handlers: HowHandlers): HTMLElement[] {
+function pageTwo(handlers: HowHandlers, helping: boolean): HTMLElement[] {
   const head = el('div', 'how-head');
   head.append(
     el('h1', 'how-title', 'Every train you time clips your ticket'),
@@ -126,24 +138,29 @@ function pageTwo(handlers: HowHandlers): HTMLElement[] {
   const ranksWrap = el('div', 'how-ranks-wrap');
   ranksWrap.append(el('span', 'how-ranks-title', 'The ranks'), ranks);
 
-  const yes = el('button', 'how-primary', 'Count me in');
-  yes.type = 'button';
-  yes.addEventListener('click', () => handlers.onCountMeIn());
-  const notNow = el('button', 'how-secondary', 'Not now');
-  notNow.type = 'button';
-  notNow.addEventListener('click', () => handlers.onNotNow());
-  return [
+  const out: HTMLElement[] = [
     head,
     ticket,
     ranksWrap,
     el('p', 'how-foot', 'No account needed. Your ticket lives on this phone.'),
     el('div', 'how-spacer'),
-    yes,
-    notNow,
   ];
+  if (!helping) {
+    const yes = el('button', 'how-primary', 'Count me in');
+    yes.type = 'button';
+    yes.addEventListener('click', () => handlers.onCountMeIn());
+    out.push(yes);
+  }
+  out.push(secondary(handlers, helping));
+  return out;
 }
 
-export function renderHowItWorks(root: HTMLElement, raw: HowHandlers): void {
+export function renderHowItWorks(
+  root: HTMLElement,
+  raw: HowHandlers,
+  options: HowOptions = { choice: 'unset' },
+): void {
+  const helping = options.choice === 'helping';
   // Only one way out per visit: the buttons stay in the DOM until the browser
   // has gone back, so a quick second tap must not go back again.
   let left = false;
@@ -160,7 +177,7 @@ export function renderHowItWorks(root: HTMLElement, raw: HowHandlers): void {
   const paint = (page: 1 | 2, moveFocus: boolean): void => {
     const go = (p: 1 | 2): void => paint(p, true);
     const sheet = el('section', 'how-sheet');
-    sheet.append(topBar(page, go, handlers), ...(page === 1 ? pageOne(go, handlers) : pageTwo(handlers)));
+    sheet.append(topBar(page, go, handlers), ...(page === 1 ? pageOne(go, handlers, helping) : pageTwo(handlers, helping)));
     root.replaceChildren(sheet);
     if (moveFocus) {
       const h1 = sheet.querySelector('h1')!;

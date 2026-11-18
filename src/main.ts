@@ -601,7 +601,7 @@ function rerender(): void {
         onCountMeIn: () => { onHelpChoice('helping'); backFromInfo(); },
         onNotNow: () => { onHelpChoice('declined'); backFromInfo(); },
         onBack: backFromInfo,
-      });
+      }, { choice: tapState.choice });
     }
     return;
   }
