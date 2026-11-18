@@ -3,7 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#f6efdf" />
+    <meta name="theme-color" content="#DCEEF5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#121829" media="(prefers-color-scheme: dark)" />
     <title>Terms · E17 Trains</title>
     <link rel="canonical" href="https://e17trains.uk/terms.html" />
     <meta name="description" content="Terms of use for E17 Trains." />
@@ -11,59 +12,50 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@900&family=Big+Shoulders+Text:wght@500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/docs.css" />
   </head>
   <body>
     <main>
-      <a class="back" href="/">Back to trains</a>
+      <a class="back" href="/"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 3 L5 9 L11 15"/></svg>Back to trains</a>
       <h1>Terms</h1>
-      <p>
-        This is a <strong>hobby project</strong>. By using it you accept the
-        terms below. They're short.
-      </p>
+      <p class="intro">A hobby project, so these are short. By using it, you accept them.</p>
 
-      <h2>No warranty</h2>
-      <p>
-        The app is provided <em>as is</em>, with no warranties of any kind.
-        Train times come from TfL's public data feed and can be wrong,
-        missing, stale, or delayed. I do my best to display them correctly but
-        I can't guarantee accuracy.
-      </p>
-      <p>
-        <strong>Don't use this app for anything safety-critical</strong>.
-        Crossing a road, getting on the tracks, catching the last train home,
-        meeting a deadline — if a real train isn't where this app says it is,
-        you are still responsible for where <em>you</em> are.
-      </p>
+      <div class="card">
+        <h2>Times can be wrong</h2>
+        <p class="small">The app comes as it is, with no warranty. Times come from public data and can be late, missing or wrong.</p>
+      </div>
 
-      <h2>TfL data</h2>
-      <p>
-        Powered by
-        <a href="https://tfl.gov.uk/info-for/open-data-users/" target="_blank" rel="noopener">TfL Open Data</a>.
-        Contains OS data © Crown copyright and database rights 2016 and
-        Geomni UK Map data © and database rights 2019.
-      </p>
-      <p>
-        TfL is not affiliated with or endorsing this app. "London Overground",
-        "Weaver line", and the roundel are trademarks of Transport for London
-        used here purely to describe the service being tracked.
-      </p>
+      <div class="card ticket">
+        <h2>Stay safe near the railway</h2>
+        <p class="small">Don't rely on it for anything safety-critical, like crossing a road or catching a last train. Keep little ones away from the edge, whatever the countdown says.</p>
+      </div>
 
-      <h2>Personal use</h2>
-      <p>
-        You're welcome to use this for your own walks. You're welcome to
-        <a href="https://github.com/bselby/Walthamstow-Train-Tracker" target="_blank" rel="noopener">fork the source</a>
-        for non-commercial personal use. If you want to run this as a branded
-        product, build your own version rather than rehosting mine.
-      </p>
+      <div class="card">
+        <h2>Data and trademarks</h2>
+        <p class="small">
+          Powered by
+          <a href="https://tfl.gov.uk/info-for/open-data-users/" target="_blank" rel="noopener">TfL Open Data</a>.
+          Contains OS data © Crown copyright and database rights 2016 and
+          Geomni UK Map data © and database rights 2019.
+          Freight data contains information provided by Realtime Trains and is used here for non-commercial hobbyist purposes.
+          TfL is not affiliated with or endorsing this app. "London Overground",
+          "Weaver line", and the roundel are trademarks of Transport for London
+          used here purely to describe the service being tracked.
+        </p>
+      </div>
 
-      <h2>Changes</h2>
-      <p>
-        These terms may change without notice. The date at the bottom of this
-        page shows when they were last updated.
-      </p>
+      <div class="card">
+        <h2>Using the code</h2>
+        <p class="small">
+          You're welcome to use this for your own walks. You're welcome to
+          <a href="https://github.com/bselby/Walthamstow-Train-Tracker" target="_blank" rel="noopener">fork the source</a>
+          for non-commercial personal use. If you want to run this as a branded
+          product, build your own version rather than rehosting mine.
+        </p>
+      </div>
 
+      <p class="note small">These terms may change without notice. The date below shows when they were last updated.</p>
       <p class="meta">Last updated 26 April 2026</p>
     </main>
     <!-- Cloudflare Web Analytics — pageview count only, no cookies, no personal data. -->
