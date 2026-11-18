@@ -46,11 +46,11 @@ const handlers = (over: Partial<{ onTap: (ms: number) => void; onOpenTicket: () 
 
 describe('renderTapSlot', () => {
   it('returns null for none', () => {
-    expect(renderTapSlot(null, BASE, 0, handlers())).toBeNull();
+    expect(renderTapSlot(null, BASE, handlers())).toBeNull();
   });
 
   it('placeholder: a dashed box saying when the button comes', () => {
-    const el = renderTapSlot(null, placeholderView(300_000), 0, handlers())!;
+    const el = renderTapSlot(null, placeholderView(300_000), handlers())!;
     expect(el.classList.contains('tap-slot')).toBe(true);
     const box = el.querySelector('.tap-placeholder')!;
     expect(box.textContent).toBe('Yellow button pops up here in 5 min');
@@ -58,14 +58,14 @@ describe('renderTapSlot', () => {
   });
 
   it('placeholder updates its minutes in place, keeping the element', () => {
-    const first = renderTapSlot(null, placeholderView(300_000), 0, handlers())!;
-    const next = renderTapSlot(first, placeholderView(170_000), 0, handlers())!;
+    const first = renderTapSlot(null, placeholderView(300_000), handlers())!;
+    const next = renderTapSlot(first, placeholderView(170_000), handlers())!;
     expect(next).toBe(first);
     expect(next.textContent).toBe('Yellow button pops up here in 3 min');
   });
 
   it('button state is the big yellow button', () => {
-    const el = renderTapSlot(null, buttonView(), 0, handlers())!;
+    const el = renderTapSlot(null, buttonView(), handlers())!;
     const button = el.querySelector<HTMLButtonElement>('button.tap-button')!;
     expect(button).not.toBeNull();
     expect(button.textContent).toContain('Tap as the train passes');
@@ -73,16 +73,18 @@ describe('renderTapSlot', () => {
   });
 
   it('the button replaces the placeholder in the same slot element', () => {
-    const placeholder = renderTapSlot(null, placeholderView(60_000), 0, handlers())!;
-    const button = renderTapSlot(placeholder, buttonView(), 0, handlers())!;
+    const placeholder = renderTapSlot(null, placeholderView(60_000), handlers())!;
+    const button = renderTapSlot(placeholder, buttonView(), handlers())!;
     expect(button.querySelector('.tap-button')).not.toBeNull();
     expect(button.querySelector('.tap-placeholder')).toBeNull();
   });
 
   it('thanks: "Got it. Ticket clipped." and the progress line', () => {
-    const el = renderTapSlot(null, thanksView(2), 3, handlers())!;
+    const el = renderTapSlot(null, thanksView(2), handlers())!;
     const text = el.textContent ?? '';
     expect(el.querySelector('[role="status"]')).not.toBeNull();
+    expect(el.querySelector('.tap-tick svg')).not.toBeNull();
+    expect(el.querySelector('.tap-holes')).toBeNull();
     expect(text).toContain('Got it. Ticket clipped.');
     expect(text).toContain(progressLine(3));
     expect(text).not.toContain(NO_SIGNAL_LINE);
@@ -91,16 +93,16 @@ describe('renderTapSlot', () => {
   });
 
   it('thanks offline: adds the no-signal line', () => {
-    const el = renderTapSlot(null, thanksView(2, true), 3, handlers())!;
+    const el = renderTapSlot(null, thanksView(2, true), handlers())!;
     const text = el.textContent ?? '';
     expect(text).toContain('Ticket clipped');
     expect(text).toContain(NO_SIGNAL_LINE);
   });
 
   it('a send that fails after the thank-you shows adds the line in place', () => {
-    const sent = renderTapSlot(null, thanksView(2), 3, handlers())!;
+    const sent = renderTapSlot(null, thanksView(2), handlers())!;
     const status = sent.querySelector('[role="status"]');
-    const failed = renderTapSlot(sent, thanksView(2, true), 3, handlers())!;
+    const failed = renderTapSlot(sent, thanksView(2, true), handlers())!;
     expect(failed).toBe(sent);
     expect(failed.querySelector('[role="status"]')).toBe(status);
     expect(failed.textContent).toContain(NO_SIGNAL_LINE);
@@ -108,44 +110,58 @@ describe('renderTapSlot', () => {
 
   it('thanks crossing 5 taps: the rank-up words and a "See my ticket" control', () => {
     const onOpenTicket = vi.fn();
-    const el = renderTapSlot(null, thanksView(4), 5, handlers({ onOpenTicket }))!;
+    const el = renderTapSlot(null, thanksView(4), handlers({ onOpenTicket }))!;
     const text = el.textContent ?? '';
     expect(text).toContain('Promoted to Guard.');
-    expect(text).toContain('Five trains timed. Whistle and flag at the ready.');
     expect(text).toContain("Ten more and you're a Signaller.");
     expect(text).not.toContain('Got it. Ticket clipped.');
     expect(text).not.toContain('Undo');
-    const see = Array.from(el.querySelectorAll('button')).find((b) => b.textContent === 'See my ticket')!;
-    expect(see).toBeDefined();
-    see.click();
+    // A text link to the ticket's own address, opened in the app.
+    const see = el.querySelector<HTMLAnchorElement>('a.tap-see-ticket')!;
+    expect(see.textContent).toBe('See my ticket');
+    expect(see.getAttribute('href')).toBe('/ticket');
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
+    see.dispatchEvent(click);
+    expect(click.defaultPrevented).toBe(true);
     expect(onOpenTicket).toHaveBeenCalledTimes(1);
   });
 
-  it('rank-up at the top rank has no next line', () => {
-    const text = renderTapSlot(null, thanksView(59), 60, handlers())!.textContent ?? '';
+  it('rank-up at the top rank shows the kit in place of the next rank', () => {
+    const text = renderTapSlot(null, thanksView(59), handlers())!.textContent ?? '';
     expect(text).toContain('Promoted to Station Master.');
+    expect(text).toContain('Top hat optional.');
     expect(text).not.toContain('more and you');
   });
 
-  it('rank-up offline also carries the no-signal line', () => {
-    const text = renderTapSlot(null, thanksView(4, true), 5, handlers())!.textContent ?? '';
-    expect(text).toContain('Promoted to Guard.');
-    expect(text).toContain(NO_SIGNAL_LINE);
+  it('rank-up offline: the no-signal line stands in for the next rank', () => {
+    const el = renderTapSlot(null, thanksView(4, true), handlers())!;
+    expect(el.textContent).toContain('Promoted to Guard.');
+    expect(el.textContent).toContain(NO_SIGNAL_LINE);
+    expect(el.querySelector<HTMLElement>('.tap-next')!.hidden).toBe(true);
+    expect(el.querySelector('.tap-see-ticket')).not.toBeNull();
+  });
+
+  it('a thank-you is drawn from its own tap, not the global count', () => {
+    // This card's tap was the 4th; it reads 4 whatever happens elsewhere.
+    const el = renderTapSlot(null, thanksView(3), handlers())!;
+    expect(el.textContent).toContain(progressLine(4));
+    const status = el.querySelector('[role="status"]');
+    expect(renderTapSlot(el, thanksView(3), handlers())!.querySelector('[role="status"]')).toBe(status);
   });
 
   it('keeps the same element for the same passKey and state', () => {
-    const first = renderTapSlot(null, buttonView(), 0, handlers());
-    const again = renderTapSlot(first, buttonView(), 0, handlers());
+    const first = renderTapSlot(null, buttonView(), handlers());
+    const again = renderTapSlot(first, buttonView(), handlers());
     expect(again).toBe(first);
 
-    const thanks = renderTapSlot(null, thanksView(2), 3, handlers());
-    expect(renderTapSlot(thanks, thanksView(2), 3, handlers())).toBe(thanks);
+    const thanks = renderTapSlot(null, thanksView(2), handlers());
+    expect(renderTapSlot(thanks, thanksView(2), handlers())).toBe(thanks);
   });
 
   it('a new passKey gives a new button', () => {
-    const first = renderTapSlot(null, buttonView('a'), 0, handlers())!;
+    const first = renderTapSlot(null, buttonView('a'), handlers())!;
     const firstButton = first.querySelector('.tap-button');
-    const next = renderTapSlot(first, buttonView('b'), 0, handlers())!;
+    const next = renderTapSlot(first, buttonView('b'), handlers())!;
     expect(next.querySelector('.tap-button')).not.toBe(firstButton);
   });
 
@@ -156,7 +172,7 @@ describe('renderTapSlot', () => {
       return new PointerEvent(type, { bubbles: true, button: 0, isPrimary: true, ...init });
     }
     const button = (onTap: (ms: number) => void) =>
-      renderTapSlot(null, buttonView(), 0, handlers({ onTap }))!.querySelector<HTMLButtonElement>('.tap-button')!;
+      renderTapSlot(null, buttonView(), handlers({ onTap }))!.querySelector<HTMLButtonElement>('.tap-button')!;
 
     beforeEach(() => {
       vi.useFakeTimers();
@@ -241,59 +257,12 @@ describe('renderTapSlot', () => {
     });
   });
 
-  describe('the ticket holes in the thank-you', () => {
-    afterEach(() => vi.useRealTimers());
-
-    it('one hole per train to the next rank, the ones done clipped', () => {
-      // 4 taps: Spotter, 4 of the 5 trains to Guard.
-      const el = renderTapSlot(null, thanksView(3), 4, handlers())!;
-      expect(el.querySelectorAll('.tap-hole')).toHaveLength(5);
-      expect(el.querySelectorAll('.tap-hole.clipped')).toHaveLength(4);
-    });
-
-    it('counts from the current rank once past the first', () => {
-      // 7 taps: Guard, 2 of the 10 trains to Signaller.
-      const el = renderTapSlot(null, thanksView(6), 7, handlers())!;
-      expect(el.querySelectorAll('.tap-hole')).toHaveLength(10);
-      expect(el.querySelectorAll('.tap-hole.clipped')).toHaveLength(2);
-    });
-
-    it('clips the newest hole only when the thank-you replaces the button', () => {
-      const button = renderTapSlot(null, buttonView(), 1, handlers());
-      const thanks = renderTapSlot(button, thanksView(1), 2, handlers())!;
-      const marked = thanks.querySelectorAll('.tap-hole.just-clipped');
-      expect(marked).toHaveLength(1);
-      expect(marked[0]).toBe(thanks.querySelectorAll('.tap-hole.clipped')[1]);
-
-      // Same thank-you on a later redraw: same element, so no replay.
-      expect(renderTapSlot(thanks, thanksView(1), 2, handlers())).toBe(thanks);
-
-      // Shown fresh (e.g. after a reload): no clip movement.
-      const fresh = renderTapSlot(null, thanksView(1), 2, handlers())!;
-      expect(fresh.querySelectorAll('.just-clipped')).toHaveLength(0);
-    });
-
-    it('drops the clip class once the animation window has passed, with no animationend', () => {
-      vi.useFakeTimers();
-      const button = renderTapSlot(null, buttonView(), 1, handlers());
-      const thanks = renderTapSlot(button, thanksView(1), 2, handlers())!;
-      expect(thanks.querySelector('.just-clipped')).not.toBeNull();
-      vi.advanceTimersByTime(400);
-      expect(thanks.querySelector('.just-clipped')).toBeNull();
-      expect(thanks.querySelectorAll('.tap-hole.clipped')).toHaveLength(2);
-    });
-
-    it('drops the clip class on animationend', () => {
-      const button = renderTapSlot(null, buttonView(), 1, handlers());
-      const thanks = renderTapSlot(button, thanksView(1), 2, handlers())!;
-      thanks.querySelector('.just-clipped')!.dispatchEvent(new Event('animationend'));
-      expect(thanks.querySelector('.just-clipped')).toBeNull();
-    });
-
-    it('the holes are hidden from screen readers; the progress line says it', () => {
-      const el = renderTapSlot(null, thanksView(2), 3, handlers())!;
-      expect(el.querySelector('.tap-holes')!.getAttribute('aria-hidden')).toBe('true');
-    });
+  // The holes row moved to the ticket page so the thank-you fits the slot.
+  it('the thank-you and rank-up carry no ticket holes', () => {
+    const button = renderTapSlot(null, buttonView(), handlers());
+    const thanks = renderTapSlot(button, thanksView(1), handlers())!;
+    expect(thanks.querySelector('.tap-holes, .tap-hole, .just-clipped')).toBeNull();
+    expect(renderTapSlot(null, thanksView(4), handlers())!.querySelector('.tap-hole')).toBeNull();
   });
 });
 

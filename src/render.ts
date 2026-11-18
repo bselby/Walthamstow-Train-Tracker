@@ -495,7 +495,6 @@ function renderCard(existing: HTMLElement | null, vm: ViewModel, dir: Direction)
   const slot = renderTapSlot(
     card.querySelector<HTMLElement>(':scope > .tap-slot'),
     vm.tap[dir],
-    vm.tap.taps,
     {
       onTap: (pressedAtMs) => currentOptions?.onTap(dir, pressedAtMs),
       onOpenTicket: () => currentOptions?.onOpenTicket(),

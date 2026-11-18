@@ -201,6 +201,17 @@ describe('render — direction cards and the timing slot', () => {
   const kids = (el: Element) => Array.from(el.children).map((c) => c.className.split(' ')[0]);
   const cards = () => Array.from(root.querySelectorAll<HTMLElement>('.direction-card'));
 
+  // Every node removed from the document during a call, including subtrees.
+  function removedDuring(fn: () => void): Node[] {
+    const observer = new MutationObserver(() => {});
+    observer.observe(root, { childList: true, subtree: true });
+    fn();
+    const removed = observer.takeRecords().flatMap((r) => Array.from(r.removedNodes));
+    observer.disconnect();
+    return removed;
+  }
+
+
   const button = (passKey = 'ea|north|1'): TapDirectionView =>
     ({ ...NO_TAP, state: 'button', passKey, destination: 'Chingford' });
   const thanks = (tapsBefore: number, offline = false): TapDirectionView => ({
@@ -288,6 +299,38 @@ describe('render — direction cards and the timing slot', () => {
     expect(b.textContent).toContain('Tap as the train passes');
   });
 
+  it('timing on and nothing due: an empty reserved slot holds the height', () => {
+    const tap: TapView = { ...NEUTRAL_TAP, north: { ...NO_TAP, state: 'reserved' } };
+    render(root, withRows(tap, EA), opts);
+    const slot = cards()[0].querySelector('.tap-slot')!;
+    expect(slot.children).toHaveLength(0);
+    expect(slot.getAttribute('aria-hidden')).toBe('true');
+    // The reserved slot becomes the button without being replaced.
+    render(root, withRows({ ...tap, north: button() }, EA), opts);
+    expect(cards()[0].querySelector('.tap-slot')).toBe(slot);
+    expect(slot.querySelector('.tap-button')).not.toBeNull();
+  });
+
+  it('a second tap that crosses a rank: only its own card shows the rank-up', () => {
+    const southThanks = (tapsBefore: number): TapDirectionView => ({
+      ...NO_TAP, state: 'thanks', passKey: 'ea|south|1', destination: 'Walthamstow Central',
+      entry: { tapMs: 2_000, predictedMs: 4_000, tapsBefore },
+    });
+    // First tap (the 4th) in the north card.
+    render(root, withRows({ ...NEUTRAL_TAP, taps: 4, north: thanks(3) }, EA), opts);
+    const northStatus = cards()[0].querySelector('[role="status"]')!;
+    // Second tap (the 5th, reaching Guard) in the south card, while north still thanks.
+    const removed = removedDuring(() => {
+      render(root, withRows({ ...NEUTRAL_TAP, taps: 5, north: thanks(3), south: southThanks(4) }, EA), opts);
+    });
+    const [north, south] = cards();
+    expect(north.querySelector('[role="status"]')).toBe(northStatus);
+    expect(removed.includes(northStatus)).toBe(false);
+    expect(north.textContent).toContain('Got it. Ticket clipped.');
+    expect(north.textContent).not.toContain('Promoted');
+    expect(south.textContent).toContain('Promoted to Guard.');
+  });
+
   it('thanks offline: the no-signal line and the clip', () => {
     const tap: TapView = { ...NEUTRAL_TAP, taps: 3, north: thanks(2, true) };
     render(root, withRows(tap, EA), opts);
@@ -302,7 +345,8 @@ describe('render — direction cards and the timing slot', () => {
     render(root, withRows(tap, EA), { ...opts, onOpenTicket });
     const card = cards()[0];
     expect(card.textContent).toContain('Promoted to Guard.');
-    const see = Array.from(card.querySelectorAll('button')).find((b) => b.textContent === 'See my ticket')!;
+    const see = card.querySelector<HTMLAnchorElement>('a.tap-see-ticket')!;
+    expect(see.textContent).toBe('See my ticket');
     see.click();
     expect(onOpenTicket).toHaveBeenCalledTimes(1);
     expect(root.textContent).not.toContain('Undo');
@@ -397,16 +441,6 @@ describe('render — direction cards and the timing slot', () => {
       vi.useRealTimers();
     }
   });
-
-  // Every node removed from the document during a call, including subtrees.
-  function removedDuring(fn: () => void): Node[] {
-    const observer = new MutationObserver(() => {});
-    observer.observe(root, { childList: true, subtree: true });
-    fn();
-    const removed = observer.takeRecords().flatMap((r) => Array.from(r.removedNodes));
-    observer.disconnect();
-    return removed;
-  }
 
   it.each([
     ['placeholder', { ...NO_TAP, state: 'placeholder', msUntilButton: 300_000 }],

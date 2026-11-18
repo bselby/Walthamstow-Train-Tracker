@@ -57,8 +57,18 @@ function view(over: Partial<ViewInput> = {}) {
 const NONE = { state: 'none', passKey: null, destination: null, entry: null, msUntilButton: null, offline: false };
 
 describe('tapDirectionView', () => {
-  it('is none with no pass', () => {
-    expect(view()).toEqual(NONE);
+  it('is none where timing is off: a spot with nothing to tune, or someone who said no', () => {
+    expect(view({ canTune: false })).toEqual(NONE);
+    expect(view({ tapState: state({ choice: 'declined' }) })).toEqual(NONE);
+  });
+
+  it('reserves the slot, empty, whenever timing is on and nothing is due', () => {
+    // An undecided visitor before the button.
+    expect(view()).toEqual({ ...NONE, state: 'reserved' });
+    // Someone helping, with a freight hero (no button is coming).
+    expect(view({ tapState: state({ choice: 'helping' }), msUntilButton: null })).toEqual({ ...NONE, state: 'reserved' });
+    // After a tapped pass, once the minute's thank-you has ended.
+    expect(view({ pass, tapState: tapped, thanksUntilMs: NOW - 1, thanksPassKey: KEY })).toEqual({ ...NONE, state: 'reserved' });
   });
 
   it('is a button for an untapped pass', () => {
@@ -86,13 +96,13 @@ describe('tapDirectionView', () => {
   });
 
   it('no placeholder for someone who has not said yes, or said no', () => {
-    expect(view({ tapState: state({ choice: 'unset' }), msUntilButton: 300_000 }).state).toBe('none');
+    expect(view({ tapState: state({ choice: 'unset' }), msUntilButton: 300_000 }).state).toBe('reserved');
     expect(view({ tapState: state({ choice: 'declined' }), msUntilButton: 300_000 }).state).toBe('none');
   });
 
   it('no placeholder without a time to count down to', () => {
-    expect(view({ tapState: state({ choice: 'helping' }), msUntilButton: null }).state).toBe('none');
-    expect(view({ tapState: state({ choice: 'helping' }), msUntilButton: 0 }).state).toBe('none');
+    expect(view({ tapState: state({ choice: 'helping' }), msUntilButton: null }).state).toBe('reserved');
+    expect(view({ tapState: state({ choice: 'helping' }), msUntilButton: 0 }).state).toBe('reserved');
   });
 
   it('the button wins over the placeholder once a pass is open', () => {
@@ -121,13 +131,13 @@ describe('tapDirectionView', () => {
     expect(v.passKey).toBe(KEY);
   });
 
-  it('is none for a tapped pass once the minute is up', () => {
-    expect(view({ pass, tapState: tapped, thanksUntilMs: NOW, thanksPassKey: KEY }).state).toBe('none');
+  it('is reserved for a tapped pass once the minute is up', () => {
+    expect(view({ pass, tapState: tapped, thanksUntilMs: NOW, thanksPassKey: KEY }).state).toBe('reserved');
   });
 
   it('drops the thanks when the last tap was for another pass', () => {
     const other = { ...tapped, lastTap: { ...tapped.lastTap!, passKey: 'east-ave|south|1' } };
-    expect(view({ pass, tapState: other, thanksUntilMs: NOW + 30_000, thanksPassKey: KEY }).state).toBe('none');
+    expect(view({ pass, tapState: other, thanksUntilMs: NOW + 30_000, thanksPassKey: KEY }).state).toBe('reserved');
   });
 
   it('falls back to a button for a new pass once the minute is up', () => {
