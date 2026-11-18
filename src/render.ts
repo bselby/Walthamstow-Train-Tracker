@@ -4,7 +4,7 @@ import type { Fact } from './facts';
 import type { Viewpoint } from './viewpoints';
 import { formatCountdown, formatAge } from './display';
 import { renderDirectionStrip, clearPreviousPositions } from './strip';
-import { renderSwitcher } from './switcher';
+import { renderSpotHeader } from './spotHeader';
 import { escapeHtml } from './escapeHtml';
 import { regionFor, isNewRegionThisSession, type Region } from './freightRegions';
 import type { Direction } from './direction';
@@ -33,7 +33,8 @@ export interface RenderOptions {
   /** Called when the user taps / clicks the fact ticker. Advances to the next
    *  fact immediately (giving Ben agency + the toddler something to poke at). */
   onAdvanceFact: () => void;
-  onSwitchViewpoint: (id: string) => void;
+  /** Back to the list of all spots. */
+  onHome: () => void;
   onToggleFavourite: (id: string) => void;
   /** `pressedAtMs` is when the finger landed, not when it lifted. */
   onTap: (direction: Direction, pressedAtMs: number) => void;
@@ -48,7 +49,7 @@ let currentOptions: RenderOptions | null = null;
 
 // Track the viewpoint id from the last render so we can invalidate preserved
 // strips when the user switches viewpoint — otherwise stale strips (with the
-// wrong stops + bridge glyph) linger at the top of the DOM while the switcher
+// wrong stops + bridge glyph) linger at the top of the DOM while the header
 // gets re-appended below them. Also blanks previous-value memos keyed on the
 // old viewpoint's direction labels, which would otherwise suppress the
 // "ticking" animation on the first paint of the new viewpoint.
@@ -60,12 +61,12 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
   lastRenderedViewpointId = vm.viewpoint.id;
   currentOptions = options;
 
-  // Preserve the switcher and strips across renders so the switcher keeps its
-  // open/closed state + listeners, and the strips keep their CSS transitions
+  // Preserve the header and strips across renders so the header keeps its
+  // listeners (and a press on it in progress), and the strips keep their CSS transitions
   // alive between state updates. Everything else (rows, footer, error, empty)
   // is rebuilt each tick. Strips are NOT preserved across a viewpoint switch —
   // they need fresh stops + anchorIndex + bridge config.
-  const existingSwitcher = root.querySelector<HTMLElement>('.switcher');
+  const existingHeader = root.querySelector<HTMLElement>('.spot-header');
   const existingStripN = viewpointChanged ? null : root.querySelector<HTMLElement>('.strip-north');
   const existingStripS = viewpointChanged ? null : root.querySelector<HTMLElement>('.strip-south');
   // Tap slots and the ask card are kept too, and never taken out of the
@@ -79,7 +80,7 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
   const keptRowS = keptRowFor(root, slotS);
   const ask = askCard(root.querySelector<HTMLElement>('.ask-card'), vm.tap);
   const preserved = new Set<Element>();
-  if (existingSwitcher) preserved.add(existingSwitcher);
+  if (existingHeader) preserved.add(existingHeader);
   if (existingStripN) preserved.add(existingStripN);
   if (existingStripS) preserved.add(existingStripS);
   if (keptRowN) preserved.add(keptRowN);
@@ -104,14 +105,14 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
   // already in position, so kept nodes stay in the document.
   const out: HTMLElement[] = [];
 
-  // Always (re-)append the switcher first so it sits at the top of the flex column.
-  const switcher = renderSwitcher(existingSwitcher, {
-    activeViewpoint: vm.viewpoint,
-    favouriteIds: vm.favouriteIds,
-    onSwitch: options.onSwitchViewpoint,
-    onToggleFavourite: options.onToggleFavourite,
-  });
-  out.push(switcher);
+  // The header always comes first: the way back to all spots, the line and
+  // spot name, and the star.
+  out.push(renderSpotHeader(existingHeader, {
+    viewpoint: vm.viewpoint,
+    favourite: vm.favouriteIds.includes(vm.viewpoint.id),
+    onHome: () => currentOptions?.onHome(),
+    onToggleFavourite: (id) => currentOptions?.onToggleFavourite(id),
+  }));
 
   // Map-verify link: tap to open Google Maps with the viewpoint's exact coords —
   // disambiguates "which Northcote Road bridge?" without an in-app thumbnail.

@@ -69,7 +69,7 @@ const opts = {
   onEnableWalkingTime: noop,
   onDisableWalkingTime: noop,
   onAdvanceFact: noop,
-  onSwitchViewpoint: noop,
+  onHome: noop,
   onToggleFavourite: noop,
   onTap: noop,
   onHelpChoice: noop,
@@ -196,7 +196,7 @@ describe('render — train\'s here tap', () => {
   it('with no ask and no buttons the page is unchanged: no extra nodes', () => {
     render(root, withRows(), opts);
     expect(classes()).toEqual([
-      'switcher', 'map-link', 'walking-time',
+      'spot-header', 'map-link', 'walking-time',
       'row', 'strip', 'ticker',
       'row', 'strip', 'ticker',
       'footer', 'doc-links',
@@ -331,10 +331,52 @@ describe('render — train\'s here tap', () => {
     render(root, withRows(tap), opts);
     render(root, withRows(tap), opts);
     expect(classes()).toEqual([
-      'switcher', 'map-link', 'walking-time',
+      'spot-header', 'map-link', 'walking-time',
       'row', 'strip', 'ticker',
       'row', 'strip', 'ticker',
       'ask-card', 'footer', 'doc-links',
     ]);
+  });
+});
+
+describe('render — header', () => {
+  let root: HTMLElement;
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    root = document.createElement('main');
+    document.body.appendChild(root);
+  });
+
+  it('opens with the spot header, kept across redraws, and no dropdown', () => {
+    render(root, vm(), opts);
+    const header = root.firstElementChild!;
+    expect(header.classList.contains('spot-header')).toBe(true);
+    render(root, vm(), opts);
+    expect(root.firstElementChild).toBe(header);
+    expect(root.querySelector('.switcher')).toBeNull();
+  });
+
+  it('fills the header star only when this spot is a favourite', () => {
+    render(root, vm({ favouriteIds: [QR.id] }), opts);
+    expect(root.querySelector('.spot-header-star')!.getAttribute('aria-pressed')).toBe('true');
+    render(root, vm({ favouriteIds: ['east-ave'] }), opts);
+    expect(root.querySelector('.spot-header-star')!.getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('passes the header link and star through to the options', () => {
+    const onHome = vi.fn();
+    const onToggleFavourite = vi.fn();
+    render(root, vm(), { ...opts, onHome, onToggleFavourite });
+    root.querySelector<HTMLElement>('.spot-header-home')!.click();
+    root.querySelector<HTMLElement>('.spot-header-star')!.click();
+    expect(onHome).toHaveBeenCalledTimes(1);
+    expect(onToggleFavourite).toHaveBeenCalledWith(QR.id);
+  });
+
+  it('clears whatever the home screen left behind', () => {
+    root.innerHTML = '<header class="home-header"></header><section class="home-others"></section>';
+    render(root, vm(), opts);
+    expect(root.querySelector('.home-header')).toBeNull();
+    expect(root.querySelector('.home-others')).toBeNull();
   });
 });
