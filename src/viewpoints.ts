@@ -43,9 +43,9 @@ export interface Viewpoint {
   place: string;
   /** Second part of the URL: `/<place>/<slug>`. Permanent once published. */
   slug: string;
-  /** Short display label for the switcher — 'East Avenue Bridge', 'Queens Road Station'. */
+  /** Short display name — 'East Avenue Bridge', 'Queens Road Station'. */
   name: string;
-  /** Longer copy for screen readers + the switcher sheet subtitle. */
+  /** Longer copy describing where the viewpoint is. */
   description: string;
   /** TfL line id — used to filter arrivals from the StopPoint API response. */
   lineId: LineId;

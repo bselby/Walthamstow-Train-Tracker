@@ -579,7 +579,7 @@ html, body {
 }
 
 /* ───── Map-verify link ─────
-   Tiny tap target sat directly under the switcher header — opens Google Maps
+   Tiny tap target sat directly under the header — opens Google Maps
    on the viewpoint's exact coords so the user can confirm they're at the
    right bridge / station before they look up at the line. */
 
@@ -842,56 +842,65 @@ html, body {
   }
 }
 
-/* ───── Viewpoint switcher ─────
-   Tappable line-name header; taps toggle an inline sheet listing viewpoints
-   with per-row star buttons. Uses grid-template-rows 0fr → 1fr for the sheet
-   animation so there's no height-measurement jank. */
+/* ───── Countdown header ─────
+   The way back to all spots on the left, the line (in its own colour) and
+   the spot name in the middle, the star on the right. Quiet: nothing here
+   competes with the countdown below it. */
 
-.switcher {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  width: 100%;
-  max-width: 100%;
-}
-
-.switcher-header {
-  /* Reset <button> defaults */
-  appearance: none;
-  border: none;
-  background: transparent;
-  /* Side padding generous enough to clear the absolutely-positioned chevron */
-  padding: 0.55rem 3rem;
-  margin: 0;
-  font: inherit;
-  cursor: pointer;
-
-  /* Big Shoulders Text — Big Shoulders Display is only loaded at 900 (reserved
-     for the hero countdown), so any sub-900 weight here would be faux-bolded
-     or silently rendered at 900. Text family has 500–800 loaded for real. */
-  font-family: 'Big Shoulders Text', sans-serif;
-  font-size: 1rem;
-  text-align: center;
-  color: var(--ink);
-
-  position: relative;      /* anchor for the absolute chevron */
-  display: flex;
+.spot-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: center;
-
-  transition: transform 180ms cubic-bezier(0.25, 1, 0.5, 1),
-              opacity 180ms ease;
+  gap: 0.25rem;
+  width: 100%;
 }
 
-/* Two-line stacked label: line-coloured name above, neutral viewpoint name below */
-.switcher-header-label {
+.spot-header-home {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 2.75rem;
+  padding: 0 0.5rem 0 0;
+  font-family: 'Big Shoulders Text', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ink);
+  text-decoration: none;
+  border-radius: 4px;
+}
+
+.spot-header-chevron {
+  font-size: 1.5em;
+  line-height: 0.6;
+  color: var(--overground);
+  /* The glyph sits low in this face; lift it onto the text's midline. */
+  transform: translateY(-0.08em);
+}
+
+.spot-header-home:hover { color: var(--overground); }
+.spot-header-home:focus-visible,
+.spot-header-star:focus-visible {
+  outline: 2px solid var(--line-color);
+  outline-offset: 2px;
+}
+
+/* Two-line stacked label: line-coloured name above, neutral spot name below */
+.spot-header-title {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.15em;
+  min-width: 0;
+  text-align: center;
+  font-family: 'Big Shoulders Text', sans-serif;
+  font-size: clamp(1.125rem, 4.5vw, 1.375rem);
 }
 
-.switcher-header-line {
+.spot-header-line {
   font-size: 0.95em;
   font-weight: 700;
   letter-spacing: 0.24em;
@@ -900,7 +909,8 @@ html, body {
   line-height: 1;
 }
 
-.switcher-header-name {
+.spot-header-name {
+  margin: 0;
   font-size: 0.78em;
   font-weight: 500;
   letter-spacing: 0.04em;
@@ -908,150 +918,32 @@ html, body {
   color: var(--dim);
 }
 
-.switcher-header:hover { opacity: 0.9; }
-.switcher-header:active {
-  transform: scale(0.97);
-  transition-duration: 60ms;
-}
-.switcher-header:focus-visible {
-  outline: 2px solid var(--line-color);
-  outline-offset: 3px;
-  border-radius: 6px;
-}
-
-.switcher-header-chevron {
-  /* Float to the right edge, out of the centring flow entirely */
-  position: absolute;
-  right: 1.25rem;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 0.85em;
-  color: var(--dim);
-  transition: transform 220ms cubic-bezier(0.25, 1, 0.5, 1),
-              color 220ms ease;
-}
-.switcher-header[aria-expanded="true"] .switcher-header-chevron {
-  /* Preserve the vertical centering while rotating */
-  transform: translateY(-50%) rotate(180deg);
-  color: var(--ink);
-}
-
-/* Sheet — grid-rows 0fr → 1fr animation. The inner wrapper has
-   overflow: hidden and min-height: 0 so grid content collapses cleanly. */
-.switcher-sheet {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 220ms cubic-bezier(0.25, 1, 0.5, 1);
-  width: 100%;
-}
-.switcher-sheet.open { grid-template-rows: 1fr; }
-.switcher-sheet-inner {
-  overflow: hidden;
-  min-height: 0;
-}
-
-.switcher-row {
+.spot-header-star {
+  justify-self: end;
   appearance: none;
-  background: transparent;
-  border: none;
-  width: 100%;
-  padding: 0.6rem 1rem;
+  width: 2.75rem;
+  height: 2.75rem;
   margin: 0;
-  font: inherit;
-  cursor: pointer;
+  padding: 0;
   display: flex;
-  align-items: center;
-  gap: 0.75em;
-  text-align: left;
-  transition: background-color 140ms ease;
-}
-.switcher-row:hover { background-color: oklch(from var(--bg) calc(l - 0.03) c h); }
-.switcher-row:active { background-color: oklch(from var(--bg) calc(l - 0.06) c h); }
-.switcher-row:focus-visible {
-  outline: 2px solid var(--line-color);
-  outline-offset: -2px;
-}
-
-.switcher-row-content {
-  display: flex;
-  align-items: center;
-  gap: 0.6em;
-  flex: 1;
-  min-width: 0;
-}
-
-.switcher-row-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: 1.5px solid var(--ink);
-  flex-shrink: 0;
-}
-.switcher-row-dot.active { background-color: var(--ink); }
-
-.switcher-row-text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1em;
-  min-width: 0;
-}
-/* Match the header's hierarchy exactly: small line-coloured cap above,
-   neutral viewpoint name below at the same size + weight as the header.
-   The same viewpoint reads identically whether it's the active label in the
-   header or a row in the open sheet. */
-.switcher-row-line {
-  font-family: 'Big Shoulders Text', sans-serif;
-  font-weight: 700;
-  font-size: 0.95rem;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  line-height: 1;
-  /* Line colour is applied inline via the style attribute in switcher.ts */
-}
-.switcher-row-name {
-  font-family: 'Big Shoulders Text', sans-serif;
-  font-weight: 500;
-  font-size: 0.78rem;
-  letter-spacing: 0.04em;
-  color: var(--dim);
-  line-height: 1.1;
-}
-
-/* Star button (separate hit target inside each row) */
-.switcher-star {
-  appearance: none;
-  background: transparent;
-  border: none;
-  padding: 0.35rem;
-  margin: 0;
-  cursor: pointer;
-  color: var(--overground);
-  display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: transform 160ms cubic-bezier(0.25, 1.4, 0.3, 1),
-              color 160ms ease;
-  flex-shrink: 0;
-  border-radius: 50%;
-}
-.switcher-star svg { width: 20px; height: 20px; display: block; }
-.switcher-star.filled { color: var(--overground); }
-.switcher-star:not(.filled) { color: oklch(from var(--ink) l c h / 0.5); }
-.switcher-star:hover:not(.filled) { color: oklch(from var(--ink) l c h / 0.75); }
-.switcher-star:active { transform: scale(0.88); transition-duration: 60ms; }
-.switcher-star:focus-visible {
-  outline: 2px solid var(--overground);
-  outline-offset: 2px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: oklch(from var(--ink) l c h / 0.5);
+  cursor: pointer;
+  transition: transform 120ms ease, color 120ms ease;
 }
 
+.spot-header-star svg { width: 22px; height: 22px; display: block; }
+.spot-header-star.filled { color: var(--overground); }
+.spot-header-star:hover:not(.filled) { color: oklch(from var(--ink) l c h / 0.75); }
+.spot-header-star:active { transform: scale(0.88); transition-duration: 60ms; }
+
 @media (prefers-reduced-motion: reduce) {
-  .switcher-header,
-  .switcher-header-chevron,
-  .switcher-sheet,
-  .switcher-row,
-  .switcher-star {
-    transition: none;
-  }
+  .spot-header-star { transition: none; }
+  .spot-header-star:active { transform: none; }
 }
 
 /* ───── "Train's here" tap ─────
