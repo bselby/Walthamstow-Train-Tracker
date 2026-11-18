@@ -61,20 +61,27 @@ describe('askKind', () => {
     expect(askKind(fresh(), 0)).toBe('first');
   });
 
-  it('is null straight after a decline', () => {
+  it('is off straight after a decline, so the strip still offers a way in', () => {
     const s = chooseHelp(fresh(), 'declined', 1000);
-    expect(askKind(s, 1000)).toBeNull();
+    expect(askKind(s, 1000)).toBe('off');
   });
 
   it('is again seven days after the first decline', () => {
     const s = chooseHelp(fresh(), 'declined', 1000);
-    expect(askKind(s, 1000 + 7 * DAY - 1)).toBeNull();
+    expect(askKind(s, 1000 + 7 * DAY - 1)).toBe('off');
     expect(askKind(s, 1000 + 7 * DAY)).toBe('again');
   });
 
-  it('is null after a second decline', () => {
+  it('is off after a second decline: no more asking', () => {
     const s = chooseHelp(chooseHelp(fresh(), 'declined', 0), 'declined', 7 * DAY);
-    expect(askKind(s, 30 * DAY)).toBeNull();
+    expect(askKind(s, 30 * DAY)).toBe('off');
+  });
+
+  it('is off, not a fresh ask, for a helper who switched the buttons off', () => {
+    const s = chooseHelp(recordTap(fresh(), 'a', 1, 2), 'declined', 1000);
+    expect(askKind(s, 1000)).toBe('off');
+    expect(askKind(s, 1000 + 30 * DAY)).toBe('off');
+    expect(s.taps).toBe(1);
   });
 
   it('is invite once there are taps', () => {

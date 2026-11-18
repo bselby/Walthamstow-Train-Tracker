@@ -45,6 +45,14 @@ export function canOfferTap(
   return !atStation;
 }
 
+/** True where this viewpoint has a timing of ours to tune in either direction.
+ *  Unlike canOfferTap it does not depend on which train is showing, so the
+ *  ticket strip does not come and go with the trains. */
+export function canTuneViewpoint(viewpoint: Viewpoint): boolean {
+  if (viewpoint.positionModel !== 'station') return true;
+  return (['north', 'south'] as const).some((d) => viewpoint.directions[d].offsetSeconds !== 0);
+}
+
 export function updatePass(
   current: TapPass | null,
   input: {

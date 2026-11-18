@@ -268,11 +268,55 @@ describe('renderTicket', () => {
   });
 });
 
-describe('renderAskCard after "I\'ll help"', () => {
-  it('says thanks and what happens next, with no buttons', () => {
-    const card = renderAskCard('ready', 0, () => {})!;
-    expect(card.textContent).toContain("Thanks, you're on the staff.");
+describe('the ticket strip', () => {
+  const strip = (kind: 'ready' | 'invite' | 'off', taps: number, onChoice = () => {}) =>
+    renderAskCard(kind, taps, onChoice) as HTMLDetailsElement;
+
+  it('ready: thanks, an empty ticket, and the how-it-works text already open', () => {
+    const card = strip('ready', 0);
+    expect(card.tagName).toBe('DETAILS');
+    expect(card.open).toBe(true);
+    expect(card.querySelector('summary')!.textContent).toContain("Thanks, you're on the staff.");
+    expect(card.querySelector('summary .ticket')).not.toBeNull();
     expect(card.textContent).toContain('30 seconds away');
-    expect(card.querySelector('button')).toBeNull();
+  });
+
+  it('invite: closed, with the ticket in the summary and the count inside', () => {
+    const card = strip('invite', 3);
+    expect(card.tagName).toBe('DETAILS');
+    expect(card.open).toBe(false);
+    expect(card.querySelector('summary .ticket')).not.toBeNull();
+    expect(card.textContent).toContain('3 trains booked.');
+    expect(card.textContent).toContain('30 seconds away');
+  });
+
+  it('counts one train in the singular', () => {
+    expect(strip('invite', 1).textContent).toContain('1 train booked.');
+  });
+
+  it.each(['ready', 'invite'] as const)('%s: one button, which switches the buttons off', (kind) => {
+    const onChoice = vi.fn();
+    const buttons = strip(kind, kind === 'invite' ? 2 : 0, onChoice).querySelectorAll('button');
+    expect(Array.from(buttons).map((b) => b.textContent)).toEqual(['Stop showing me buttons']);
+    buttons[0].click();
+    expect(onChoice).toHaveBeenCalledWith('declined');
+  });
+
+  it('off: a way back in, with one button that switches helping on', () => {
+    const onChoice = vi.fn();
+    const card = strip('off', 0, onChoice);
+    expect(card.open).toBe(false);
+    expect(card.querySelector('summary')!.textContent).toContain('Help tune this spot');
+    expect(card.querySelector('.ticket')).toBeNull();
+    const buttons = card.querySelectorAll('button');
+    expect(Array.from(buttons).map((b) => b.textContent)).toEqual(["I'll help"]);
+    buttons[0].click();
+    expect(onChoice).toHaveBeenCalledWith('helping');
+  });
+
+  it('off: keeps showing the ticket of someone who has booked trains', () => {
+    const card = strip('off', 6);
+    expect(card.querySelector('summary .ticket')).not.toBeNull();
+    expect(card.textContent).toContain('6 trains booked.');
   });
 });

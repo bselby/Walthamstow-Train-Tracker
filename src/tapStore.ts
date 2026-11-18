@@ -18,7 +18,10 @@ export interface TapState {
   lastTap: { passKey: string; tapMs: number; predictedMs: number; tapsBefore: number } | null;
 }
 
-export type AskKind = 'first' | 'again' | 'ready' | 'invite' | null;
+/** What sits below the panels. `first` and `again` are the ask with its two
+ *  choices; the rest are the permanent ticket strip: `ready` (said yes, nothing
+ *  booked yet), `invite` (has booked trains) and `off` (buttons switched off). */
+export type AskKind = 'first' | 'again' | 'ready' | 'invite' | 'off' | null;
 
 function freshState(newId: () => string): TapState {
   return {
@@ -82,14 +85,16 @@ export function saveTapState(write: (key: string, value: string) => void, state:
 
 export function askKind(state: TapState, nowMs: number): AskKind {
   if (state.choice === 'declined') {
-    // One more ask a week after the first decline, then never again.
-    if (state.asksShown === 1 && state.declinedAtMs !== null && nowMs - state.declinedAtMs >= ASK_AGAIN_AFTER_MS) {
-      return 'again';
-    }
-    return null;
+    // One more ask a week after a first "Not now", then never again. Someone
+    // who has booked trains and then switched the buttons off is not re-asked.
+    const due =
+      state.taps === 0
+      && state.asksShown === 1
+      && state.declinedAtMs !== null
+      && nowMs - state.declinedAtMs >= ASK_AGAIN_AFTER_MS;
+    return due ? 'again' : 'off';
   }
   if (state.taps > 0) return 'invite';
-  // Said yes, nothing booked yet: say what happens next, so the yes is not met with silence.
   return state.choice === 'unset' ? 'first' : 'ready';
 }
 

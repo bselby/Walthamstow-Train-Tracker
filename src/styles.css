@@ -1087,15 +1087,56 @@ html, body {
   outline: 2px solid var(--overground);
   outline-offset: 3px;
 }
-.ask-invite + .ask-body {
-  margin: 0.25rem 0 0;
-}
-.ask-card-invite {
+/* The ticket strip: the permanent form of the card once the ask is answered.
+   The summary shows the line and the ticket; opening it shows how it works. */
+.ask-strip-summary {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 0.6rem 1rem;
+  min-height: 2.75rem;
+  cursor: pointer;
+  list-style: none;
+}
+.ask-strip-summary::-webkit-details-marker {
+  display: none;
+}
+.ask-strip-summary .ask-invite::after {
+  content: '';
+  display: inline-block;
+  width: 0.45em;
+  height: 0.45em;
+  margin-left: 0.5em;
+  border-right: 2px solid var(--dim);
+  border-bottom: 2px solid var(--dim);
+  transform: translateY(-0.2em) rotate(45deg);
+}
+.ask-strip[open] .ask-strip-summary .ask-invite::after {
+  transform: translateY(0.05em) rotate(-135deg);
+}
+.ask-strip-summary:focus-visible {
+  outline: 2px solid var(--overground);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+.ask-strip-body {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+.ask-strip-body .ask-body {
+  margin: 0 0 0.6rem;
+}
+.ask-count {
+  margin: 0 0 0.6rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+.ask-strip-body .ask-decline {
+  padding-left: 0;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 .ask-invite {
   margin: 0;

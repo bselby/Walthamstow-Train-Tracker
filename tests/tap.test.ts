@@ -5,6 +5,7 @@ import type { Direction } from '../src/direction';
 import {
   atViewpoint,
   canOfferTap,
+  canTuneViewpoint,
   levelFor,
   passKey,
   promotionFor,
@@ -220,5 +221,16 @@ describe('tidyDestination', () => {
       nowMs: 1_000,
     })!;
     expect(pass.destination).toBe('Liverpool Street');
+  });
+});
+
+describe('canTuneViewpoint', () => {
+  it('is true for the bridges, whatever trains are showing', () => {
+    expect(canTuneViewpoint(getViewpointById('east-ave')!)).toBe(true);
+    expect(canTuneViewpoint(getViewpointById('northcote-rd')!)).toBe(true);
+  });
+
+  it('is false at a station, where the time is TfL\'s own', () => {
+    expect(canTuneViewpoint(getViewpointById('queens-road')!)).toBe(false);
   });
 });

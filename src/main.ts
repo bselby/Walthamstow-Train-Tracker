@@ -18,7 +18,7 @@ import { berthEtaFromStep, liveBerthEta, alreadyPassedPerBerth } from './berthEt
 import { snapshotViewpoint, type DirectionSnapshot, type ViewpointSnapshots } from './snapshots';
 import type { BerthEvent } from './tdProxy';
 import { fetchFreight, clampFreightPosition } from './freight';
-import { atViewpoint, canOfferTap, passKey, updatePass, type TapPass } from './tap';
+import { atViewpoint, canTuneViewpoint, passKey, updatePass, type TapPass } from './tap';
 import { chooseHelp, loadTapState, recordTap, resetChoice, saveTapState } from './tapStore';
 import { buildTapPayload, sendTap } from './tapClient';
 import { newDeviceId, tapAsk, tapDirectionView, tflExpectedArrivalMs } from './tapView';
@@ -461,7 +461,7 @@ function buildTapView(heroes: Partial<Record<Direction, BridgeEvent>>, now: numb
       nowMs: now,
     });
   }
-  const offerable = DIRECTIONS.some((dir) => canOfferTap(activeViewpoint, dir, heroes[dir]));
+  const offerable = canTuneViewpoint(activeViewpoint);
   return {
     ask: tapAsk({ tapState, nowMs: now, offerable, views: [views.north, views.south] }),
     taps: tapState.taps,

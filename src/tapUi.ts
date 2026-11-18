@@ -186,30 +186,9 @@ export function renderAskCard(
   onChoice: (choice: 'helping' | 'declined') => void,
 ): HTMLElement | null {
   if (ask === null) return null;
+  if (ask !== 'first' && ask !== 'again') return renderStrip(ask, taps, onChoice);
 
   const card = el('section', 'ask-card');
-
-  if (ask === 'invite') {
-    card.classList.add('ask-card-invite');
-    card.setAttribute('aria-label', 'Help tune this spot');
-    card.appendChild(el('p', 'ask-invite', 'Want to make it more accurate?'));
-    card.appendChild(renderTicket(taps, false));
-    return card;
-  }
-
-  if (ask === 'ready') {
-    card.setAttribute('aria-label', 'Help tune this spot');
-    card.setAttribute('role', 'status');
-    card.appendChild(el('p', 'ask-invite', "Thanks, you're on the staff."));
-    card.appendChild(
-      el(
-        'p',
-        'ask-body',
-        'When a train is 30 seconds away, a button appears under its countdown. Tap it as the front of the train reaches you.',
-      ),
-    );
-    return card;
-  }
 
   card.setAttribute('aria-labelledby', 'ask-card-heading');
   const heading = el('h2', 'ask-heading', 'Help make this spot-on');
@@ -227,6 +206,48 @@ export function renderAskCard(
   choice("I'll help", 'helping', 'ask-help');
   choice('Not now', 'declined', 'ask-decline');
   card.appendChild(choices);
+  return card;
+}
+
+const STRIP_SUMMARY: Record<'ready' | 'invite' | 'off', string> = {
+  ready: "Thanks, you're on the staff.",
+  invite: 'Want to make it more accurate?',
+  off: 'Help tune this spot',
+};
+
+const STRIP_HOW =
+  "When a train is 30 seconds away, a button appears under its countdown. Tap it as the front of the train reaches you, and we'll tune this spot for everyone.";
+
+/**
+ * The permanent strip below the panels once the ask has been answered: the
+ * ticket, and inside it how the buttons work and the switch for them. It is a
+ * <details>, so it opens without script and keeps its state across redraws.
+ */
+function renderStrip(
+  kind: 'ready' | 'invite' | 'off',
+  taps: number,
+  onChoice: (choice: 'helping' | 'declined') => void,
+): HTMLElement {
+  const card = el('details', 'ask-card ask-strip');
+  // Straight after "I'll help" the how-it-works text is the answer to the tap.
+  card.open = kind === 'ready';
+
+  const summary = el('summary', 'ask-strip-summary');
+  summary.appendChild(el('span', 'ask-invite', STRIP_SUMMARY[kind]));
+  if (kind !== 'off' || taps > 0) summary.appendChild(renderTicket(taps, false));
+  card.appendChild(summary);
+
+  const body = el('div', 'ask-strip-body');
+  body.appendChild(el('p', 'ask-body', STRIP_HOW));
+  if (taps > 0) {
+    body.appendChild(el('p', 'ask-count', `${taps} ${taps === 1 ? 'train' : 'trains'} booked.`));
+  }
+  const off = kind === 'off';
+  const button = el('button', off ? 'ask-help' : 'ask-decline', off ? "I'll help" : 'Stop showing me buttons');
+  button.type = 'button';
+  button.addEventListener('click', () => onChoice(off ? 'helping' : 'declined'));
+  body.appendChild(button);
+  card.appendChild(body);
   return card;
 }
 
