@@ -477,15 +477,15 @@ function renderWalkingTime(
       }
     });
   } else {
-    // Label + small "off" button so the feature can be disabled (also useful for QA:
+    // Label + small "Turn off" button so the feature can be disabled (also useful for QA:
     // disable → refresh → re-enable to exercise the full opt-in flow).
     el.innerHTML = `${PIN_SVG}<span>${escapeHtml(label)}</span>`;
 
     const off = document.createElement('button');
     off.type = 'button';
     off.className = 'walking-time-off';
-    off.textContent = 'off';
-    off.setAttribute('aria-label', 'Disable walking time');
+    off.textContent = 'Turn off';
+    off.setAttribute('aria-label', 'Turn off walking time');
     off.addEventListener('click', onDisable);
     el.appendChild(off);
   }
