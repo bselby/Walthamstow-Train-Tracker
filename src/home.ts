@@ -3,6 +3,7 @@
 // them: a finger already down on a row or a star stays on the same element,
 // and a row only moves when its place in the list changes.
 import type { HomeModel, HomeRow } from './homeModel';
+import { ticketBadgeLabel } from './tapCopy';
 import { currentTheme } from './season';
 import { passengerTrainSvg } from './trainArt';
 
@@ -12,6 +13,9 @@ export interface HomeOptions {
   /** The only thing on home that asks the browser for location. */
   onUseLocation: () => void;
   onLocationOff: () => void;
+  /** Trains timed so far: the ticket link's label. */
+  taps: number;
+  onOpenTicket: () => void;
 }
 
 // Listeners are attached once, when an element is made, and call through the
@@ -21,6 +25,8 @@ let currentOptions: HomeOptions | null = null;
 const STAR_PATH = 'M8 1 L10 6 L15 6 L11 9 L12 14 L8 11 L4 14 L5 9 L1 6 L6 6 Z';
 const STAR_FILLED = `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="${STAR_PATH}" fill="currentColor"/></svg>`;
 const STAR_OUTLINE = `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="${STAR_PATH}" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>`;
+
+const TICKET_ICON = '<svg class="ticket-badge-icon" viewBox="0 0 18 14" aria-hidden="true"><path d="M1 1 H17 V5 Q15 7 17 9 V13 H1 V9 Q3 7 1 5 Z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';
 
 const PIN = '<svg class="home-pin" viewBox="0 0 22 28" aria-hidden="true"><path d="M11 26 C7 20 1 15 1 10 A10 10 0 0 1 21 10 C21 15 15 20 11 26 Z" fill="var(--pin)" stroke="var(--pin-outline)" stroke-width="2"/><circle cx="11" cy="10" r="3.5" fill="var(--card)"/></svg>';
 
@@ -42,7 +48,9 @@ export function renderHome(root: HTMLElement, model: HomeModel, options: HomeOpt
   });
   const rowFor = (row: HomeRow) => updateRow(existingRows.get(row.id) ?? createRow(row.id), row);
 
-  const out: HTMLElement[] = [child(root, 'home-header') ?? createHeader()];
+  const header = child(root, 'home-header') ?? createHeader();
+  updateTicketLink(header, options.taps);
+  const out: HTMLElement[] = [header];
 
   if (model.favourites.length > 0) {
     out.push(section(root, 'home-favourites', 'Your favourites', model.favourites.map(rowFor)));
@@ -96,14 +104,26 @@ function setText(el: Element, text: string): void {
 
 function createHeader(): HTMLElement {
   const header = create('header', 'home-header');
+  const ticket = create('button', 'ticket-badge home-ticket');
+  ticket.type = 'button';
+  ticket.innerHTML = TICKET_ICON + '<span class="ticket-badge-text"></span>';
+  ticket.addEventListener('click', () => currentOptions?.onOpenTicket());
   const train = create('span', 'home-train');
   train.innerHTML = passengerTrainSvg(currentTheme(new Date()));
   const title = document.createElement('h1');
   title.textContent = 'E17 Trains';
   const tagline = create('p', 'home-tagline');
   tagline.textContent = 'When the next train passes, to the second.';
-  header.append(train, title, tagline);
+  header.append(ticket, train, title, tagline);
   return header;
+}
+
+function updateTicketLink(header: HTMLElement, taps: number): void {
+  const label = ticketBadgeLabel(taps);
+  const ticket = header.querySelector<HTMLElement>('.home-ticket')!;
+  setText(ticket.querySelector('.ticket-badge-text')!, label);
+  const spoken = label === 'Your ticket' ? label : `Your ticket: ${label.replace(' · ', ', ')}`;
+  if (ticket.getAttribute('aria-label') !== spoken) ticket.setAttribute('aria-label', spoken);
 }
 
 function createDocLinks(): HTMLElement {

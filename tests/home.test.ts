@@ -30,6 +30,8 @@ function options() {
     onToggleFavourite: vi.fn<(id: string) => void>(),
     onUseLocation: vi.fn<() => void>(),
     onLocationOff: vi.fn<() => void>(),
+    taps: 0,
+    onOpenTicket: vi.fn<() => void>(),
   } satisfies HomeOptions;
 }
 
@@ -62,6 +64,23 @@ describe('renderHome', () => {
     expect(header.querySelector('svg.train-passenger')).not.toBeNull();
     expect(header.querySelector('svg')!.getAttribute('aria-hidden')).toBe('true');
     expect(header.querySelector('.home-tagline')!.textContent).toBe('When the next train passes, to the second.');
+  });
+
+  it.each([
+    [0, 'Your ticket', 'Your ticket'],
+    [4, 'Spotter · 4 trains', 'Your ticket: Spotter, 4 trains'],
+  ])('the ticket link at %i taps reads "%s"', (taps, text, spoken) => {
+    renderHome(root, model({ others: [row('queens-road')] }), { ...opts, taps });
+    const link = root.querySelector('.home-header .home-ticket')!;
+    expect(link.textContent).toBe(text);
+    expect(link.getAttribute('aria-label')).toBe(spoken);
+  });
+
+  it('the ticket link opens the ticket page once', () => {
+    renderHome(root, model({ others: [row('queens-road')] }), opts);
+    root.querySelector<HTMLElement>('.home-ticket')!.click();
+    expect(opts.onOpenTicket).toHaveBeenCalledTimes(1);
+    expect(opts.onOpen).not.toHaveBeenCalled();
   });
 
   it('hides the favourites section when there are none', () => {
