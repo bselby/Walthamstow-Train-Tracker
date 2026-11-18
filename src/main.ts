@@ -243,13 +243,30 @@ function resetCountdownState(): void {
   tickGeneration++;
 }
 
-/** Show a viewpoint's countdown. Always starts clean, including when it is
- *  the viewpoint that was showing before a visit to home. */
+// The spot whose countdown state is kept while the ticket or the explainer
+// is open on top of it, or null. Going back to that same spot picks up
+// where it left off; anywhere else starts clean.
+let keptForViewpointId: string | null = null;
+
+/** Show a viewpoint's countdown. Starts clean, including when it is the
+ *  viewpoint that was showing before a visit to home; the one exception is
+ *  coming back from the ticket or the explainer to the spot they were opened
+ *  from, which resumes with its times, signalling and thank-you intact. */
 function showCountdown(viewpoint: Viewpoint): void {
+  const resume = (screen === 'ticket' || screen === 'how') && keptForViewpointId === viewpoint.id;
+  keptForViewpointId = null;
   stopHomePoller();
   stopCountdownPollers();
   screen = 'countdown';
   activeViewpoint = viewpoint;
+  if (resume) {
+    document.title = `E17 Trains — ${activeViewpoint.lineName} · ${activeViewpoint.name}`;
+    document.documentElement.style.setProperty('--line-color', activeViewpoint.lineColor);
+    rerender();
+    // Each poller fetches at once, as on any open.
+    startCountdownPollers();
+    return;
+  }
   resetCountdownState();
   // Home has usually just fetched this viewpoint's arrivals: start from those
   // so the numbers are there at once, and let the first poll refresh them.
@@ -269,6 +286,7 @@ function showCountdown(viewpoint: Viewpoint): void {
 }
 
 function showHome(): void {
+  keptForViewpointId = null;
   stopCountdownPollers();
   screen = 'home';
   resetCountdownState();
@@ -306,13 +324,16 @@ function goHome(): void {
 const TICKET_TITLE = 'E17 Trains — Your ticket';
 const HOW_TITLE = 'E17 Trains — How it works';
 
-/** Show the ticket or the explainer. Neither polls, so both pollers stop;
- *  going back starts whichever the destination needs, from clean. */
+/** Show the ticket or the explainer. Neither polls, so both pollers stop.
+ *  Opened from a spot (or from the other info screen over one), that spot's
+ *  countdown state is kept for the way back; otherwise it is cleared. */
 function showInfoScreen(which: 'ticket' | 'how'): void {
   stopHomePoller();
   stopCountdownPollers();
+  if (screen === 'countdown') keptForViewpointId = activeViewpoint.id;
+  else if (screen === 'home') keptForViewpointId = null;
   screen = which;
-  resetCountdownState();
+  if (keptForViewpointId === null) resetCountdownState();
   document.title = which === 'ticket' ? TICKET_TITLE : HOW_TITLE;
   document.documentElement.style.removeProperty('--line-color');
   rerender();
