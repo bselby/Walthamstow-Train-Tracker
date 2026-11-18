@@ -18,6 +18,9 @@
   --container:      #2F7D8C;
   --freight-tag-bg: #F3E6D8;
   --freight-tag-ink:#6B4A1E;
+  --track:          #C9D3E0;
+  --station-stroke: #1F2A44;
+  --pin-outline:    #1F2A44;
 
   /* Status */
   --now:            #1E7B4B;
@@ -50,6 +53,9 @@
     --container:      #5FB3C2;
     --freight-tag-bg: #3A2F22;
     --freight-tag-ink:#EBCB9E;
+    --track:          #3A4560;
+    --station-stroke: #A9B3C6;
+    --pin-outline:    #0B0F1A;
 
     --now:            #4CC38A;
     --warn:           #FFC93C;
@@ -242,108 +248,100 @@ html, body {
   letter-spacing: 0.06em;
 }
 
-/* ───── Weaver strip ───── */
+/* ───── Line diagram ─────
+   The same rule at every spot: both ends named, every station a dot, a "You"
+   pin at the spot. The drawing is a 326 × 62 box (see lineDiagram.ts); the
+   train sits on top and is placed in the same units as percentages. */
 
 .strip {
+  width: 100%;
+  max-width: 440px;
+  margin-inline: auto;
+  padding: 0 4px;
+}
+
+.line-diagram {
   position: relative;
-  height: 80px;
-  padding: 0 16px;
+  width: 100%;
+  aspect-ratio: 326 / 62;
 }
 
-.strip-line {
+.line-svg {
   position: absolute;
-  top: 50%;
-  left: 16px;
-  right: 16px;
-  height: 2px;
-  background: var(--border);
-  transform: translateY(-50%);
-}
-
-.strip-pip {
-  position: absolute;
-  top: 50%;
-  left: calc(var(--pos) * (100% - 32px) / (var(--stop-count, 9) - 1) + 16px);
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  pointer-events: none;
-}
-
-.strip-pip-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: 2px solid var(--ink);
-  background: var(--bg);
-}
-
-.strip-pip-label {
-  position: absolute;
-  top: 16px;
-  font-family: var(--font-body);
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--dim);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.strip-bridge {
-  position: absolute;
-  top: 50%;
-  left: calc(var(--pos) * (100% - 32px) / (var(--stop-count, 9) - 1) + 16px);
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  color: var(--ink);
-  pointer-events: none;
-  z-index: 2;
-}
-
-.strip-bridge-svg {
-  width: 22px;
-  height: 14px;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   display: block;
+  overflow: visible;
+  pointer-events: none;
 }
 
-.strip-bridge-label {
-  position: absolute;
-  bottom: 18px;
+.line-track { fill: var(--track); }
+
+.line-station {
+  fill: var(--card);
+  stroke: var(--station-stroke);
+  stroke-width: 2;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.line-station.end {
+  fill: var(--ink);
+  stroke: none;
+}
+
+.line-pin {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+.line-pin path {
+  fill: var(--pin);
+  stroke: var(--pin-outline);
+  stroke-width: 2;
+}
+.line-pin circle { fill: #FFFFFF; }
+.line-pin text {
   font-family: var(--font-body);
-  font-size: 0.75rem;
+  font-size: 13px;
   font-weight: 800;
-  color: var(--ink);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  white-space: nowrap;
+  fill: var(--ink);
 }
 
+.line-ends {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: -2px;
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--ink);
+}
+.line-end-label:last-child { text-align: right; }
+
+/* The train: 0.36 of the passenger drawing (136 × 90 box), wheels on the
+   track at y = 50. Left edge of the track is x = 12, track length 302. */
 .strip-train {
   position: absolute;
-  top: 50%;
-  left: calc(var(--pos) * (100% - 32px) / (var(--stop-count, 9) - 1) + 16px);
-  transform: translate(-50%, -50%);
-  width: 52px;
-  height: 22px;
+  left: calc((12 + var(--pos) * 302 / (var(--stop-count, 9) - 1)) / 326 * 100%);
+  top: calc(23 / 62 * 100%);
+  width: calc(49 / 326 * 100%);
+  height: calc(32.4 / 62 * 100%);
+  transform: translateX(-50%);
   color: var(--line-color);
-  /* pointer-events:auto explicitly — the train is the ONLY interactive element
-     on the strip (tap to toot). Was briefly set to `none` which silently broke
-     the click handler. */
+  /* pointer-events:auto explicitly — the train is the only interactive part
+     of the diagram (tap to toot). */
   pointer-events: auto;
   z-index: 3;
   transition: left 1.5s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
 }
+.strip[data-line="weaver"] .strip-train { color: var(--weaver); }
+.strip[data-line="suffragette"] .strip-train { color: var(--suffragette); }
 
-/* Route SVG-child pointer events to the listener on .strip-train itself.
-   Without this, taps landing on empty SVG space inside the train bounding box
-   might get swallowed by non-interactive children in some browsers. */
+/* Route SVG-child pointer events to the listener on .strip-train itself. */
 .strip-train > .strip-train-inner,
 .strip-train svg {
   pointer-events: none;
@@ -359,51 +357,6 @@ html, body {
   display: block;
 }
 
-.strip-train-svg {
-  width: 100%;
-  height: 100%;
-  display: block;
-  overflow: visible;
-}
-
-/* SVG interior details (windows, cab, bogies) share the ink navy. */
-.strip-train-svg .train-window,
-.strip-train-svg .train-cab,
-.strip-train-svg .train-bogie {
-  fill: var(--ink);
-}
-
-.strip-train-svg .train-body {
-  fill: var(--bg);
-  stroke: var(--ink);
-  stroke-width: 1;
-}
-
-.strip-train-svg .train-livery,
-.strip-train-svg .train-door {
-  fill: currentColor; /* Overground orange */
-}
-
-/* Northbound (→ Chingford): train faces right as authored.
-   Southbound (← Liverpool Street): mirror horizontally. */
-.strip-south .strip-train-svg {
-  transform: scaleX(-1);
-}
-
-/* ───── Freight livery ─────
-   Class 66 SVG sits in place of the Aventra when the active hero is a freight
-   working. The freight strip overrides --line-color via .strip-train.freight
-   so the Class 66 picks up freight-brown via currentColor — passenger SVGs
-   carry on using the viewpoint's line colour as before. */
-
-.strip-train.freight {
-  color: var(--freight);
-  /* Freight SVG viewBox is 0 0 62 22 (vs passenger 0 0 52 22) — wider so the
-     wagon doesn't look squashed. */
-  width: 62px;
-}
-
-.strip-freight-svg,
 .train-svg {
   width: 100%;
   height: 100%;
@@ -411,76 +364,48 @@ html, body {
   overflow: visible;
 }
 
-.strip-freight-svg .freight-body,
-.strip-freight-svg .freight-roof,
-.strip-freight-svg .freight-wagon-base,
-.strip-freight-svg .freight-container,
-.strip-freight-svg .freight-coupling {
-  fill: currentColor;
+/* Freight: 0.3 of the 150 × 50 drawing, wheels on the track. */
+.strip-train.freight {
+  top: calc(36.2 / 62 * 100%);
+  width: calc(45 / 326 * 100%);
+  height: calc(15 / 62 * 100%);
 }
 
-.strip-freight-svg .freight-window {
-  fill: var(--bg);
-  stroke: var(--ink);
-  stroke-width: 0.4;
-}
-
-.strip-freight-svg .freight-bogie,
-.strip-freight-svg .freight-exhaust,
-.strip-freight-svg .freight-grille {
-  fill: var(--ink);
-}
-
-.strip-freight-svg .freight-container-line {
-  fill: var(--bg);
-  opacity: 0.4;
-}
-
-/* Mirror southbound — same convention as the passenger SVG. */
-.strip-south .strip-freight-svg {
+/* Northbound trains face right as drawn; southbound are mirrored. */
+.strip-south .train-svg {
   transform: scaleX(-1);
 }
 
-/* Stale freight feed — dim the loco without redrawing it. The .stale class is
-   applied by the freight render path when its data is older than the freight
-   freshness threshold. */
-.strip-train.freight.stale {
-  opacity: 0.45;
-}
-
-/* ───── Strip animations ───── */
-
-.strip-bridge.celebrating .strip-bridge-svg {
-  animation: bridge-celebrate 900ms cubic-bezier(0.22, 1, 0.36, 1);
-  transform-origin: center bottom;
-}
-
-@keyframes bridge-celebrate {
-  0%   { transform: scale(1); }
-  35%  { transform: scale(1.24); }
-  100% { transform: scale(1); }
-}
-
-/* Station pip "visiting" pulse — fires once when the train glides past a stop. */
-.strip-pip.pulsing .strip-pip-dot {
-  animation: pip-pulse 650ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-@keyframes pip-pulse {
-  0% {
-    background: var(--bg);
-    border-color: var(--ink);
-    transform: scale(1);
+@media (prefers-color-scheme: dark) {
+  /* The freight drawing's navy outline vanishes on the dark card; give the
+     whole silhouette a light edge. */
+  .strip-train.freight .train-freight {
+    filter: drop-shadow(0 0 0.6px var(--dim)) drop-shadow(0 0 0.6px var(--dim));
   }
+}
+
+/* ───── Line diagram animations ───── */
+
+.line-pin.celebrating {
+  animation: pin-celebrate 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes pin-celebrate {
+  0%   { transform: translateY(0) scale(1); }
+  35%  { transform: translateY(-6px) scale(1.15); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+/* Station dot pulse: fires once as the train passes a stop. */
+.line-station.pulsing {
+  animation: station-pulse 650ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes station-pulse {
   35% {
-    background: var(--yellow);
-    border-color: var(--yellow);
-    transform: scale(1.8);
-  }
-  100% {
-    background: var(--bg);
-    border-color: var(--ink);
-    transform: scale(1);
+    fill: var(--yellow);
+    stroke: var(--yellow);
+    transform: scale(1.6);
   }
 }
 
@@ -501,8 +426,8 @@ html, body {
   .strip-train {
     transition: none;
   }
-  .strip-bridge.celebrating .strip-bridge-svg,
-  .strip-pip.pulsing .strip-pip-dot,
+  .line-pin.celebrating,
+  .line-station.pulsing,
   .strip-train.tooting .strip-train-inner,
   .value.now,
   .value.ticking {
