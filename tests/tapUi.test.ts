@@ -61,7 +61,7 @@ describe('renderTapSlot', () => {
     const first = renderTapSlot(null, placeholderView(300_000), handlers())!;
     const next = renderTapSlot(first, placeholderView(170_000), handlers())!;
     expect(next).toBe(first);
-    expect(next.textContent).toBe('Yellow button pops up here in 3 min');
+    expect(next.textContent).toBe('Yellow button pops up here in 2 min');
   });
 
   it('button state is the big yellow button', () => {

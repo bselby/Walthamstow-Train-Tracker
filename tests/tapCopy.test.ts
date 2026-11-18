@@ -71,12 +71,19 @@ describe('rankUpLines', () => {
 });
 
 describe('placeholderLine', () => {
-  it('rounds up to whole minutes at two minutes or more', () => {
+  it('rounds down to whole minutes, never above the countdown', () => {
     expect(placeholderLine(120000)).toBe('Yellow button pops up here in 2 min');
+    expect(placeholderLine(539000)).toBe('Yellow button pops up here in 8 min');
   });
 
-  it('says "a minute" just under two minutes', () => {
-    expect(placeholderLine(119999)).toBe('Yellow button pops up here in a minute');
+  it('says "1 min" from one minute to just under two', () => {
+    expect(placeholderLine(119999)).toBe('Yellow button pops up here in 1 min');
+    expect(placeholderLine(60000)).toBe('Yellow button pops up here in 1 min');
+  });
+
+  it('says "in a moment" under a minute', () => {
+    expect(placeholderLine(59999)).toBe('Yellow button pops up here in a moment');
+    expect(placeholderLine(4000)).toBe('Yellow button pops up here in a moment');
   });
 });
 

@@ -40,11 +40,13 @@ export function rankUpLines(taps: number): { title: string; body: string; next: 
   };
 }
 
+/** msUntilButton is (bridge time − 30s). Floor, so the minute count is never
+ *  higher than the countdown beside it (which floors too). */
 export function placeholderLine(msUntilButton: number): string {
-  if (msUntilButton >= 120000) {
-    return `Yellow button pops up here in ${Math.ceil(msUntilButton / 60000)} min`;
+  if (msUntilButton >= 60000) {
+    return `Yellow button pops up here in ${Math.floor(msUntilButton / 60000)} min`;
   }
-  return 'Yellow button pops up here in a minute';
+  return 'Yellow button pops up here in a moment';
 }
 
 /** The ticket page's progress line before the first train is timed. */
