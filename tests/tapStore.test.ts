@@ -165,3 +165,56 @@ describe('saveTapState', () => {
     expect(loadTapState((k) => store.get(k) ?? null, () => 'other')).toEqual(s);
   });
 });
+
+describe('spotsTimed', () => {
+  it('starts empty on a fresh state', () => {
+    expect(fresh().spotsTimed).toEqual([]);
+  });
+
+  it('is filled from tappedPassKeys when old saved JSON lacks it', () => {
+    const old = {
+      ...fresh(),
+      choice: 'helping',
+      taps: 3,
+      tappedPassKeys: ['east-ave|north|1', 'northcote-rd|south|2', 'east-ave|south|3'],
+    } as Record<string, unknown>;
+    delete old.spotsTimed;
+    const s = loadTapState(() => JSON.stringify(old), () => 'new');
+    expect(s.spotsTimed).toEqual(['east-ave', 'northcote-rd']);
+  });
+
+  it('keeps a stored list, dropping non-strings and duplicates', () => {
+    const stored = { ...fresh(), spotsTimed: ['queens-road', 5, 'queens-road', 'east-ave'] };
+    const s = loadTapState(() => JSON.stringify(stored), () => 'new');
+    expect(s.spotsTimed).toEqual(['queens-road', 'east-ave']);
+  });
+
+  it('falls back to the pass keys when the stored value is malformed', () => {
+    const stored = { ...fresh(), spotsTimed: 'nope', tappedPassKeys: ['queens-road|north|9'] };
+    const s = loadTapState(() => JSON.stringify(stored), () => 'new');
+    expect(s.spotsTimed).toEqual(['queens-road']);
+  });
+
+  it('keeps a declined choice and a high tap count', () => {
+    const stored = { ...fresh(), choice: 'declined', taps: 61 };
+    const s = loadTapState(() => JSON.stringify(stored), () => 'new');
+    expect(s.taps).toBe(61);
+    expect(s.choice).toBe('declined');
+  });
+
+  it('recordTap appends a new spot and leaves a known one alone', () => {
+    let s = recordTap(fresh(), 'east-ave|north|1', 1, 2);
+    expect(s.spotsTimed).toEqual(['east-ave']);
+    s = recordTap(s, 'east-ave|south|2', 3, 4);
+    expect(s.spotsTimed).toEqual(['east-ave']);
+    s = recordTap(s, 'queens-road|north|3', 5, 6);
+    expect(s.spotsTimed).toEqual(['east-ave', 'queens-road']);
+  });
+
+  it('is not capped with the pass keys', () => {
+    let s = fresh();
+    for (let i = 0; i < 30; i++) s = recordTap(s, `spot-${i}|north|${i}`, i, i);
+    expect(s.spotsTimed).toHaveLength(30);
+    expect(s.tappedPassKeys).toHaveLength(20);
+  });
+});

@@ -12,11 +12,11 @@ const AT_VIEWPOINT_METRES = 150;
 const RIGHT_TIME_SECONDS = 3;
 
 export const LEVELS: readonly { name: string; taps: number; kit: string }[] = [
-  { name: 'Spotter', taps: 1, kit: 'Notebook issued' },
-  { name: 'Guard', taps: 5, kit: 'Whistle issued' },
-  { name: 'Signaller', taps: 15, kit: 'Keys to the box' },
-  { name: 'Driver', taps: 30, kit: 'Cap and timetable' },
-  { name: 'Station Master', taps: 60, kit: 'Top hat optional' },
+  { name: 'Spotter', taps: 1, kit: 'Notebook at the ready.' },
+  { name: 'Guard', taps: 5, kit: 'Whistle and flag at the ready.' },
+  { name: 'Signaller', taps: 15, kit: 'Keys to the signal box.' },
+  { name: 'Driver', taps: 30, kit: 'Cap on, timetable in hand.' },
+  { name: 'Station Master', taps: 60, kit: 'Top hat optional.' },
 ];
 
 export interface TapPass {

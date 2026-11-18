@@ -152,7 +152,7 @@ function renderThanks(view: TapDirectionView, taps: number, justClipped: boolean
     slot.appendChild(el(
       'p',
       'tap-notice-kit',
-      `${promotion.kit}. ${taps} ${taps === 1 ? 'train' : 'trains'} booked.`,
+      `${promotion.kit} ${taps} ${taps === 1 ? 'train' : 'trains'} booked.`,
     ));
   } else {
     slot.appendChild(el('p', 'tap-heading', 'Booked in. Thank you.'));

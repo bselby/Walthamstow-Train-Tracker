@@ -55,7 +55,7 @@ describe('renderTapSlot', () => {
     const text = el.textContent ?? '';
     expect(text).toContain('Staff notice');
     expect(text).toContain('Promoted to Guard');
-    expect(text).toContain('Whistle issued');
+    expect(text).toContain('Whistle and flag at the ready.');
     expect(text).not.toContain('Booked in. Thank you.');
     expect(el.querySelector('.ticket')).not.toBeNull();
   });

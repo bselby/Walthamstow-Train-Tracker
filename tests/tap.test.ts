@@ -177,7 +177,7 @@ describe('registerGapLine', () => {
 
 describe('promotionFor', () => {
   it('returns the grade reached', () => {
-    expect(promotionFor(4, 5)).toEqual({ name: 'Guard', kit: 'Whistle issued' });
+    expect(promotionFor(4, 5)).toEqual({ name: 'Guard', kit: 'Whistle and flag at the ready.' });
     expect(promotionFor(0, 1)?.name).toBe('Spotter');
   });
   it('returns null when no threshold is crossed', () => {

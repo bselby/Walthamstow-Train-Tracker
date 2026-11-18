@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { TapPass } from '../src/tap';
-import { TAP_ENDPOINT, buildTapPayload, sendTap } from '../src/tapClient';
+import { TAP_ENDPOINT, buildTapPayload, sendTap, shouldSendTaps } from '../src/tapClient';
 
 const pass: TapPass = {
   viewpointId: 'east-avenue',
@@ -60,7 +60,7 @@ describe('sendTap', () => {
 
   it('POSTs JSON to the endpoint with keepalive', async () => {
     const fetchFn = vi.fn().mockResolvedValue({ ok: true, status: 200 });
-    await sendTap(payload, fetchFn as unknown as typeof fetch);
+    await expect(sendTap(payload, fetchFn as unknown as typeof fetch)).resolves.toBe('sent');
     expect(fetchFn).toHaveBeenCalledTimes(1);
     const [url, init] = fetchFn.mock.calls[0];
     expect(url).toBe(TAP_ENDPOINT);
@@ -70,24 +70,32 @@ describe('sendTap', () => {
     expect(JSON.parse(init.body)).toEqual(payload);
   });
 
-  it('resolves when fetch rejects, without retrying', async () => {
+  it('reports failed when fetch rejects, without retrying', async () => {
     const fetchFn = vi.fn().mockRejectedValue(new Error('offline'));
-    await expect(sendTap(payload, fetchFn as unknown as typeof fetch)).resolves.toBeUndefined();
+    await expect(sendTap(payload, fetchFn as unknown as typeof fetch)).resolves.toBe('failed');
     expect(fetchFn).toHaveBeenCalledTimes(1);
   });
 
-  it('resolves when the server returns 500', async () => {
+  it('reports failed when the server returns 500', async () => {
     const fetchFn = vi.fn().mockResolvedValue({ ok: false, status: 500 });
-    await expect(sendTap(payload, fetchFn as unknown as typeof fetch)).resolves.toBeUndefined();
+    await expect(sendTap(payload, fetchFn as unknown as typeof fetch)).resolves.toBe('failed');
     expect(fetchFn).toHaveBeenCalledTimes(1);
   });
 
-  it('resolves when fetch is unavailable', async () => {
+  it('reports failed when fetch is unavailable', async () => {
     vi.stubGlobal('fetch', undefined);
     try {
-      await expect(sendTap(payload)).resolves.toBeUndefined();
+      await expect(sendTap(payload)).resolves.toBe('failed');
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+});
+
+describe('shouldSendTaps', () => {
+  it('is true only for the live site', () => {
+    expect(shouldSendTaps('e17trains.uk')).toBe(true);
+    expect(shouldSendTaps('deploy-preview-12--walthamstow-train-tracker.netlify.app')).toBe(false);
+    expect(shouldSendTaps('localhost')).toBe(false);
   });
 });
