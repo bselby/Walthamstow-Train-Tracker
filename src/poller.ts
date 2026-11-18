@@ -43,3 +43,28 @@ export function startPoller(tick: TickFn, intervalMs: number): () => void {
     document.removeEventListener('visibilitychange', onVisibilityChange);
   };
 }
+
+/**
+ * One delayed retry, never more than one pending. `schedule()` while a retry
+ * is already waiting does nothing, `cancel()` drops it, and nothing runs
+ * while the tab is hidden (the poller picks up again when it is shown).
+ */
+export function createRetry(run: () => void, delayMs: number): { schedule: () => void; cancel: () => void } {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  return {
+    schedule() {
+      if (timer !== null) return;
+      if (document.visibilityState !== 'visible') return;
+      timer = setTimeout(() => {
+        timer = null;
+        if (document.visibilityState === 'visible') run();
+      }, delayMs);
+    },
+    cancel() {
+      if (timer !== null) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    },
+  };
+}
