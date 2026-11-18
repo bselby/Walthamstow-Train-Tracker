@@ -28,9 +28,10 @@
         normal Netlify operation; neither sees your coordinates or who you are.
         Plus a privacy-friendly pageview count via Cloudflare Web Analytics
         (details below). Apart from a tap on a "train is passing" button,
+        and which viewpoint's page you open (part of the pageview count),
         nothing you do <em>inside</em> the app — tapping the fact line,
-        enabling walking time, watching the countdown — is tracked or
-        reported back to me.
+        enabling walking time, starring a viewpoint, watching the countdown —
+        is tracked or reported back to me.
       </p>
 
       <h2>What's stored on your device</h2>
@@ -158,8 +159,8 @@
         <li><strong>No cookies.</strong> Nothing is stored in your browser by the analytics beacon.</li>
         <li><strong>No fingerprinting.</strong> No device, canvas, or font fingerprinting.</li>
         <li><strong>No cross-site tracking.</strong> Cloudflare doesn't build a profile of you across the web.</li>
-        <li><strong>What it does see:</strong> the page URL, referrer (if any), user agent, and a coarse country estimate from your IP.</li>
-        <li><strong>What it doesn't see:</strong> anything you do <em>inside</em> the app — the walking time, the facts you tap, the trains you watch.</li>
+        <li><strong>What it does see:</strong> the page URL, referrer (if any), user agent, and a coarse country estimate from your IP. Each viewpoint has its own URL (for example <code>/walthamstow/east-avenue-bridge</code>), so the count shows which viewpoints are opened.</li>
+        <li><strong>What it doesn't see:</strong> anything else you do <em>inside</em> the app — the walking time, the facts you tap, the viewpoints you star, the buttons you press.</li>
       </ul>
       <p>
         Cloudflare publish their own
@@ -181,7 +182,7 @@
         <a href="https://github.com/bselby/Walthamstow-Train-Tracker/issues" target="_blank" rel="noopener">github.com/bselby/Walthamstow-Train-Tracker/issues</a>.
       </p>
 
-      <p class="meta">Last updated 17 November 2026</p>
+      <p class="meta">Last updated 18 November 2026</p>
     </main>
     <!-- Cloudflare Web Analytics — pageview count only, no cookies, no personal data.
          See the Analytics section above for the full story. -->
