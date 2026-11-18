@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeBridgeTime, pickNextPerDirection, pickNextNPerDirection } from '../src/bridge';
+import { computeBridgeTime, pickNextNPerDirection } from '../src/bridge';
 import type { Arrival } from '../src/tfl';
 import { getViewpointById } from '../src/viewpoints';
 
@@ -42,7 +42,7 @@ describe('computeBridgeTime', () => {
   });
 });
 
-describe('pickNextPerDirection', () => {
+describe('pickNextNPerDirection with n = 1', () => {
   it('picks earliest future northbound and earliest future southbound', () => {
     const arrivals = [
       arrival('Chingford', 300, 'n1'),
@@ -51,12 +51,12 @@ describe('pickNextPerDirection', () => {
       arrival('Liverpool Street', 200, 's2')
     ];
 
-    const result = pickNextPerDirection(arrivals, EAST_AVE);
+    const result = pickNextNPerDirection(arrivals, 1, EAST_AVE);
 
-    expect(result.north?.arrival.id).toBe('n2');
-    expect(result.north?.bridgeTimeSeconds).toBe(202); // 60 + 142
-    expect(result.south?.arrival.id).toBe('s2');
-    expect(result.south?.bridgeTimeSeconds).toBe(178); // 200 - 22
+    expect(result.north[0]?.arrival.id).toBe('n2');
+    expect(result.north[0]?.bridgeTimeSeconds).toBe(202); // 60 + 142
+    expect(result.south[0]?.arrival.id).toBe('s2');
+    expect(result.south[0]?.bridgeTimeSeconds).toBe(178); // 200 - 22
   });
 
   it('excludes arrivals whose bridge time is too far in the past (< -30s)', () => {
@@ -64,22 +64,22 @@ describe('pickNextPerDirection', () => {
       arrival('Liverpool Street', -100, 's-gone'),
       arrival('Liverpool Street', 200, 's-next')
     ];
-    const result = pickNextPerDirection(arrivals, EAST_AVE);
-    expect(result.south?.arrival.id).toBe('s-next');
+    const result = pickNextNPerDirection(arrivals, 1, EAST_AVE);
+    expect(result.south[0]?.arrival.id).toBe('s-next');
   });
 
   it('keeps a southbound train that just crossed (bridge time between -30 and 0)', () => {
     const arrivals = [arrival('Liverpool Street', 10, 's-just-crossed')];
-    const result = pickNextPerDirection(arrivals, EAST_AVE);
-    expect(result.south?.arrival.id).toBe('s-just-crossed');
-    expect(result.south?.bridgeTimeSeconds).toBe(-12);
+    const result = pickNextNPerDirection(arrivals, 1, EAST_AVE);
+    expect(result.south[0]?.arrival.id).toBe('s-just-crossed');
+    expect(result.south[0]?.bridgeTimeSeconds).toBe(-12);
   });
 
   it('returns undefined for a direction with no valid arrivals', () => {
     const arrivals = [arrival('Chingford', 120, 'n1')];
-    const result = pickNextPerDirection(arrivals, EAST_AVE);
-    expect(result.north?.arrival.id).toBe('n1');
-    expect(result.south).toBeUndefined();
+    const result = pickNextNPerDirection(arrivals, 1, EAST_AVE);
+    expect(result.north[0]?.arrival.id).toBe('n1');
+    expect(result.south).toEqual([]);
   });
 });
 

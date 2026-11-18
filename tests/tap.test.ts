@@ -9,7 +9,6 @@ import {
   levelFor,
   passKey,
   promotionFor,
-  registerGapLine,
   tidyDestination,
   updatePass,
   type TapPass,
@@ -159,19 +158,6 @@ describe('levelFor', () => {
     const top = levelFor(75);
     expect(top.name).toBe('Station Master');
     expect(top.next).toBeNull();
-  });
-});
-
-describe('registerGapLine', () => {
-  const t = 1_000_000;
-  it('says right time within 3 s', () => {
-    expect(registerGapLine(t, t + 2000)).toBe('Right time.');
-  });
-  it('says early when the app predicted before the tap', () => {
-    expect(registerGapLine(t, t - 12000)).toBe('We were 12 seconds early. Noted.');
-  });
-  it('says late when the app predicted after the tap', () => {
-    expect(registerGapLine(t, t + 8000)).toBe('We were 8 seconds late. Noted.');
   });
 });
 
