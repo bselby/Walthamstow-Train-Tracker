@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseRoute, viewpointPath, HOME_PATH } from '../src/routes';
+import { parseRoute, viewpointPath, HOME_PATH, TICKET_PATH, HOW_PATH } from '../src/routes';
 import { VIEWPOINTS, getViewpointById } from '../src/viewpoints';
 
 describe('parseRoute', () => {
@@ -22,6 +22,21 @@ describe('parseRoute', () => {
       expect(parseRoute(p)).toEqual({ kind: 'unknown' });
     },
   );
+});
+
+describe('ticket and how-it-works routes', () => {
+  it.each(['/ticket', '/Ticket/'])('"%s" is the ticket', (p) => {
+    expect(parseRoute(p)).toEqual({ kind: 'ticket' });
+  });
+
+  it.each(['/how-it-works', '/How-It-Works/'])('"%s" is the explainer', (p) => {
+    expect(parseRoute(p)).toEqual({ kind: 'how' });
+  });
+
+  it('exposes their paths', () => {
+    expect(TICKET_PATH).toBe('/ticket');
+    expect(HOW_PATH).toBe('/how-it-works');
+  });
 });
 
 describe('viewpointPath', () => {

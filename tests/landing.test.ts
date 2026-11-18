@@ -31,4 +31,10 @@ describe('landingFor', () => {
   it('a single favourite that is no longer in the data lands on home', () => {
     expect(landingFor(home, ['gone'])).toEqual({ screen: 'home' });
   });
+
+  it('the ticket and explainer addresses open those screens, not the single favourite', () => {
+    expect(landingFor({ kind: 'ticket' }, ['x'])).toEqual({ screen: 'ticket' });
+    expect(landingFor({ kind: 'ticket' }, [])).toEqual({ screen: 'ticket' });
+    expect(landingFor({ kind: 'how' }, ['east-ave'])).toEqual({ screen: 'how' });
+  });
 });

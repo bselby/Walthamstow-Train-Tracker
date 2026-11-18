@@ -22,7 +22,7 @@ import { atViewpoint, canTuneViewpoint, passKey, updatePass, type TapPass } from
 import { chooseHelp, loadTapState, recordTap, resetChoice, saveTapState } from './tapStore';
 import { buildTapPayload, sendTap } from './tapClient';
 import { newDeviceId, tapAsk, tapDirectionView, tflExpectedArrivalMs } from './tapView';
-import { parseRoute, viewpointPath, HOME_PATH } from './routes';
+import { parseRoute, viewpointPath, HOME_PATH, TICKET_PATH, HOW_PATH } from './routes';
 import { loadFavourites, saveFavourites, toggleFavourite } from './favourites';
 import { landingFor } from './landing';
 import { renderHome } from './home';
@@ -164,13 +164,19 @@ function replaceAddress(path: string): void {
 // This rule is for opening the app only. Going to home from a countdown
 // shows home whatever the favourites are.
 const landing = landingFor(parseRoute(window.location.pathname), favouriteIds);
-let screen: 'home' | 'countdown' = landing.screen === 'viewpoint' ? 'countdown' : 'home';
+let screen: 'home' | 'countdown' | 'ticket' | 'how' =
+  landing.screen === 'viewpoint' ? 'countdown' : landing.screen;
 // The viewpoint the countdown screen shows. Kept while home is showing, so
 // the countdown code never has to handle there being none.
 let activeViewpoint: Viewpoint = landing.screen === 'viewpoint'
   ? landing.viewpoint
   : getViewpointById(DEFAULT_VIEWPOINT_ID)!;
-replaceAddress(screen === 'countdown' ? viewpointPath(activeViewpoint) : HOME_PATH);
+replaceAddress(
+  screen === 'countdown' ? viewpointPath(activeViewpoint)
+  : screen === 'ticket' ? TICKET_PATH
+  : screen === 'how' ? HOW_PATH
+  : HOME_PATH,
+);
 
 // Home's arrivals, per viewpoint, and whether the latest home poll reached TfL.
 let homeSnapshots: HomeSnapshots = {};
@@ -299,10 +305,65 @@ function goHome(): void {
   window.scrollTo(0, 0);
 }
 
+const TICKET_TITLE = 'Your ticket · E17 Trains';
+const HOW_TITLE = 'How it works · E17 Trains';
+
+/** Show the ticket or the explainer. Neither polls, so both pollers stop;
+ *  going back starts whichever the destination needs, from clean. */
+function showInfoScreen(which: 'ticket' | 'how'): void {
+  stopHomePoller();
+  stopCountdownPollers();
+  screen = which;
+  resetCountdownState();
+  document.title = which === 'ticket' ? TICKET_TITLE : HOW_TITLE;
+  document.documentElement.style.removeProperty('--line-color');
+  rerender();
+}
+
+/** Back from the ticket or the explainer: one step back in history when this
+ *  app put it there (so the screen before returns as it was), else home. */
+function backFromInfo(): void {
+  const from = (window.history.state as { from?: string } | null)?.from;
+  if (from) window.history.back();
+  else goHome();
+}
+
+function openInfo(which: 'ticket' | 'how'): void {
+  try {
+    window.history.pushState({ from: window.location.pathname }, '', which === 'ticket' ? TICKET_PATH : HOW_PATH);
+  } catch {
+    /* no-op: the screen still changes */
+  }
+  showInfoScreen(which);
+  window.scrollTo(0, 0);
+}
+
+// Tasks 7-10 call these from the screens' render options.
+export function openTicket(): void { openInfo('ticket'); }
+export function openHow(): void { openInfo('how'); }
+
+/** Stand-in for the ticket and explainer screens until Tasks 9 and 10 land:
+ *  swap the body for renderTicketPage / renderHowItWorks. Painted once per
+ *  visit, since the one-second loop calls rerender. */
+function renderInfoPlaceholder(which: 'ticket' | 'how'): void {
+  if (root.dataset.info === which) return;
+  root.dataset.info = which;
+  root.innerHTML = '';
+  const h1 = document.createElement('h1');
+  h1.textContent = which === 'ticket' ? 'Your ticket' : 'How it works';
+  const back = document.createElement('button');
+  back.type = 'button';
+  back.textContent = 'Back';
+  back.addEventListener('click', backFromInfo);
+  root.append(h1, back);
+}
+
 // Back and forward: show whatever the address bar now names.
 window.addEventListener('popstate', () => {
   const route = parseRoute(window.location.pathname);
   if (route.kind === 'viewpoint') showCountdown(route.viewpoint);
+  else if (route.kind === 'ticket') showInfoScreen('ticket');
+  else if (route.kind === 'how') showInfoScreen('how');
   else showHome();
 });
 
@@ -511,6 +572,11 @@ function onHelpChoice(choice: 'helping' | 'declined'): void {
 }
 
 function rerender(): void {
+  if (screen === 'ticket' || screen === 'how') {
+    renderInfoPlaceholder(screen);
+    return;
+  }
+  delete root.dataset.info;
   if (screen === 'home') {
     renderHome(
       root,
@@ -703,6 +769,10 @@ document.addEventListener('visibilitychange', () => {
 if (screen === 'countdown') {
   document.documentElement.style.setProperty('--line-color', activeViewpoint.lineColor);
   document.title = `E17 Trains — ${activeViewpoint.lineName} · ${activeViewpoint.name}`;
+} else if (screen === 'ticket') {
+  document.title = TICKET_TITLE;
+} else if (screen === 'how') {
+  document.title = HOW_TITLE;
 }
 
 // ── TD berth integration ──────────────────────────────────────────────────────
@@ -730,4 +800,4 @@ function onBerthEvent(event: BerthEvent): void {
 
 startRenderLoop();
 if (screen === 'countdown') startCountdownPollers();
-else startHomePoller();
+else if (screen === 'home') startHomePoller();
