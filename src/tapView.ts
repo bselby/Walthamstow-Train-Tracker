@@ -11,9 +11,10 @@ import type { TapDirectionView } from './tapUi';
 /**
  * One direction's slot. `thanks` while the minute after the tap runs and the
  * latest tap is the one made here (the pass itself may already have expired);
- * otherwise, at a spot that can be tuned, a button for an untapped pass
- * unless the user said no, or for someone who said yes a placeholder until
- * the button is due.
+ * otherwise, at a spot that can be tuned and unless the user said no, a
+ * button for an untapped pass, for someone who said yes a placeholder until
+ * the button is due, else an empty reserved slot. `none` (no slot) only
+ * where timing is off.
  */
 export function tapDirectionView(input: {
   pass: TapPass | null;
@@ -44,17 +45,20 @@ export function tapDirectionView(input: {
     };
   }
   if (!input.canTune || !buttonsEnabled(tapState)) return none;
+  // From here timing is on at this spot: the slot is always drawn, empty
+  // ('reserved') when there is nothing to show, so the card never changes height.
+  const reserved: TapDirectionView = { ...none, state: 'reserved' };
   if (pass) {
     const key = passKey(pass);
     if (!hasTapped(tapState, key)) {
       return { ...none, state: 'button', passKey: key, destination: pass.destination };
     }
-    return none;
+    return reserved;
   }
   if (tapState.choice === 'helping' && input.msUntilButton !== null && input.msUntilButton > 0) {
     return { ...none, state: 'placeholder', msUntilButton: input.msUntilButton };
   }
-  return none;
+  return reserved;
 }
 
 /** How long until this train's button opens, or null when it will get none

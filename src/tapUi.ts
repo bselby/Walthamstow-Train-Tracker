@@ -3,11 +3,14 @@
 // the invitation card below the cards. Pure DOM builders; state lives in
 // tapStore and is wired in main.ts.
 import type { AskKind } from './tapStore';
-import { LEVELS, levelFor, promotionFor } from './tap';
+import { promotionFor } from './tap';
+import { TICKET_PATH } from './routes';
 import { NO_SIGNAL_LINE, placeholderLine, progressLine, rankUpLines } from './tapCopy';
 
 export interface TapDirectionView {
-  state: 'none' | 'placeholder' | 'button' | 'thanks';
+  /** `reserved`: timing is on at this spot but nothing is due, so the slot
+   *  holds its height, empty. */
+  state: 'none' | 'reserved' | 'placeholder' | 'button' | 'thanks';
   passKey: string | null;
   destination: string | null;
   /** Set in the 'thanks' state. */
@@ -43,29 +46,33 @@ function el<K extends keyof HTMLElementTagNameMap>(
 }
 
 /**
- * The slot for one direction: null, or a `.tap-slot` holding the placeholder,
- * the button or the thank-you. The slot element itself is kept from state to
- * state, so its fixed height holds and nothing below it jumps. Its contents
- * are kept while the pass, state and tap count are unchanged, so the page's
- * one-second redraw never loses a press or replays the clip.
+ * The slot for one direction: null where timing is off, else a `.tap-slot`
+ * of one fixed height (styles.css) holding nothing, the placeholder, the
+ * button or the thank-you. The slot element is kept from state to state, so
+ * nothing below it ever moves. Its contents are kept while the pass, state
+ * and entry are unchanged, so the page's one-second redraw never loses a
+ * press, and a tap in the other direction never redraws or re-announces
+ * this card's thank-you.
  */
 export function renderTapSlot(
   existing: HTMLElement | null,
   view: TapDirectionView,
-  taps: number,
   handlers: TapSlotHandlers,
 ): HTMLElement | null {
   if (view.state === 'none') return null;
-  if (view.state !== 'placeholder' && view.passKey === null) return null;
+  if ((view.state === 'button' || view.state === 'thanks') && view.passKey === null) return null;
 
   const slot = existing ?? el('div', 'tap-slot');
-  const key = view.state === 'placeholder' ? '' : view.passKey!;
-  const tapsKey = view.state === 'thanks' ? String(taps) : '';
+  const key = view.passKey ?? '';
+  // A thank-you is drawn from its own tap, never from the global count.
+  const entryKey = view.state === 'thanks' && view.entry ? String(view.entry.tapsBefore) : '';
   const same = slot.dataset.state === view.state
     && (slot.dataset.passKey ?? '') === key
-    && (slot.dataset.taps ?? '') === tapsKey;
+    && (slot.dataset.entry ?? '') === entryKey;
 
-  if (view.state === 'placeholder') {
+  if (view.state === 'reserved') {
+    if (!same) slot.replaceChildren();
+  } else if (view.state === 'placeholder') {
     const line = placeholderLine(view.msUntilButton ?? 0);
     const box = same ? slot.querySelector<HTMLElement>('.tap-placeholder') : null;
     if (box) {
@@ -80,15 +87,14 @@ export function renderTapSlot(
     // the no-signal line in place, so the status is not announced twice.
     setOffline(slot.querySelector<HTMLElement>('.tap-thanks')!, view.offline);
   } else {
-    // The hole is newly clipped only when this thank-you replaces the button
-    // for the same train; shown fresh (after a reload) it stays still.
-    const justClipped = slot.dataset.state === 'button' && slot.dataset.passKey === key;
-    slot.replaceChildren(renderThanks(view, taps, justClipped, handlers));
+    slot.replaceChildren(renderThanks(view, handlers));
   }
 
+  if (view.state === 'reserved') slot.setAttribute('aria-hidden', 'true');
+  else slot.removeAttribute('aria-hidden');
   slot.dataset.state = view.state;
   slot.dataset.passKey = key;
-  slot.dataset.taps = tapsKey;
+  slot.dataset.entry = entryKey;
   return slot;
 }
 
@@ -159,27 +165,29 @@ function renderTapButton(handlers: TapSlotHandlers): HTMLElement {
 const TICK_SVG =
   '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10 L8.5 14.5 L16 6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-function renderThanks(
-  view: TapDirectionView,
-  taps: number,
-  justClipped: boolean,
-  handlers: TapSlotHandlers,
-): HTMLElement {
+function renderThanks(view: TapDirectionView, handlers: TapSlotHandlers): HTMLElement {
   const box = el('div', 'tap-thanks');
   box.setAttribute('role', 'status');
-  const promoted = view.entry !== null && promotionFor(view.entry.tapsBefore, taps) !== null;
+  const before = view.entry?.tapsBefore ?? 0;
+  const after = before + 1;
+  const promoted = view.entry !== null && promotionFor(before, after) !== null;
 
   if (promoted) {
     // A rank-up takes the place of "Got it", inside the card, so it never
-    // covers a countdown.
+    // covers a countdown. Trimmed to fit the slot: the title, the next rank
+    // (or the kit at the top rank), and a link to the ticket.
     box.classList.add('tap-rankup');
-    const lines = rankUpLines(taps);
+    const lines = rankUpLines(after);
     box.appendChild(el('p', 'tap-heading', lines.title));
-    box.appendChild(el('p', 'tap-line', lines.body));
-    if (lines.next) box.appendChild(el('p', 'tap-next', lines.next));
-    const see = el('button', 'tap-see-ticket', 'See my ticket');
-    see.type = 'button';
-    see.addEventListener('click', () => handlers.onOpenTicket());
+    box.appendChild(el('p', 'tap-line tap-next', lines.next ?? lines.body));
+    const see = el('a', 'tap-see-ticket', 'See my ticket');
+    see.href = TICKET_PATH;
+    see.addEventListener('click', (e) => {
+      // A new tab or window is the browser's to handle.
+      if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+      e.preventDefault();
+      handlers.onOpenTicket();
+    });
     box.appendChild(see);
   } else {
     const head = el('div', 'tap-thanks-head');
@@ -188,62 +196,26 @@ function renderThanks(
     head.appendChild(tick);
     head.appendChild(el('p', 'tap-heading', 'Got it. Ticket clipped.'));
     box.appendChild(head);
-    const holes = renderHoles(taps, justClipped);
-    if (holes) box.appendChild(holes);
-    box.appendChild(el('p', 'tap-line', progressLine(taps)));
+    box.appendChild(el('p', 'tap-line', progressLine(after)));
   }
 
   setOffline(box, view.offline);
   return box;
 }
 
+/** Add or drop the no-signal line. In a rank-up it stands in for the next
+ *  rank line, so the message still fits the slot. */
 function setOffline(box: HTMLElement, offline: boolean): void {
   const line = box.querySelector('.tap-offline');
   if (offline && !line) {
-    const note = el('p', 'tap-offline', NO_SIGNAL_LINE);
-    const see = box.querySelector('.tap-see-ticket');
-    box.insertBefore(note, see);
+    box.insertBefore(el('p', 'tap-offline', NO_SIGNAL_LINE), box.querySelector('.tap-see-ticket'));
   } else if (!offline && line) {
     line.remove();
   }
-}
-
-/** Slightly longer than the 300 ms clip, for when no animationend fires
- *  (reduced motion, or the slot is not on screen). */
-const CLIP_WINDOW_MS = 350;
-
-/** The clip plays once: the class comes off when it ends, so nothing that
- *  later re-inserts the slot can replay it. */
-function markJustClipped(hole: HTMLElement): void {
-  hole.classList.add('just-clipped');
-  const clear = () => hole.classList.remove('just-clipped');
-  hole.addEventListener('animationend', clear, { once: true });
-  setTimeout(clear, CLIP_WINDOW_MS);
-}
-
-/**
- * One hole per train between the current rank and the next, the ones done
- * clipped. Before the second rank the row counts from no trains at all, so
- * the first five read as five holes towards Guard. None at the top rank.
- */
-function renderHoles(taps: number, justClipped: boolean): HTMLElement | null {
-  const { name, next } = levelFor(taps);
-  if (!next) return null;
-  const index = LEVELS.findIndex((l) => l.name === name);
-  const from = index <= 0 ? 0 : LEVELS[index].taps;
-  const total = next.taps - from;
-  const done = taps - from;
-
-  const row = el('div', 'tap-holes');
-  row.setAttribute('aria-hidden', 'true');
-  for (let i = 0; i < total; i++) {
-    const hole = el('span', 'tap-hole');
-    if (i < done) hole.classList.add('clipped');
-    if (i === done - 1) hole.classList.add('newest');
-    if (justClipped && i === done - 1) markJustClipped(hole);
-    row.appendChild(hole);
+  if (box.classList.contains('tap-rankup')) {
+    const next = box.querySelector<HTMLElement>('.tap-next');
+    if (next) next.hidden = offline;
   }
-  return row;
 }
 
 const ASK_BODY =

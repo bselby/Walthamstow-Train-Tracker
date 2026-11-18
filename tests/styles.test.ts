@@ -44,16 +44,30 @@ describe('picture book tokens', () => {
 });
 
 describe('timing slot', () => {
-  it('keeps the button height in every state, so nothing below jumps', () => {
-    const slot = css.match(/\.tap-slot\s*\{([^}]*)\}/);
-    expect(slot).not.toBeNull();
-    const button = css.match(/\.tap-button\s*\{([^}]*)\}/)!;
-    const slotMin = slot![1].match(/min-height:\s*([^;]+);/)![1].trim();
-    const buttonMin = button[1].match(/min-height:\s*([^;]+);/)![1].trim();
-    expect(slotMin).toBe(buttonMin);
+  const rule = (sel: string) => {
+    const m = css.match(new RegExp(`(^|\\n)${sel.replace('.', '\\.')}\\s*\\{([^}]*)\\}`));
+    expect(m, sel).not.toBeNull();
+    return m![2];
+  };
+
+  it('has one fixed height that its content cannot grow', () => {
+    const slot = rule('.tap-slot');
+    expect(slot).toMatch(/(^|[;\s])height:\s*7\.5rem/);
+    expect(slot).not.toMatch(/min-height/);
+    expect(slot).toMatch(/overflow:\s*hidden/);
+    // No other rule sizes the slot by state.
+    expect(css).not.toMatch(/\.tap-slot[.\[][^{]*\{[^}]*height/);
   });
 
-  it('has no rules for the old ticket strip or register', () => {
-    expect(css).not.toMatch(/\.ask-strip|\.tap-register|\.ticket-hole|\.tap-notice/);
+  it('has no rules for the old ticket strip, register or holes', () => {
+    expect(css).not.toMatch(/\.ask-strip|\.tap-register|\.ticket-hole|\.tap-notice|\.tap-hole/);
+  });
+});
+
+describe('ticket badge', () => {
+  it('is itself at least 44px tall and does not clip its own target', () => {
+    const badge = css.match(/\n\.ticket-badge\s*\{([^}]*)\}/)![1];
+    expect(badge).toMatch(/min-height:\s*(2\.75rem|44px)/);
+    expect(badge).not.toMatch(/overflow:\s*hidden/);
   });
 });
