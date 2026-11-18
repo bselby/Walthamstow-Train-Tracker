@@ -703,6 +703,7 @@ describe('render — the rest of the spot screen', () => {
     render(root, both({ walkingLabel: '4 min walk · 300 m' }), handlers);
     const walking = root.querySelector('.spot-tools .walking-time')!;
     expect(walking.textContent).toContain('4 min walk · 300 m');
+    expect(walking.querySelector('.walking-time-off')!.textContent).toBe('Turn off');
     walking.querySelector<HTMLButtonElement>('.walking-time-off')!.click();
     expect(onDisableWalkingTime).toHaveBeenCalledTimes(1);
   });
