@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { BridgeEvent } from '../src/bridge';
 import type { TapPass } from '../src/tap';
 import type { TapState } from '../src/tapStore';
-import { newDeviceId, tapAsk, tapDirectionView, tflExpectedArrivalMs } from '../src/tapView';
+import { msUntilButton, newDeviceId, tapAsk, tapDirectionView, tflExpectedArrivalMs } from '../src/tapView';
+import { getViewpointById } from '../src/viewpoints';
 
 const NOW = 1_800_000_000_000;
 
@@ -39,31 +40,68 @@ const tapped = state({
   lastTap: { passKey: KEY, tapMs: NOW - 1_000, predictedMs: NOW + 2_000, tapsBefore: 2 },
 });
 
+type ViewInput = Parameters<typeof tapDirectionView>[0];
+function view(over: Partial<ViewInput> = {}) {
+  return tapDirectionView({
+    pass: null,
+    tapState: state(),
+    thanksUntilMs: undefined,
+    thanksPassKey: undefined,
+    nowMs: NOW,
+    canTune: true,
+    msUntilButton: null,
+    offline: false,
+    ...over,
+  });
+}
+const NONE = { state: 'none', passKey: null, destination: null, entry: null, msUntilButton: null, offline: false };
+
 describe('tapDirectionView', () => {
   it('is none with no pass', () => {
-    expect(
-      tapDirectionView({ pass: null, tapState: state(), thanksUntilMs: undefined, thanksPassKey: undefined, nowMs: NOW }),
-    ).toEqual({ state: 'none', passKey: null, destination: null, entry: null });
+    expect(view()).toEqual(NONE);
   });
 
   it('is a button for an untapped pass', () => {
-    expect(
-      tapDirectionView({ pass, tapState: state(), thanksUntilMs: undefined, thanksPassKey: undefined, nowMs: NOW }),
-    ).toEqual({ state: 'button', passKey: KEY, destination: 'Chingford', entry: null });
+    expect(view({ pass })).toEqual({ ...NONE, state: 'button', passKey: KEY, destination: 'Chingford' });
+  });
+
+  it('is a button for someone who has not answered the invitation yet', () => {
+    expect(view({ pass, tapState: state({ choice: 'unset' }) }).state).toBe('button');
   });
 
   it('is none for a pass when the user said not now', () => {
     const declined = state({ choice: 'declined', declinedAtMs: NOW - 1, asksShown: 1 });
-    expect(
-      tapDirectionView({ pass, tapState: declined, thanksUntilMs: undefined, thanksPassKey: undefined, nowMs: NOW })
-        .state,
-    ).toBe('none');
+    expect(view({ pass, tapState: declined }).state).toBe('none');
+  });
+
+  it('is none at a spot that cannot be tuned, even with a pass and helping', () => {
+    const helping = state({ choice: 'helping' });
+    expect(view({ pass, tapState: helping, canTune: false }).state).toBe('none');
+    expect(view({ tapState: helping, canTune: false, msUntilButton: 300_000 }).state).toBe('none');
+  });
+
+  it('placeholder for someone helping while the button is not yet due', () => {
+    expect(view({ tapState: state({ choice: 'helping' }), msUntilButton: 300_000 }))
+      .toEqual({ ...NONE, state: 'placeholder', msUntilButton: 300_000 });
+  });
+
+  it('no placeholder for someone who has not said yes, or said no', () => {
+    expect(view({ tapState: state({ choice: 'unset' }), msUntilButton: 300_000 }).state).toBe('none');
+    expect(view({ tapState: state({ choice: 'declined' }), msUntilButton: 300_000 }).state).toBe('none');
+  });
+
+  it('no placeholder without a time to count down to', () => {
+    expect(view({ tapState: state({ choice: 'helping' }), msUntilButton: null }).state).toBe('none');
+    expect(view({ tapState: state({ choice: 'helping' }), msUntilButton: 0 }).state).toBe('none');
+  });
+
+  it('the button wins over the placeholder once a pass is open', () => {
+    expect(view({ pass, tapState: state({ choice: 'helping' }), msUntilButton: 300_000 }).state).toBe('button');
   });
 
   it('shows thanks with the last tap as the entry while the minute runs', () => {
-    expect(
-      tapDirectionView({ pass, tapState: tapped, thanksUntilMs: NOW + 59_000, thanksPassKey: KEY, nowMs: NOW }),
-    ).toEqual({
+    expect(view({ pass, tapState: tapped, thanksUntilMs: NOW + 59_000, thanksPassKey: KEY })).toEqual({
+      ...NONE,
       state: 'thanks',
       passKey: KEY,
       destination: 'Chingford',
@@ -71,30 +109,32 @@ describe('tapDirectionView', () => {
     });
   });
 
+  it('thanks carries whether the send failed', () => {
+    const v = view({ pass, tapState: tapped, thanksUntilMs: NOW + 59_000, thanksPassKey: KEY, offline: true });
+    expect(v.state).toBe('thanks');
+    expect(v.offline).toBe(true);
+  });
+
   it('keeps the thanks after the pass itself has expired', () => {
-    const view = tapDirectionView({ pass: null, tapState: tapped, thanksUntilMs: NOW + 10_000, thanksPassKey: KEY, nowMs: NOW });
-    expect(view.state).toBe('thanks');
-    expect(view.passKey).toBe(KEY);
+    const v = view({ tapState: tapped, thanksUntilMs: NOW + 10_000, thanksPassKey: KEY });
+    expect(v.state).toBe('thanks');
+    expect(v.passKey).toBe(KEY);
   });
 
   it('is none for a tapped pass once the minute is up', () => {
-    expect(
-      tapDirectionView({ pass, tapState: tapped, thanksUntilMs: NOW, thanksPassKey: KEY, nowMs: NOW }).state,
-    ).toBe('none');
+    expect(view({ pass, tapState: tapped, thanksUntilMs: NOW, thanksPassKey: KEY }).state).toBe('none');
   });
 
   it('drops the thanks when the last tap was for another pass', () => {
     const other = { ...tapped, lastTap: { ...tapped.lastTap!, passKey: 'east-ave|south|1' } };
-    expect(
-      tapDirectionView({ pass, tapState: other, thanksUntilMs: NOW + 30_000, thanksPassKey: KEY, nowMs: NOW }).state,
-    ).toBe('none');
+    expect(view({ pass, tapState: other, thanksUntilMs: NOW + 30_000, thanksPassKey: KEY }).state).toBe('none');
   });
 
   it('falls back to a button for a new pass once the minute is up', () => {
     const next: TapPass = { ...pass, predictedAtShowMs: NOW + 400_000 };
-    const view = tapDirectionView({ pass: next, tapState: tapped, thanksUntilMs: NOW - 1, thanksPassKey: KEY, nowMs: NOW });
-    expect(view.state).toBe('button');
-    expect(view.passKey).toBe(`east-ave|north|${NOW + 400_000}`);
+    const v = view({ pass: next, tapState: tapped, thanksUntilMs: NOW - 1, thanksPassKey: KEY });
+    expect(v.state).toBe('button');
+    expect(v.passKey).toBe(`east-ave|north|${NOW + 400_000}`);
   });
 });
 
@@ -148,16 +188,16 @@ describe('newDeviceId', () => {
 });
 
 describe('tapAsk', () => {
-  const none = { state: 'none', passKey: null, destination: null, entry: null } as const;
+  const none = NONE as ReturnType<typeof view>;
 
   it('hides the ask while either direction shows its thank-you, then invites again', () => {
-    const during = tapDirectionView({ pass, tapState: tapped, thanksUntilMs: NOW + 30_000, thanksPassKey: KEY, nowMs: NOW });
+    const during = view({ pass, tapState: tapped, thanksUntilMs: NOW + 30_000, thanksPassKey: KEY });
     expect(during.state).toBe('thanks');
     expect(tapAsk({ tapState: tapped, nowMs: NOW, offerable: true, views: [none, during] })).toBeNull();
     expect(tapAsk({ tapState: tapped, nowMs: NOW, offerable: true, views: [during, none] })).toBeNull();
 
     const later = NOW + 30_000;
-    const after = tapDirectionView({ pass, tapState: tapped, thanksUntilMs: NOW + 30_000, thanksPassKey: KEY, nowMs: later });
+    const after = view({ pass, tapState: tapped, thanksUntilMs: NOW + 30_000, thanksPassKey: KEY, nowMs: later });
     expect(after.state).not.toBe('thanks');
     expect(tapAsk({ tapState: tapped, nowMs: later, offerable: true, views: [none, after] })).toBe('invite');
   });
@@ -165,5 +205,29 @@ describe('tapAsk', () => {
   it('is null where no tap can be offered', () => {
     expect(tapAsk({ tapState: state(), nowMs: NOW, offerable: false, views: [none, none] })).toBeNull();
     expect(tapAsk({ tapState: state(), nowMs: NOW, offerable: true, views: [none, none] })).toBe('first');
+  });
+});
+
+describe('msUntilButton', () => {
+  const EA = getViewpointById('east-ave')!;
+  const QR = getViewpointById('queens-road')!;
+  const hero = (bridgeTimeSeconds: number, category?: 'freight'): BridgeEvent => ({
+    direction: 'north',
+    bridgeTimeSeconds,
+    arrival: {
+      id: 'a', stationName: 'S', lineId: 'weaver', destinationName: 'Chingford',
+      timeToStation: bridgeTimeSeconds, expectedArrival: '2026-11-17T10:00:00Z',
+      modeName: 'overground', platformName: '1', category,
+    },
+  });
+
+  it('is the time until the button opens, 30 seconds before the train', () => {
+    expect(msUntilButton(EA, 'north', hero(330))).toBe(300_000);
+  });
+
+  it('is null with no train, a freight train, or at a spot with nothing to tune', () => {
+    expect(msUntilButton(EA, 'north', undefined)).toBeNull();
+    expect(msUntilButton(EA, 'north', hero(330, 'freight'))).toBeNull();
+    expect(msUntilButton(QR, 'north', hero(330))).toBeNull();
   });
 });

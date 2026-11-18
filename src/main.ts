@@ -20,8 +20,8 @@ import type { BerthEvent } from './tdProxy';
 import { fetchFreight, clampFreightPosition } from './freight';
 import { atViewpoint, canTuneViewpoint, passKey, updatePass, type TapPass } from './tap';
 import { chooseHelp, loadTapState, recordTap, resetChoice, saveTapState } from './tapStore';
-import { buildTapPayload, sendTap } from './tapClient';
-import { newDeviceId, tapAsk, tapDirectionView, tflExpectedArrivalMs } from './tapView';
+import { buildTapPayload, sendTap, shouldSendTaps } from './tapClient';
+import { msUntilButton, newDeviceId, tapAsk, tapDirectionView, tflExpectedArrivalMs } from './tapView';
 import { parseRoute, viewpointPath, HOME_PATH, TICKET_PATH, HOW_PATH } from './routes';
 import { loadFavourites, saveFavourites, toggleFavourite } from './favourites';
 import { landingFor } from './landing';
@@ -69,6 +69,8 @@ const THANKS_DURATION_MS = 60_000;
 const tapPasses: Record<Direction, TapPass | null> = { north: null, south: null };
 const thanksUntilMs: Partial<Record<Direction, number>> = {};
 const thanksPassKey: Partial<Record<Direction, string>> = {};
+// The tap being thanked could not be sent: the thank-you says so.
+const tapOffline: Partial<Record<Direction, boolean>> = {};
 
 // Generation counter — incremented on every viewpoint switch. tick() captures
 // the current value at invocation time and discards results if it has changed
@@ -240,6 +242,7 @@ function resetCountdownState(): void {
     tapPasses[dir] = null;
     delete thanksUntilMs[dir];
     delete thanksPassKey[dir];
+    delete tapOffline[dir];
   }
   // Invalidate any in-flight tick so it discards its results when it resolves.
   tickGeneration++;
@@ -505,6 +508,7 @@ function buildViewModel(): ViewModel {
 /** Advance each direction's pass against its hero and build the tap view. */
 function buildTapView(heroes: Partial<Record<Direction, BridgeEvent>>, now: number): ViewModel['tap'] {
   const views = {} as Record<Direction, ViewModel['tap']['north']>;
+  const canTune = canTuneViewpoint(activeViewpoint);
   for (const dir of DIRECTIONS) {
     const liveStep = liveBerthEta(berthEtas[dir], now) !== undefined ? berthSteps[dir] : undefined;
     tapPasses[dir] = updatePass(tapPasses[dir], {
@@ -520,20 +524,25 @@ function buildTapView(heroes: Partial<Record<Direction, BridgeEvent>>, now: numb
       thanksUntilMs: thanksUntilMs[dir],
       thanksPassKey: thanksPassKey[dir],
       nowMs: now,
+      canTune,
+      msUntilButton: msUntilButton(activeViewpoint, dir, heroes[dir]),
+      offline: tapOffline[dir] === true,
     });
   }
-  const offerable = canTuneViewpoint(activeViewpoint);
   return {
-    ask: tapAsk({ tapState, nowMs: now, offerable, views: [views.north, views.south] }),
+    ask: tapAsk({ tapState, nowMs: now, offerable: canTune, views: [views.north, views.south] }),
     taps: tapState.taps,
     north: views.north,
     south: views.south,
   };
 }
 
-/** The "train is passing" button: book the tap, show the thank-you, send it.
+/** The yellow button: book the tap, show the thank-you, send it, and say so
+ *  in the thank-you if the send failed. The count is recorded before the
+ *  send, so a failed send still counts on the ticket. Only the live site
+ *  sends; previews and local runs count the tap as sent.
  *  `pressedAtMs` is when the finger landed; the send time is taken below. */
-function onTap(dir: Direction, pressedAtMs: number): void {
+async function onTap(dir: Direction, pressedAtMs: number): Promise<void> {
   const tapMs = pressedAtMs;
   const pass = tapPasses[dir];
   // The pass expired between the last redraw and the press: the redraw drops
@@ -548,6 +557,7 @@ function onTap(dir: Direction, pressedAtMs: number): void {
   saveTapState(safeLocalWrite, tapState);
   thanksUntilMs[dir] = tapMs + THANKS_DURATION_MS;
   thanksPassKey[dir] = key;
+  tapOffline[dir] = false;
 
   const berthLive = liveBerthEta(berthEtas[dir], tapMs) !== undefined;
   const position = locationEnabled ? getLocationState().position : null;
@@ -561,7 +571,11 @@ function onTap(dir: Direction, pressedAtMs: number): void {
     atViewpoint: atViewpoint(position, activeViewpoint.coords),
     deviceId: tapState.deviceId,
   });
-  void sendTap(payload);
+  rerender();
+  const result = shouldSendTaps(location.hostname) ? await sendTap(payload) : 'sent';
+  // A spot switch or a newer tap in this direction since: not this thank-you.
+  if (thanksPassKey[dir] !== key) return;
+  tapOffline[dir] = result === 'failed';
   rerender();
 }
 
@@ -610,8 +624,9 @@ function rerender(): void {
     },
     onHome: goHome,
     onToggleFavourite: toggleFavouriteViewpoint,
-    onTap,
+    onTap: (dir, pressedAtMs) => { void onTap(dir, pressedAtMs); },
     onHelpChoice,
+    onOpenTicket: openTicket,
   });
 }
 

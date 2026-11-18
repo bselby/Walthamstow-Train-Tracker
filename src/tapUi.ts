@@ -1,16 +1,21 @@
-// The "train's here" screen pieces: the per-train button inside each direction
-// panel, the register-style thank-you that replaces it, the ask card below the
-// panels, and the card ticket that shows the parent's grade. Pure DOM builders;
-// state lives in tapStore and is wired in main.ts.
+// The timing slot inside each direction card: the dashed placeholder, the big
+// yellow button, and the "Got it" or rank-up message that replaces it; plus
+// the invitation card below the cards. Pure DOM builders; state lives in
+// tapStore and is wired in main.ts.
 import type { AskKind } from './tapStore';
-import { levelFor, promotionFor, registerGapLine } from './tap';
+import { LEVELS, levelFor, promotionFor } from './tap';
+import { NO_SIGNAL_LINE, placeholderLine, progressLine, rankUpLines } from './tapCopy';
 
 export interface TapDirectionView {
-  state: 'none' | 'button' | 'thanks';
+  state: 'none' | 'placeholder' | 'button' | 'thanks';
   passKey: string | null;
   destination: string | null;
   /** Set in the 'thanks' state. */
   entry: { tapMs: number; predictedMs: number; tapsBefore: number } | null;
+  /** Set in the 'placeholder' state: how long until the button opens. */
+  msUntilButton: number | null;
+  /** In the 'thanks' state: the tap could not be sent. */
+  offline: boolean;
 }
 
 export interface TapView {
@@ -20,12 +25,10 @@ export interface TapView {
   south: TapDirectionView;
 }
 
-const pad = (n: number) => String(n).padStart(2, '0');
-
-/** Local 24-hour HH:MM:SS, as a signal box register would write it. */
-function clockTime(ms: number): string {
-  const d = new Date(ms);
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+export interface TapSlotHandlers {
+  /** `pressedAtMs` is when the finger landed, not when it lifted. */
+  onTap: (pressedAtMs: number) => void;
+  onOpenTicket: () => void;
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(
@@ -40,47 +43,60 @@ function el<K extends keyof HTMLElementTagNameMap>(
 }
 
 /**
- * The slot for one direction: null, the button, or the thank-you. Returns
- * `existing` untouched while the pass, state and tap count are unchanged, so
- * the page's one-second redraw never loses a press or replays the clip.
+ * The slot for one direction: null, or a `.tap-slot` holding the placeholder,
+ * the button or the thank-you. The slot element itself is kept from state to
+ * state, so its fixed height holds and nothing below it jumps. Its contents
+ * are kept while the pass, state and tap count are unchanged, so the page's
+ * one-second redraw never loses a press or replays the clip.
  */
 export function renderTapSlot(
   existing: HTMLElement | null,
   view: TapDirectionView,
   taps: number,
-  onTap: (pressedAtMs: number) => void,
+  handlers: TapSlotHandlers,
 ): HTMLElement | null {
-  if (view.state === 'none' || view.passKey === null) return null;
+  if (view.state === 'none') return null;
+  if (view.state !== 'placeholder' && view.passKey === null) return null;
 
+  const slot = existing ?? el('div', 'tap-slot');
+  const key = view.state === 'placeholder' ? '' : view.passKey!;
   const tapsKey = view.state === 'thanks' ? String(taps) : '';
-  if (
-    existing
-    && existing.dataset.passKey === view.passKey
-    && existing.dataset.state === view.state
-    && (existing.dataset.taps ?? '') === tapsKey
-  ) {
-    return existing;
-  }
+  const same = slot.dataset.state === view.state
+    && (slot.dataset.passKey ?? '') === key
+    && (slot.dataset.taps ?? '') === tapsKey;
 
-  let slot: HTMLElement;
-  if (view.state === 'button') {
-    slot = renderTapButton(view.destination ?? 'This', onTap);
+  if (view.state === 'placeholder') {
+    const line = placeholderLine(view.msUntilButton ?? 0);
+    const box = same ? slot.querySelector<HTMLElement>('.tap-placeholder') : null;
+    if (box) {
+      if (box.textContent !== line) box.textContent = line;
+    } else {
+      slot.replaceChildren(el('div', 'tap-placeholder', line));
+    }
+  } else if (view.state === 'button') {
+    if (!same) slot.replaceChildren(renderTapButton(handlers));
+  } else if (same) {
+    // The send result can arrive after the thank-you is drawn: add or drop
+    // the no-signal line in place, so the status is not announced twice.
+    setOffline(slot.querySelector<HTMLElement>('.tap-thanks')!, view.offline);
   } else {
     // The hole is newly clipped only when this thank-you replaces the button
     // for the same train; shown fresh (after a reload) it stays still.
-    const justClipped = existing?.dataset.state === 'button'
-      && existing.dataset.passKey === view.passKey;
-    slot = renderThanks(view, taps, justClipped);
-    slot.dataset.taps = tapsKey;
+    const justClipped = slot.dataset.state === 'button' && slot.dataset.passKey === key;
+    slot.replaceChildren(renderThanks(view, taps, justClipped, handlers));
   }
-  slot.dataset.passKey = view.passKey;
+
   slot.dataset.state = view.state;
+  slot.dataset.passKey = key;
+  slot.dataset.taps = tapsKey;
   return slot;
 }
 
-function renderTapButton(destination: string, onTap: (pressedAtMs: number) => void): HTMLElement {
-  const button = el('button', 'tap-slot tap-button', `${destination} train is passing`);
+function renderTapButton(handlers: TapSlotHandlers): HTMLElement {
+  const button = el('button', 'tap-button');
   button.type = 'button';
+  button.appendChild(el('span', 'tap-button-main', 'Tap as the train passes'));
+  button.appendChild(el('span', 'tap-button-sub', 'when the front reaches you'));
   let committed = false;
   // The time the finger landed, while a press is pending.
   let pressedAtMs: number | null = null;
@@ -102,7 +118,7 @@ function renderTapButton(destination: string, onTap: (pressedAtMs: number) => vo
     if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
       navigator.vibrate(20);
     }
-    onTap(atMs);
+    handlers.onTap(atMs);
   };
 
   // pointerdown only records the press: the browser does not yet know whether
@@ -140,53 +156,106 @@ function renderTapButton(destination: string, onTap: (pressedAtMs: number) => vo
   return button;
 }
 
-function renderThanks(view: TapDirectionView, taps: number, justClipped: boolean): HTMLElement {
-  const slot = el('div', 'tap-slot tap-thanks');
-  slot.setAttribute('role', 'status');
-  const entry = view.entry;
-  const promotion = entry ? promotionFor(entry.tapsBefore, taps) : null;
+const TICK_SVG =
+  '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10 L8.5 14.5 L16 6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-  if (promotion) {
-    slot.appendChild(el('p', 'tap-notice-head', 'Staff notice'));
-    slot.appendChild(el('p', 'tap-heading', `Promoted to ${promotion.name}`));
-    slot.appendChild(el(
-      'p',
-      'tap-notice-kit',
-      `${promotion.kit} ${taps} ${taps === 1 ? 'train' : 'trains'} booked.`,
-    ));
+function renderThanks(
+  view: TapDirectionView,
+  taps: number,
+  justClipped: boolean,
+  handlers: TapSlotHandlers,
+): HTMLElement {
+  const box = el('div', 'tap-thanks');
+  box.setAttribute('role', 'status');
+  const promoted = view.entry !== null && promotionFor(view.entry.tapsBefore, taps) !== null;
+
+  if (promoted) {
+    // A rank-up takes the place of "Got it", inside the card, so it never
+    // covers a countdown.
+    box.classList.add('tap-rankup');
+    const lines = rankUpLines(taps);
+    box.appendChild(el('p', 'tap-heading', lines.title));
+    box.appendChild(el('p', 'tap-line', lines.body));
+    if (lines.next) box.appendChild(el('p', 'tap-next', lines.next));
+    const see = el('button', 'tap-see-ticket', 'See my ticket');
+    see.type = 'button';
+    see.addEventListener('click', () => handlers.onOpenTicket());
+    box.appendChild(see);
   } else {
-    slot.appendChild(el('p', 'tap-heading', 'Booked in. Thank you.'));
+    const head = el('div', 'tap-thanks-head');
+    const tick = el('span', 'tap-tick');
+    tick.innerHTML = TICK_SVG;
+    head.appendChild(tick);
+    head.appendChild(el('p', 'tap-heading', 'Got it. Ticket clipped.'));
+    box.appendChild(head);
+    const holes = renderHoles(taps, justClipped);
+    if (holes) box.appendChild(holes);
+    box.appendChild(el('p', 'tap-line', progressLine(taps)));
   }
 
-  if (entry) {
-    const register = el('dl', 'tap-register');
-    const row = (label: string, ms: number) => {
-      const line = el('div', 'tap-register-row');
-      line.appendChild(el('dt', 'tap-register-label', label));
-      line.appendChild(el('dd', 'tap-register-time', clockTime(ms)));
-      register.appendChild(line);
-    };
-    row('Booked', entry.tapMs);
-    row('Predicted', entry.predictedMs);
-    slot.appendChild(register);
-    slot.appendChild(el('p', 'tap-gap', registerGapLine(entry.tapMs, entry.predictedMs)));
-  }
+  setOffline(box, view.offline);
+  return box;
+}
 
-  slot.appendChild(renderTicket(taps, justClipped));
-  return slot;
+function setOffline(box: HTMLElement, offline: boolean): void {
+  const line = box.querySelector('.tap-offline');
+  if (offline && !line) {
+    const note = el('p', 'tap-offline', NO_SIGNAL_LINE);
+    const see = box.querySelector('.tap-see-ticket');
+    box.insertBefore(note, see);
+  } else if (!offline && line) {
+    line.remove();
+  }
+}
+
+/** Slightly longer than the 300 ms clip, for when no animationend fires
+ *  (reduced motion, or the slot is not on screen). */
+const CLIP_WINDOW_MS = 350;
+
+/** The clip plays once: the class comes off when it ends, so nothing that
+ *  later re-inserts the slot can replay it. */
+function markJustClipped(hole: HTMLElement): void {
+  hole.classList.add('just-clipped');
+  const clear = () => hole.classList.remove('just-clipped');
+  hole.addEventListener('animationend', clear, { once: true });
+  setTimeout(clear, CLIP_WINDOW_MS);
+}
+
+/**
+ * One hole per train between the current rank and the next, the ones done
+ * clipped. Before the second rank the row counts from no trains at all, so
+ * the first five read as five holes towards Guard. None at the top rank.
+ */
+function renderHoles(taps: number, justClipped: boolean): HTMLElement | null {
+  const { name, next } = levelFor(taps);
+  if (!next) return null;
+  const index = LEVELS.findIndex((l) => l.name === name);
+  const from = index <= 0 ? 0 : LEVELS[index].taps;
+  const total = next.taps - from;
+  const done = taps - from;
+
+  const row = el('div', 'tap-holes');
+  row.setAttribute('aria-hidden', 'true');
+  for (let i = 0; i < total; i++) {
+    const hole = el('span', 'tap-hole');
+    if (i < done) hole.classList.add('clipped');
+    if (i === done - 1) hole.classList.add('newest');
+    if (justClipped && i === done - 1) markJustClipped(hole);
+    row.appendChild(hole);
+  }
+  return row;
 }
 
 const ASK_BODY =
   "Our timings can be a little out. When the front of a train reaches you, tap its button and we'll tune this spot for everyone.";
 
-/** The card below both direction panels. `again` uses the `first` card. */
+/** The card below both direction cards, for `first` and `again` only. The
+ *  other kinds used to draw a ticket strip; that job is the header badge's. */
 export function renderAskCard(
   ask: AskKind,
-  taps: number,
   onChoice: (choice: 'helping' | 'declined') => void,
 ): HTMLElement | null {
-  if (ask === null) return null;
-  if (ask !== 'first' && ask !== 'again') return renderStrip(ask, taps, onChoice);
+  if (ask !== 'first' && ask !== 'again') return null;
 
   const card = el('section', 'ask-card');
 
@@ -207,105 +276,4 @@ export function renderAskCard(
   choice('Not now', 'declined', 'ask-decline');
   card.appendChild(choices);
   return card;
-}
-
-const STRIP_SUMMARY: Record<'ready' | 'invite' | 'off', string> = {
-  ready: "Thanks, you're on the staff.",
-  invite: 'Want to make it more accurate?',
-  off: 'Help tune this spot',
-};
-
-const STRIP_HOW =
-  "When a train is 30 seconds away, a button appears under its countdown. Tap it as the front of the train reaches you, and we'll tune this spot for everyone.";
-
-/**
- * The permanent strip below the panels once the ask has been answered: the
- * ticket, and inside it how the buttons work and the switch for them. It is a
- * <details>, so it opens without script and keeps its state across redraws.
- * It starts closed; render.ts opens it when it has just replaced an answer.
- */
-function renderStrip(
-  kind: 'ready' | 'invite' | 'off',
-  taps: number,
-  onChoice: (choice: 'helping' | 'declined') => void,
-): HTMLElement {
-  const card = el('details', 'ask-card ask-strip');
-
-  const summary = el('summary', 'ask-strip-summary');
-  summary.appendChild(el('span', 'ask-invite', STRIP_SUMMARY[kind]));
-  if (kind !== 'off' || taps > 0) summary.appendChild(renderTicket(taps, false));
-  card.appendChild(summary);
-
-  const body = el('div', 'ask-strip-body');
-  body.appendChild(el('p', 'ask-body', STRIP_HOW));
-  if (taps > 0) {
-    body.appendChild(el('p', 'ask-count', `${taps} ${taps === 1 ? 'train' : 'trains'} booked.`));
-  }
-  const off = kind === 'off';
-  const button = el('button', off ? 'ask-help' : 'ask-decline', off ? "I'll help" : 'Stop showing me buttons');
-  button.type = 'button';
-  button.addEventListener('click', () => onChoice(off ? 'helping' : 'declined'));
-  body.appendChild(button);
-  card.appendChild(body);
-  return card;
-}
-
-/** Slightly longer than the 300 ms clip, for when no animationend fires
- *  (reduced motion, or the ticket is not on screen). */
-const CLIP_WINDOW_MS = 350;
-
-/** The clip plays once: the class comes off when it ends, so nothing that
- *  later re-inserts the ticket can replay it. */
-function markJustClipped(hole: HTMLElement): void {
-  hole.classList.add('just-clipped');
-  const clear = () => hole.classList.remove('just-clipped');
-  hole.addEventListener('animationend', clear, { once: true });
-  setTimeout(clear, CLIP_WINDOW_MS);
-}
-
-/**
- * An old card railway ticket: the grade, and one hole per tap needed for the
- * next grade. At the top grade there is no next grade, so no holes.
- * `justClipped` gives the newest clipped hole the clip movement.
- */
-export function renderTicket(taps: number, justClipped: boolean): HTMLElement {
-  const level = levelFor(taps);
-  const grade = level.name ?? 'No grade yet';
-
-  const ticket = el('div', 'ticket');
-  ticket.setAttribute('role', 'img');
-  ticket.setAttribute(
-    'aria-label',
-    level.next
-      ? `${grade}. ${level.stepsDone} of ${level.stepsTotal} taps to ${level.next.name}`
-      : grade,
-  );
-
-  const head = el('div', 'ticket-head');
-  head.setAttribute('aria-hidden', 'true');
-  head.appendChild(el('span', 'ticket-issuer', 'E17 Trains'));
-  head.appendChild(el('span', 'ticket-kind', 'Staff'));
-  ticket.appendChild(head);
-
-  const gradeEl = el('div', 'ticket-grade', grade);
-  gradeEl.setAttribute('aria-hidden', 'true');
-  ticket.appendChild(gradeEl);
-
-  if (level.next && level.stepsTotal > 0) {
-    const holes = el('div', 'ticket-holes');
-    holes.setAttribute('aria-hidden', 'true');
-    for (let i = 0; i < level.stepsTotal; i++) {
-      const hole = el('span', 'ticket-hole');
-      if (i < level.stepsDone) hole.classList.add('clipped');
-      if (justClipped && i === level.stepsDone - 1) markJustClipped(hole);
-      holes.appendChild(hole);
-    }
-    ticket.appendChild(holes);
-
-    const toNext = el('div', 'ticket-next', `To ${level.next.name}`);
-    toNext.setAttribute('aria-hidden', 'true');
-    ticket.appendChild(toNext);
-  }
-
-  return ticket;
 }

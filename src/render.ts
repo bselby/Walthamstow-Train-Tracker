@@ -9,6 +9,7 @@ import { escapeHtml } from './escapeHtml';
 import { regionFor, isNewRegionThisSession, type Region } from './freightRegions';
 import type { Direction } from './direction';
 import { renderTapSlot, renderAskCard, type TapView } from './tapUi';
+import { ticketBadgeLabel } from './tapCopy';
 
 export interface ViewModel {
   north?: BridgeEvent;
@@ -24,7 +25,7 @@ export interface ViewModel {
   fact: Fact;
   viewpoint: Viewpoint;   // active viewpoint — drives strip, header, theming
   favouriteIds: readonly string[];   // every starred viewpoint, oldest first
-  tap: TapView;   // "train's here" button per direction + the ask card
+  tap: TapView;   // timing slot per direction card + the ask card
 }
 
 export interface RenderOptions {
@@ -39,9 +40,11 @@ export interface RenderOptions {
   /** `pressedAtMs` is when the finger landed, not when it lifted. */
   onTap: (direction: Direction, pressedAtMs: number) => void;
   onHelpChoice: (choice: 'helping' | 'declined') => void;
+  /** The header ticket badge and a rank-up's "See my ticket". */
+  onOpenTicket: () => void;
 }
 
-// The options from the latest render. Kept tap slots and the ask card outlive
+// The options from the latest render. Kept cards, slots and the ask card outlive
 // the render that built them, so their listeners call through this instead of
 // holding on to the handlers they were first given.
 let currentOptions: RenderOptions | null = null;
@@ -61,30 +64,22 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
   lastRenderedViewpointId = vm.viewpoint.id;
   currentOptions = options;
 
-  // Preserve the header and strips across renders so the header keeps its
-  // listeners (and a press on it in progress), and the strips keep their CSS transitions
-  // alive between state updates. Everything else (rows, footer, error, empty)
-  // is rebuilt each tick. Strips are NOT preserved across a viewpoint switch —
-  // they need fresh stops + anchorIndex + bridge config.
+  // Preserve the header and the direction cards across renders. The header
+  // keeps its listeners (and a press on it in progress); each card is redrawn
+  // in place around its line diagram and timing slot, which are never taken
+  // out of the document: the diagram keeps its CSS transitions, a press in
+  // progress survives, the clip does not replay and the thank-you is not
+  // re-announced. Cards are NOT kept across a viewpoint switch: the diagram
+  // needs fresh stops. The ask card is kept while its kind is unchanged.
   const existingHeader = root.querySelector<HTMLElement>('.spot-header');
-  const existingStripN = viewpointChanged ? null : root.querySelector<HTMLElement>('.strip-north');
-  const existingStripS = viewpointChanged ? null : root.querySelector<HTMLElement>('.strip-south');
-  // Tap slots and the ask card are kept too, and never taken out of the
-  // document: a row holding a kept slot is redrawn in place around it, so a
-  // press in progress survives, the ticket clip does not replay and the
-  // thank-you is not re-announced. The ask card is kept while its kind and
-  // the tap count are unchanged.
-  const slotN = tapSlot('north', root.querySelector<HTMLElement>('.tap-slot[data-direction="north"]'), vm.tap);
-  const slotS = tapSlot('south', root.querySelector<HTMLElement>('.tap-slot[data-direction="south"]'), vm.tap);
-  const keptRowN = keptRowFor(root, slotN);
-  const keptRowS = keptRowFor(root, slotS);
+  const existingCardN = viewpointChanged ? null : root.querySelector<HTMLElement>(':scope > .direction-card[data-direction="north"]');
+  const existingCardS = viewpointChanged ? null : root.querySelector<HTMLElement>(':scope > .direction-card[data-direction="south"]');
   const ask = askCard(root.querySelector<HTMLElement>('.ask-card'), vm.tap);
+  const answeredAskHadFocus = ask === null && focusedAskCard(root);
   const preserved = new Set<Element>();
   if (existingHeader) preserved.add(existingHeader);
-  if (existingStripN) preserved.add(existingStripN);
-  if (existingStripS) preserved.add(existingStripS);
-  if (keptRowN) preserved.add(keptRowN);
-  if (keptRowS) preserved.add(keptRowS);
+  if (existingCardN) preserved.add(existingCardN);
+  if (existingCardS) preserved.add(existingCardS);
   if (ask?.parentElement === root) preserved.add(ask);
 
   Array.from(root.children).forEach((child) => {
@@ -92,7 +87,7 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
   });
 
   if (viewpointChanged) {
-    // Clear the previous-value memo so the new viewpoint's direction rows
+    // Clear the previous-value memo so the new viewpoint's direction cards
     // don't inherit a "no change" state from the old viewpoint's labels.
     for (const key of Object.keys(previousValueText)) delete previousValueText[key];
     // Clear strip's last-known position so the first render after a switch
@@ -105,14 +100,22 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
   // already in position, so kept nodes stay in the document.
   const out: HTMLElement[] = [];
 
-  // The header always comes first: the way back to all spots, the line and
-  // spot name, and the star.
+  // The header always comes first: the way back to all spots, the ticket
+  // badge, the star, then the spot name and line.
   out.push(renderSpotHeader(existingHeader, {
     viewpoint: vm.viewpoint,
     favourite: vm.favouriteIds.includes(vm.viewpoint.id),
     onHome: () => currentOptions?.onHome(),
     onToggleFavourite: (id) => currentOptions?.onToggleFavourite(id),
+    ticketLabel: ticketBadgeLabel(vm.tap.taps),
+    onOpenTicket: () => currentOptions?.onOpenTicket(),
+    ticketFresh: vm.tap.north.state === 'thanks' || vm.tap.south.state === 'thanks',
   }));
+  if (answeredAskHadFocus) {
+    // The answered ask card is about to leave the page; its job is now the
+    // badge's, so the keyboard focus goes there.
+    focusAfterPlace = out[0].querySelector<HTMLElement>('.ticket-badge');
+  }
 
   // Map-verify link: tap to open Google Maps with the viewpoint's exact coords —
   // disambiguates "which Northcote Road bridge?" without an in-app thumbnail.
@@ -131,6 +134,7 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
     out.push(err);
     if (ask) out.push(ask);
     place(root, out);
+    takeFocus();
     return;
   }
 
@@ -150,56 +154,13 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
     `;
     out.push(empty);
   } else {
-    // Northbound: row, strip, ticker
-    out.push(renderDirection(
-      vm.viewpoint.directions.north.label,
-      vm.north,
-      `Next train to ${vm.viewpoint.directions.north.terminusName}`,
-      slotN,
-      keptRowN,
-    ));
-    const stripN = renderDirectionStrip(existingStripN, {
-      direction: 'north',
-      pos: vm.northPos,
-      celebrate: vm.celebrate.north,
-      stops: vm.viewpoint.stops,
-      anchorIndex: vm.viewpoint.anchorIndex,
-      pinPosition: vm.viewpoint.pinPosition,
-      lineId: vm.viewpoint.lineId,
-      lineNameForAria: `${vm.viewpoint.lineName} line`,
-      isFreight: vm.north?.arrival.category === 'freight',
-    });
-    out.push(stripN);
-    const tickerN = renderTicker(vm.northTicker);
-    if (tickerN) out.push(tickerN);
-
-    // Southbound: row, strip, ticker
-    out.push(renderDirection(
-      vm.viewpoint.directions.south.label,
-      vm.south,
-      `Next train to ${vm.viewpoint.directions.south.terminusName}`,
-      slotS,
-      keptRowS,
-    ));
-    const stripS = renderDirectionStrip(existingStripS, {
-      direction: 'south',
-      pos: vm.southPos,
-      celebrate: vm.celebrate.south,
-      stops: vm.viewpoint.stops,
-      anchorIndex: vm.viewpoint.anchorIndex,
-      pinPosition: vm.viewpoint.pinPosition,
-      lineId: vm.viewpoint.lineId,
-      lineNameForAria: `${vm.viewpoint.lineName} line`,
-      isFreight: vm.south?.arrival.category === 'freight',
-    });
-    out.push(stripS);
-    const tickerS = renderTicker(vm.southTicker);
-    if (tickerS) out.push(tickerS);
-
+    for (const dir of ['north', 'south'] as const) {
+      out.push(renderCard(dir === 'north' ? existingCardN : existingCardS, vm, dir));
+    }
   }
 
-  // The ask or ticket strip sits in the page flow below the panels, never over
-  // a countdown, and stays through spells with no trains to show.
+  // The ask card sits in the page flow below the cards, never over a
+  // countdown, and stays through spells with no trains to show.
   if (ask) out.push(ask);
 
   const footer = document.createElement('div');
@@ -226,6 +187,7 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
     '<a href="/terms.html">Terms</a>';
   out.push(docs);
   place(root, out);
+  takeFocus();
 }
 
 /** Put `nodes` into `root` in order. Nodes already in place are not touched,
@@ -239,80 +201,49 @@ function place(root: HTMLElement, nodes: HTMLElement[]): void {
     const at = root.children[i] ?? null;
     if (at !== node) root.insertBefore(node, at);
   });
+}
+
+function takeFocus(): void {
   if (focusAfterPlace) {
     focusAfterPlace.focus();
     focusAfterPlace = null;
   }
 }
 
-// A strip that replaced the card holding the keyboard focus: focused once it
-// is in the document.
+// Where the keyboard focus goes once the page is placed: the ticket badge,
+// when the ask card holding the focus has just been answered.
 let focusAfterPlace: HTMLElement | null = null;
 
-/** The row to redraw in place: the one already holding a kept slot. */
-function keptRowFor(root: HTMLElement, slot: HTMLElement | null): HTMLElement | null {
-  const row = slot?.parentElement;
-  return row && row.parentElement === root && row.classList.contains('row') ? row : null;
-}
-
-function tapSlot(direction: Direction, existing: HTMLElement | null, tap: TapView): HTMLElement | null {
-  const slot = renderTapSlot(existing, tap[direction], tap.taps, (pressedAtMs) => currentOptions?.onTap(direction, pressedAtMs));
-  if (slot) slot.dataset.direction = direction;
-  return slot;
+function focusedAskCard(root: HTMLElement): boolean {
+  const card = root.querySelector('.ask-card');
+  return card !== null && card.contains(document.activeElement);
 }
 
 function askCard(existing: HTMLElement | null, tap: TapView): HTMLElement | null {
-  if (tap.ask === null) return null;
-  if (existing && existing.dataset.ask === tap.ask && existing.dataset.taps === String(tap.taps)) {
-    return existing;
-  }
-  const card = renderAskCard(tap.ask, tap.taps, (choice) => currentOptions?.onHelpChoice(choice));
-  if (card) {
-    card.dataset.ask = tap.ask;
-    card.dataset.taps = String(tap.taps);
-    if (existing && card instanceof HTMLDetailsElement) {
-      // An answer or a switch just changed the strip: show the result open, so
-      // the press is visibly acknowledged. A new clip alone keeps it as it was.
-      const answered = existing.dataset.ask !== tap.ask;
-      card.open = answered || (existing instanceof HTMLDetailsElement && existing.open);
-      // The pressed button is about to leave the page; hand its focus to the
-      // new strip, which also reads out its new line.
-      if (existing.contains(document.activeElement)) focusAfterPlace = card.querySelector('summary');
-    }
-  }
+  if (existing && existing.dataset.ask === tap.ask) return existing;
+  const card = renderAskCard(tap.ask, (choice) => currentOptions?.onHelpChoice(choice));
+  if (card) card.dataset.ask = tap.ask ?? '';
   return card;
 }
 
-function renderTicker(events: BridgeEvent[]): HTMLElement | null {
+/** "then 14 and 29 min": the trains after the hero, the unit said once. */
+function renderThen(events: BridgeEvent[]): HTMLElement | null {
   if (events.length === 0) return null;
-
-  const row = document.createElement('div');
-  row.className = 'ticker';
-
-  const prefix = document.createElement('span');
-  prefix.className = 'ticker-prefix';
-  prefix.textContent = 'Then';
-  row.appendChild(prefix);
-
+  const then = document.createElement('span');
+  then.className = 'card-then';
+  then.appendChild(document.createTextNode('then '));
   events.forEach((ev, i) => {
     if (i > 0) {
-      const sep = document.createElement('span');
-      sep.className = 'ticker-sep';
-      sep.textContent = '·';
-      row.appendChild(sep);
+      then.appendChild(document.createTextNode(i === events.length - 1 ? ' and ' : ', '));
     }
     const val = document.createElement('span');
     val.className = 'ticker-value';
-    if (ev.arrival.category === 'freight') {
-      val.classList.add('ticker-value-freight');
-    }
+    if (ev.arrival.category === 'freight') val.classList.add('ticker-value-freight');
     const mins = Math.max(0, Math.floor(ev.bridgeTimeSeconds / 60));
-    // Only the LAST value gets the "min" suffix so the row doesn't shout "MIN · MIN · MIN".
     val.textContent = i === events.length - 1 ? `${mins} min` : `${mins}`;
-    row.appendChild(val);
+    then.appendChild(val);
   });
-
-  return row;
+  return then;
 }
 
 // Memo of the last-rendered fact so we can animate a fade only on change.
@@ -483,70 +414,97 @@ function regionChip(region: Region): HTMLElement {
   return chip;
 }
 
-function renderDirection(
-  label: string,
-  event: BridgeEvent | undefined,
-  ariaLabel: string,
-  tapSlot: HTMLElement | null,
-  existingRow: HTMLElement | null,
-): HTMLElement {
-  // A kept row is cleared around its slot, never detached.
-  const row = existingRow ?? document.createElement('section');
-  Array.from(row.children).forEach((child) => {
-    if (child !== tapSlot) row.removeChild(child);
-  });
-  const slotInRow = tapSlot !== null && tapSlot.parentElement === row;
-  const beforeSlot = (node: HTMLElement) => {
-    if (slotInRow) row.insertBefore(node, tapSlot);
-    else row.appendChild(node);
-  };
-  row.className = 'row';
-  row.setAttribute('aria-label', ariaLabel);
+/**
+ * One direction's card (board 4): "To <destination>" and the trains after,
+ * the countdown, the line diagram with both ends named, the timing slot and,
+ * for freight, where it is going. A kept card is redrawn in place: its line
+ * diagram and timing slot are reused and never leave the document.
+ */
+function renderCard(existing: HTMLElement | null, vm: ViewModel, dir: Direction): HTMLElement {
+  const event = dir === 'north' ? vm.north : vm.south;
+  const ticker = dir === 'north' ? vm.northTicker : vm.southTicker;
+  const { label, terminusName } = vm.viewpoint.directions[dir];
+  const card = existing ?? document.createElement('section');
+  card.className = 'direction-card';
+  card.dataset.direction = dir;
+  card.setAttribute('aria-label', `Next train to ${terminusName}`);
 
   const isFreight = event?.arrival.category === 'freight';
+  const nodes: HTMLElement[] = [];
 
-  const labelEl = document.createElement('div');
-  labelEl.className = 'label';
-  labelEl.textContent = label;
+  const top = document.createElement('div');
+  top.className = 'card-top';
+  const dest = document.createElement('span');
+  dest.className = 'card-dest';
+  dest.textContent = `To ${destinationOf(label, terminusName)}`;
   if (isFreight) {
     const tag = document.createElement('span');
     tag.className = 'freight-tag';
     tag.textContent = 'FREIGHT';
     tag.setAttribute('aria-label', 'Freight service');
-    labelEl.appendChild(document.createTextNode(' '));
-    labelEl.appendChild(tag);
+    dest.appendChild(document.createTextNode(' '));
+    dest.appendChild(tag);
   }
-  beforeSlot(labelEl);
+  top.appendChild(dest);
+  const then = renderThen(ticker);
+  if (then) top.appendChild(then);
+  nodes.push(top);
 
   const valueEl = document.createElement('div');
   valueEl.className = 'value';
-
   let currentText: string;
   if (!event) {
     valueEl.classList.add('sleeping');
     currentText = 'No trains for a while';
+    valueEl.textContent = currentText;
   } else {
     const countdown = formatCountdown(event.bridgeTimeSeconds);
     valueEl.classList.add(countdown.kind);
     currentText = countdown.text;
-    // Cue the eye to the arrow in the last 11–59 s before NOW, when the user
-    // is actively waiting. The .now state has its own celebration, so we stop
-    // the pulse once the countdown transitions.
-    if (countdown.kind === 'seconds') {
-      row.classList.add('row-imminent');
+    if (countdown.kind === 'minutes' || countdown.kind === 'seconds') {
+      // "6 min": the number big, the unit beside it.
+      const [num, unit] = countdown.text.split(' ');
+      const numEl = document.createElement('span');
+      numEl.className = 'value-num';
+      numEl.textContent = num;
+      const unitEl = document.createElement('span');
+      unitEl.className = 'value-unit';
+      unitEl.textContent = unit;
+      valueEl.append(numEl, ' ', unitEl);
+    } else {
+      valueEl.textContent = currentText;
     }
   }
-  valueEl.textContent = currentText;
+  card.classList.toggle('card-imminent', valueEl.classList.contains('seconds'));
+  if (previousValueText[dir] !== currentText) valueEl.classList.add('ticking');
+  previousValueText[dir] = currentText;
+  nodes.push(valueEl);
 
-  if (previousValueText[label] !== currentText) {
-    valueEl.classList.add('ticking');
+  nodes.push(renderDirectionStrip(card.querySelector<HTMLElement>(':scope > .strip'), {
+    direction: dir,
+    pos: dir === 'north' ? vm.northPos : vm.southPos,
+    celebrate: vm.celebrate[dir],
+    stops: vm.viewpoint.stops,
+    anchorIndex: vm.viewpoint.anchorIndex,
+    pinPosition: vm.viewpoint.pinPosition,
+    lineId: vm.viewpoint.lineId,
+    lineNameForAria: `${vm.viewpoint.lineName} line`,
+    isFreight,
+  }));
+
+  const slot = renderTapSlot(
+    card.querySelector<HTMLElement>(':scope > .tap-slot'),
+    vm.tap[dir],
+    vm.tap.taps,
+    {
+      onTap: (pressedAtMs) => currentOptions?.onTap(dir, pressedAtMs),
+      onOpenTicket: () => currentOptions?.onOpenTicket(),
+    },
+  );
+  if (slot) {
+    slot.dataset.direction = dir;
+    nodes.push(slot);
   }
-  previousValueText[label] = currentText;
-
-  beforeSlot(valueEl);
-
-  // "Train's here" button or its thank-you, just under the countdown.
-  if (tapSlot && !slotInRow) row.appendChild(tapSlot);
 
   // Origin → destination subtitle, only when we have BOTH ends — half an arrow
   // ("Tilbury Riverside Yard →") looks broken, so skip the row instead.
@@ -571,8 +529,16 @@ function renderDirection(
       'aria-label',
       `Freight journey: ${event.arrival.origin} (${originRegion}) to ${event.arrival.destinationName} (${destRegion})`,
     );
-    row.appendChild(journey);
+    nodes.push(journey);
   }
 
-  return row;
+  place(card, nodes);
+  return card;
+}
+
+/** The destination as the boards write it: the label without its arrow
+ *  ("← Walthamstow Central"), falling back to the terminus name. */
+function destinationOf(label: string, terminusName: string): string {
+  const name = label.replace(/^[^\p{L}\p{N}]+/u, '').trim();
+  return name || terminusName;
 }

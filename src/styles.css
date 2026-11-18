@@ -21,6 +21,11 @@
   --track:          #C9D3E0;
   --station-stroke: #1F2A44;
   --pin-outline:    #1F2A44;
+  --card-edge:      #1F2A44;   /* the card holding the yellow button */
+  --badge-edge:     #1F2A44;
+  --badge-ink:      #1F2A44;
+  --placeholder-edge: #8B97AB;
+  --star:           #E0A100;
 
   /* Status */
   --now:            #1E7B4B;
@@ -56,6 +61,11 @@
     --track:          #3A4560;
     --station-stroke: #A9B3C6;
     --pin-outline:    #0B0F1A;
+    --card-edge:      #3A4560;
+    --badge-edge:     #FFC93C;
+    --badge-ink:      #FFE7A3;
+    --placeholder-edge: #5B6782;
+    --star:           #FFC93C;
 
     --now:            #4CC38A;
     --warn:           #FFC93C;
@@ -112,38 +122,45 @@ html, body {
   color: var(--ink);
 }
 
-.row {
+/* ───── Direction cards (board 4) ─────
+   One card per direction: "To <destination>" and the trains after, the big
+   countdown in the line's colour, the line diagram, then the timing slot. */
+
+.direction-card {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 10px;
+  padding: 16px;
+  background: var(--card);
+  border: 3px solid transparent;
+  border-radius: var(--radius-card);
+}
+/* The card holding the yellow button is outlined, as on board 4. */
+.direction-card:has(.tap-button) {
+  border-color: var(--card-edge);
 }
 
-/* Keep a row tight against its strip below, but give breathing room before the next direction group. */
-.row + .strip {
-  margin-top: -0.25rem;
-}
-.strip + .row {
-  margin-top: clamp(0.75rem, 3vw, 1.75rem);
-}
-
-.label {
-  font-family: var(--font-body);
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--dim);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+.card-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 12px;
 }
 
-/* The arrow character at the start of each label wears the brand colour. */
-.label::first-letter {
+.card-dest {
+  font-size: 1.0625rem;
+  font-weight: 800;
   color: var(--ink);
-  font-weight: 700;
 }
 
-/* FREIGHT pill — inline marker beside the direction label when the hero is a
-   freight working. Outline + freight-brown; deliberately quiet so the
-   countdown remains the loud thing on the page. */
+.card-then {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+
 .freight-tag {
   display: inline-block;
   margin-left: 0.4em;
@@ -160,34 +177,43 @@ html, body {
 }
 
 .value {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   font-family: var(--font-display);
-  font-size: clamp(4rem, 16vw, 7rem);
   font-weight: 800;
-  line-height: 0.92;
-  color: var(--ink);
+  line-height: 0.85;
+  color: var(--line-color);
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
+}
+.value-num {
+  font-size: clamp(4.5rem, 24vw, 6.5rem);
+  line-height: 0.8;
+}
+.value-unit {
+  font-size: clamp(1.625rem, 7vw, 2rem);
+  font-weight: 700;
 }
 
 .value.now {
+  font-size: clamp(4.5rem, 24vw, 6.5rem);
+  line-height: 0.8;
   color: var(--now);
   animation: pulse 1s ease-in-out infinite;
 }
 
 .value.just-crossed {
-  color: var(--dim);
-  font-size: clamp(1.5rem, 6vw, 2.5rem);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: clamp(2.25rem, 11vw, 3rem);
+  line-height: 0.95;
 }
+.value.just-crossed::first-letter { text-transform: uppercase; }
 
 .value.sleeping {
+  font-family: var(--font-body);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.2;
   color: var(--dim);
-  font-size: clamp(1rem, 4vw, 1.5rem);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 @keyframes pulse {
@@ -255,9 +281,6 @@ html, body {
 
 .strip {
   width: 100%;
-  max-width: 440px;
-  margin-inline: auto;
-  padding: 0 4px;
 }
 
 .line-diagram {
@@ -435,31 +458,7 @@ html, body {
   }
 }
 
-/* ───── Ticker rows ───── */
-
-.ticker {
-  display: flex;
-  justify-content: center;
-  align-items: baseline;
-  gap: 0.5rem;
-  padding-top: 0.2rem;
-  font-family: var(--font-body);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--ink);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-variant-numeric: tabular-nums;
-}
-
-.ticker-prefix {
-  color: var(--ink);
-  font-weight: 700;
-}
-
-.ticker-sep {
-  color: var(--ink);
-}
+/* ───── "then" times ───── */
 
 /* Ticker freight marker — superscript 'fr' rendered via ::after so the DOM
    text stays clean for screen readers (the freight tag itself sets an
@@ -472,14 +471,6 @@ html, body {
   margin-left: 0.15em;
   vertical-align: 0.5em;
   letter-spacing: 0.05em;
-}
-
-/* Tighter vertical rhythm so strip → ticker reads as one unit */
-.strip + .ticker {
-  margin-top: -0.25rem;
-}
-.ticker + .row {
-  margin-top: clamp(0.75rem, 3vw, 1.75rem);
 }
 
 /* ───── Freight journey row ─────
@@ -787,102 +778,100 @@ html, body {
 
 /* ───── Arrow emphasis (last-minute countdown) ───── */
 
-.row-imminent .label::first-letter {
-  display: inline-block;
-  animation: arrow-pulse 1s ease-in-out infinite;
-  transform-origin: center;
-}
-
-@keyframes arrow-pulse {
-  0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.18); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .row-imminent .label::first-letter {
-    animation: none;
-  }
-}
-
-/* ───── Countdown header ─────
-   The way back to all spots on the left, the line (in its own colour) and
-   the spot name in the middle, the star on the right. Quiet: nothing here
-   competes with the countdown below it. */
+/* ───── Countdown header (board 4) ─────
+   One row: the way back to all spots on the left, the ticket badge and the
+   star on the right. Under it the spot name and its line. At 320 px the
+   badge wraps between its two halves rather than run into the back link. */
 
 .spot-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
-  gap: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   width: 100%;
 }
 
-.spot-header-home {
-  justify-self: start;
-  display: inline-flex;
+.spot-header-bar {
+  display: flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 4px;
+  min-width: 0;
+}
+
+.spot-header-home {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
   min-height: 2.75rem;
-  padding: 0 0.5rem 0 0;
-  font-family: var(--font-body);
-  font-size: 0.875rem;
+  margin-right: auto;
+  padding-right: 4px;
+  font-size: 1rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   white-space: nowrap;
   color: var(--ink);
   text-decoration: none;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
 .spot-header-chevron {
-  font-size: 1.5em;
-  line-height: 0.6;
-  color: var(--ink);
-  /* The glyph sits low in this face; lift it onto the text's midline. */
-  transform: translateY(-0.08em);
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
-.spot-header-home:hover { color: var(--ink); }
+.spot-header-home:hover { color: var(--line-color); }
 .spot-header-home:focus-visible,
-.spot-header-star:focus-visible {
+.spot-header-star:focus-visible,
+.ticket-badge:focus-visible {
   outline: 2px solid var(--line-color);
   outline-offset: 2px;
 }
 
-/* Two-line stacked label: line-coloured name above, neutral spot name below */
-.spot-header-title {
+/* A link-styled button: the ticket, opened on its own page. 36 px to the eye,
+   44 px to the finger. */
+.ticket-badge {
+  position: relative;
+  appearance: none;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.15em;
+  gap: 6px;
   min-width: 0;
-  text-align: center;
-  font-family: var(--font-body);
-  font-size: clamp(1.125rem, 4.5vw, 1.375rem);
-}
-
-.spot-header-line {
-  font-size: 0.95em;
-  font-weight: 700;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: var(--line-color); /* line identity lives here — primary colour-bearer */
-  line-height: 1;
-}
-
-.spot-header-name {
+  min-height: 36px;
   margin: 0;
-  font-size: 0.78em;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  line-height: 1.1;
-  color: var(--dim);
+  padding: 3px 12px;
+  border: 2px solid var(--badge-edge);
+  border-radius: 8px;
+  background: var(--ticket);
+  color: var(--badge-ink);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 800;
+  line-height: 1.15;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
 }
+.ticket-badge::after {
+  content: '';
+  position: absolute;
+  inset: -6px 0;
+}
+.ticket-badge.fresh {
+  background: var(--yellow);
+  border-color: var(--ink);
+  color: #1F2A44;
+}
+.ticket-badge-icon {
+  width: 18px;
+  height: 14px;
+  flex-shrink: 0;
+}
+.ticket-badge-text { min-width: 0; }
+.ticket-badge-part { white-space: nowrap; }
 
 .spot-header-star {
-  justify-self: end;
   appearance: none;
+  flex-shrink: 0;
   width: 2.75rem;
   height: 2.75rem;
   margin: 0;
@@ -893,110 +882,235 @@ html, body {
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: oklch(from var(--ink) l c h / 0.5);
+  color: var(--dim);
   cursor: pointer;
   transition: transform 120ms ease, color 120ms ease;
 }
 
-.spot-header-star svg { width: 22px; height: 22px; display: block; }
-.spot-header-star.filled { color: var(--ink); }
-.spot-header-star:hover:not(.filled) { color: oklch(from var(--ink) l c h / 0.75); }
+.spot-header-star svg { width: 28px; height: 28px; display: block; }
+.spot-header-star.filled { color: var(--star); }
+.spot-header-star:hover:not(.filled) { color: var(--ink); }
 .spot-header-star:active { transform: scale(0.88); transition-duration: 60ms; }
+
+.spot-header-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 0 4px;
+}
+
+.spot-header-name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 8.5vw, 2rem);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.spot-header-line {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--dim);
+}
+
+@media (max-width: 359px) {
+  .spot-header-home { font-size: 0.9375rem; }
+  .ticket-badge { padding: 3px 8px; font-size: 0.8125rem; }
+  .ticket-badge-icon { display: none; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .spot-header-star { transition: none; }
   .spot-header-star:active { transform: none; }
 }
 
-/* ───── "Train's here" tap ─────
-   The button sits under its countdown and stays plainly worded; the parent is
-   railway staff booking a train in. Nothing here is louder than the countdown.
-   The only movement is the ticket hole being clipped. */
+/* ───── Timing slot ─────
+   Inside each direction card, under the line diagram. While timing is on
+   at a spot the slot keeps the button's height whether it holds the
+   placeholder, the button or the "Got it" message, so nothing below jumps. */
+
+.tap-slot {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 5.25rem;
+  margin-top: 4px;
+}
+
+.tap-placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border: 2px dashed var(--placeholder-edge);
+  border-radius: 22px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--dim);
+}
 
 .tap-button {
   appearance: none;
-  margin-top: 0.35rem;
-  min-height: 3rem;
-  padding: 0.6rem 1rem;
-  border: 2px solid var(--ink);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  min-height: 5.25rem;
+  margin: 0;
+  padding: 0.5rem 1rem;
+  border: 3px solid #1F2A44;
+  border-radius: 42px;
+  background: var(--yellow);
+  color: #1F2A44;
   font-family: var(--font-body);
-  font-size: 1.05rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
   cursor: pointer;
   touch-action: manipulation;
+  transition: transform 80ms ease, background-color 80ms ease;
+}
+.tap-button-main {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.tap-button-sub {
+  font-size: 0.875rem;
+  font-weight: 700;
 }
 .tap-button:active,
 .tap-button.pressing,
 .tap-button.pressed {
-  background: var(--ink);
-  color: var(--bg);
+  background: oklch(from var(--yellow) calc(l - 0.08) c h);
+  transform: scale(0.98);
 }
 .tap-button:focus-visible {
-  outline: 2px solid var(--ink);
+  outline: 3px solid var(--ink);
   outline-offset: 3px;
 }
 
-/* Thank-you: a line in the train register. */
+/* "Got it. Ticket clipped." (board 5), or the rank-up in its place (board 8's
+   words). A piece of ticket in the card, never over a countdown. */
 .tap-thanks {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--ticket);
+  border: 2px solid var(--badge-edge);
+  border-radius: 16px;
+  color: var(--ink);
+}
+.tap-thanks p { margin: 0; }
+.tap-thanks-head {
+  display: flex;
   align-items: center;
-  gap: 0.35rem 1rem;
-  margin-top: 0.35rem;
-  font-family: var(--font-body);
-  color: var(--ink);
+  gap: 10px;
 }
-.tap-thanks > p { margin: 0; flex-basis: 100%; }
+.tap-tick {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--suffragette);
+  color: #FFFFFF;
+}
+.tap-tick svg { width: 20px; height: 20px; }
 .tap-heading {
-  font-size: 1.05rem;
+  font-family: var(--font-display);
+  font-size: 1.375rem;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  line-height: 1.1;
 }
-.tap-notice-head {
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--ink);
+.tap-rankup .tap-heading { font-size: 1.75rem; }
+.tap-line {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.4;
 }
-.tap-notice-kit,
-.tap-gap {
-  font-size: 0.9rem;
+.tap-next {
+  font-size: 0.9375rem;
   font-weight: 600;
   color: var(--dim);
 }
-.tap-register {
-  display: grid;
-  grid-template-columns: auto auto;
-  gap: 0.1rem 0.75rem;
-  margin: 0;
-  flex-basis: 100%;
-  justify-content: start;
-  font-variant-numeric: tabular-nums;
-}
-.tap-register-row { display: contents; }
-.tap-register-label {
-  font-size: 0.75rem;
+.tap-offline {
+  padding: 10px 12px;
+  background: var(--card);
+  border-radius: 12px;
+  font-size: 0.875rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--dim);
-  align-self: baseline;
+  line-height: 1.35;
 }
-.tap-register-time {
+.tap-see-ticket {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 3.5rem;
   margin: 0;
-  font-size: 1rem;
-  font-weight: 700;
-  align-self: baseline;
+  border: 3px solid #1F2A44;
+  border-radius: 28px;
+  background: var(--yellow);
+  color: #1F2A44;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.tap-see-ticket:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
 }
 
-/* Ask card: in the page flow below both panels, never over a countdown. */
+/* One hole per train to the next rank; clipped holes show the card beneath,
+   the newest ringed in green. */
+.tap-holes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tap-hole {
+  width: 22px;
+  height: 22px;
+  border: 2px dashed var(--ink);
+  border-radius: 50%;
+}
+.tap-hole.clipped {
+  border-style: solid;
+  background: var(--card);
+}
+.tap-hole.newest {
+  border: 3px solid var(--suffragette);
+}
+.tap-hole.just-clipped {
+  animation: hole-clip 300ms ease-out;
+}
+
+@keyframes hole-clip {
+  from { transform: scale(0.3); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tap-button { transition: none; }
+  .tap-button:active,
+  .tap-button.pressing,
+  .tap-button.pressed { transform: none; }
+  .tap-hole.just-clipped { animation: none; }
+}
+
+/* Ask card: in the page flow below both cards, never over a countdown.
+   Task 8 restyles it as the board 1 invitation. */
 .ask-card {
-  margin-top: clamp(0.75rem, 3vw, 1.5rem);
   padding: 1rem 1.1rem;
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -1048,135 +1162,6 @@ html, body {
 .ask-decline:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 3px;
-}
-/* The ticket strip: the permanent form of the card once the ask is answered.
-   The summary shows the line and the ticket; opening it shows how it works. */
-.ask-strip-summary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem 1rem;
-  min-height: 2.75rem;
-  cursor: pointer;
-  list-style: none;
-}
-.ask-strip-summary::-webkit-details-marker {
-  display: none;
-}
-.ask-strip-summary .ask-invite::after {
-  content: '';
-  display: inline-block;
-  width: 0.45em;
-  height: 0.45em;
-  margin-left: 0.5em;
-  border-right: 2px solid var(--dim);
-  border-bottom: 2px solid var(--dim);
-  transform: translateY(-0.2em) rotate(45deg);
-}
-.ask-strip[open] .ask-strip-summary .ask-invite::after {
-  transform: translateY(0.05em) rotate(-135deg);
-}
-.ask-strip-summary:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 3px;
-  border-radius: 8px;
-}
-.ask-strip-body {
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border);
-}
-.ask-strip-body .ask-body {
-  margin: 0 0 0.6rem;
-}
-.ask-count {
-  margin: 0 0 0.6rem;
-  font-size: 0.95rem;
-  font-weight: 700;
-}
-.ask-strip-body .ask-decline {
-  padding-left: 0;
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
-}
-.ask-invite {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-/* The ticket: an old card railway ticket in buff, inked in navy. One hole per
-   tap needed for the next grade; clipped holes show the paper beneath. */
-.ticket {
-  display: inline-flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  min-width: 11rem;
-  padding: 0.5rem 0.75rem 0.55rem;
-  border: 1.5px solid var(--ink);
-  border-radius: 6px;
-  background: var(--ticket);
-  color: var(--ink);
-  font-family: var(--font-body);
-}
-.ticket-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  padding-bottom: 0.2rem;
-  border-bottom: 1px dashed var(--ink);
-  font-size: 0.65rem;
-  font-weight: 800;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-.ticket-kind { color: var(--line-color); }
-.ticket-grade {
-  font-family: var(--font-display);
-  font-size: 1.6rem;
-  font-weight: 800;
-  line-height: 1;
-  text-transform: uppercase;
-  letter-spacing: 0.01em;
-}
-.ticket-holes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-}
-.ticket-hole {
-  width: 0.8rem;
-  height: 0.8rem;
-  border: 1.5px dotted var(--ink);
-  border-radius: 50%;
-  opacity: 0.55;
-}
-.ticket-hole.clipped {
-  border: 1.5px solid var(--ink);
-  background: var(--bg);
-  opacity: 1;
-}
-.ticket-hole.just-clipped {
-  animation: ticket-clip 300ms ease-out;
-}
-.ticket-next {
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--dim);
-}
-
-@keyframes ticket-clip {
-  from { transform: scale(0.3); opacity: 0; }
-  to   { transform: scale(1);   opacity: 1; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ticket-hole.just-clipped {
-    animation: none;
-  }
 }
 
 /* ───── Home ─────
