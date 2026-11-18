@@ -3,6 +3,8 @@
 // them: a finger already down on a row or a star stays on the same element,
 // and a row only moves when its place in the list changes.
 import type { HomeModel, HomeRow } from './homeModel';
+import { currentTheme } from './season';
+import { passengerTrainSvg } from './trainArt';
 
 export interface HomeOptions {
   onOpen: (id: string) => void;
@@ -20,9 +22,11 @@ const STAR_PATH = 'M8 1 L10 6 L15 6 L11 9 L12 14 L8 11 L4 14 L5 9 L1 6 L6 6 Z';
 const STAR_FILLED = `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="${STAR_PATH}" fill="currentColor"/></svg>`;
 const STAR_OUTLINE = `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="${STAR_PATH}" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>`;
 
+const PIN = '<svg class="home-pin" viewBox="0 0 22 28" aria-hidden="true"><path d="M11 26 C7 20 1 15 1 10 A10 10 0 0 1 21 10 C21 15 15 20 11 26 Z" fill="var(--pin)" stroke="var(--pin-outline)" stroke-width="2"/><circle cx="11" cy="10" r="3.5" fill="var(--card)"/></svg>';
+
 const LOCATION_TEXT: Record<'locating' | 'on' | 'denied' | 'no-signal', string> = {
   locating: 'Finding you…',
-  on: 'Using your location',
+  on: 'Nearest first',
   denied: 'Location unavailable',
   'no-signal': 'No GPS signal',
 };
@@ -92,9 +96,13 @@ function setText(el: Element, text: string): void {
 
 function createHeader(): HTMLElement {
   const header = create('header', 'home-header');
+  const train = create('span', 'home-train');
+  train.innerHTML = passengerTrainSvg(currentTheme(new Date()));
   const title = document.createElement('h1');
   title.textContent = 'E17 Trains';
-  header.appendChild(title);
+  const tagline = create('p', 'home-tagline');
+  tagline.textContent = 'When the next train passes, to the second.';
+  header.append(train, title, tagline);
   return header;
 }
 
@@ -138,10 +146,11 @@ function locationControl(root: HTMLElement, location: HomeModel['location']): HT
   let el = child(root, 'home-location');
   if (!el) {
     el = create('div', 'home-location');
+    el.insertAdjacentHTML('afterbegin', PIN);
     el.appendChild(create('span', 'home-location-text'));
     const off = create('button', 'home-location-off');
     off.type = 'button';
-    off.textContent = 'off';
+    off.textContent = 'Turn off';
     off.setAttribute('aria-label', 'Stop using my location');
     off.addEventListener('click', () => currentOptions?.onLocationOff());
     el.appendChild(off);
@@ -156,12 +165,16 @@ function createRow(id: string): HTMLElement {
 
   const link = create('a', 'home-row-link');
   link.innerHTML =
-    '<span class="home-row-dot" aria-hidden="true"></span>' +
+    '<span class="home-row-bar" aria-hidden="true"></span>' +
     '<span class="home-row-text">' +
       '<span class="home-row-name"></span>' +
       '<span class="home-row-meta"></span>' +
     '</span>' +
-    '<span class="home-row-countdown"></span>';
+    '<span class="home-row-countdown">' +
+      '<span class="visually-hidden"></span>' +
+      '<span class="home-count-num" aria-hidden="true"></span>' +
+      '<span class="home-count-unit" aria-hidden="true"></span>' +
+    '</span>';
   link.addEventListener('click', (e) => {
     // A new tab, a new window or a middle click is the browser's to handle.
     if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
@@ -182,19 +195,21 @@ function updateRow(li: HTMLElement, row: HomeRow): HTMLElement {
   const link = li.querySelector<HTMLAnchorElement>('.home-row-link')!;
   if (link.getAttribute('href') !== row.href) link.setAttribute('href', row.href);
 
-  const dot = li.querySelector<HTMLElement>('.home-row-dot')!;
-  if (dot.dataset.color !== row.lineColor) {
-    dot.dataset.color = row.lineColor;
-    dot.style.backgroundColor = row.lineColor;
-  }
+  // The line colour comes from a class, so the stylesheet's tokens (and
+  // dark mode) decide the shade.
+  const lineClass = `home-row line-${row.lineName.toLowerCase()}`;
+  if (li.className !== lineClass) li.className = lineClass;
 
   setText(li.querySelector('.home-row-name')!, row.name);
-  setText(li.querySelector('.home-row-meta')!, row.walk === null ? row.lineName : `${row.lineName} · ${row.walk}`);
+  setText(li.querySelector('.home-row-meta')!, row.walk === null ? `${row.lineName} line` : `${row.lineName} line · ${row.walk}`);
 
   const countdown = li.querySelector<HTMLElement>('.home-row-countdown')!;
   const countdownClass = `home-row-countdown ${row.countdown.kind}`;
   if (countdown.className !== countdownClass) countdown.className = countdownClass;
-  setText(countdown, row.countdown.text);
+  const { num, unit, spoken } = countdownWords(row.countdown);
+  setText(countdown.querySelector('.visually-hidden')!, spoken);
+  setText(countdown.querySelector('.home-count-num')!, num);
+  setText(countdown.querySelector('.home-count-unit')!, unit);
 
   const star = li.querySelector<HTMLElement>('.home-star')!;
   const pressed = row.favourite ? 'true' : 'false';
@@ -207,4 +222,19 @@ function updateRow(li: HTMLElement, row: HomeRow): HTMLElement {
   if (star.getAttribute('aria-label') !== label) star.setAttribute('aria-label', label);
 
   return li;
+}
+
+/** "2 min" becomes a big "2" over a small "minutes"; words that are not a
+ *  count stay as they are. */
+function countdownWords(c: HomeRow['countdown']): { num: string; unit: string; spoken: string } {
+  if (c.kind === 'minutes' || c.kind === 'seconds') {
+    const n = parseInt(c.text, 10);
+    const word = c.kind === 'minutes' ? 'minute' : 'second';
+    const unit = n === 1 ? word : `${word}s`;
+    return { num: String(n), unit, spoken: `${n} ${unit}` };
+  }
+  if (c.kind === 'now') return { num: c.text, unit: '', spoken: 'Now' };
+  if (c.kind === 'none') return { num: c.text, unit: '', spoken: 'No trains due' };
+  if (c.kind === 'stale') return { num: c.text, unit: '', spoken: 'No live times' };
+  return { num: c.text, unit: '', spoken: 'Waiting for times' };
 }

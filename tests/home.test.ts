@@ -56,6 +56,14 @@ describe('renderHome', () => {
     expect(root.querySelector('h1')?.textContent).toBe('E17 Trains');
   });
 
+  it('the header is a card with a train, the title and the promise', () => {
+    renderHome(root, model({ others: [row('queens-road')] }), opts);
+    const header = root.querySelector('.home-header')!;
+    expect(header.querySelector('svg.train-passenger')).not.toBeNull();
+    expect(header.querySelector('svg')!.getAttribute('aria-hidden')).toBe('true');
+    expect(header.querySelector('.home-tagline')!.textContent).toBe('When the next train passes, to the second.');
+  });
+
   it('hides the favourites section when there are none', () => {
     renderHome(root, model({ others: [row('queens-road')] }), opts);
     expect(root.querySelector('.home-favourites')).toBeNull();
@@ -77,15 +85,40 @@ describe('renderHome', () => {
     const link = root.querySelector<HTMLAnchorElement>('.home-row[data-id="queens-road"] a.home-row-link')!;
     expect(link.getAttribute('href')).toBe('/walthamstow/queens-road-station');
     expect(link.querySelector('.home-row-name')!.textContent).toBe('Queens Road Station');
-    expect(link.querySelector('.home-row-meta')!.textContent).toBe('Suffragette · 4 min walk');
+    expect(link.querySelector('.home-row-meta')!.textContent).toBe('Suffragette line · 4 min walk');
     const countdown = link.querySelector('.home-row-countdown')!;
-    expect(countdown.textContent).toBe('2 min');
+    expect(countdown.querySelector('.home-count-num')!.textContent).toBe('2');
+    expect(countdown.querySelector('.home-count-unit')!.textContent).toBe('minutes');
     expect(countdown.classList.contains('minutes')).toBe(true);
+  });
+
+  it('colours the row by its line with a class, so the theme can follow', () => {
+    renderHome(root, model({ others: [row('east-ave'), row('queens-road')] }), opts);
+    expect(root.querySelector('[data-id="east-ave"]')!.classList.contains('line-weaver')).toBe(true);
+    expect(root.querySelector('[data-id="queens-road"]')!.classList.contains('line-suffragette')).toBe(true);
+  });
+
+  it.each([
+    [{ kind: 'minutes', text: '1 min' }, '1', 'minute', '1 minute'],
+    [{ kind: 'minutes', text: '7 min' }, '7', 'minutes', '7 minutes'],
+    [{ kind: 'seconds', text: '25 sec' }, '25', 'seconds', '25 seconds'],
+    [{ kind: 'now', text: 'NOW' }, 'NOW', '', 'Now'],
+    [{ kind: 'none', text: 'No trains' }, 'No trains', '', 'No trains due'],
+    [{ kind: 'loading', text: '…' }, '…', '', 'Waiting for times'],
+    [{ kind: 'stale', text: '—' }, '—', '', 'No live times'],
+  ] as const)('countdown %o shows %s %s and is announced as "%s"', (countdown, num, unit, spoken) => {
+    renderHome(root, model({ others: [row('queens-road', { countdown })] }), opts);
+    const el = root.querySelector('.home-row-countdown')!;
+    expect(el.classList.contains(countdown.kind)).toBe(true);
+    expect(el.querySelector('.home-count-num')!.textContent).toBe(num);
+    expect(el.querySelector('.home-count-unit')!.textContent).toBe(unit);
+    expect(el.querySelector('.visually-hidden')!.textContent).toBe(spoken);
+    expect(el.querySelector('.home-count-num')!.getAttribute('aria-hidden')).toBe('true');
   });
 
   it('leaves the walk out of a row when there is none', () => {
     renderHome(root, model({ others: [row('queens-road')] }), opts);
-    expect(root.querySelector('.home-row-meta')!.textContent).toBe('Suffragette');
+    expect(root.querySelector('.home-row-meta')!.textContent).toBe('Suffragette line');
   });
 
   it('clicking a row opens it without a page load', () => {
@@ -132,13 +165,14 @@ describe('renderHome', () => {
 
   it.each([
     ['locating', 'Finding you…'],
-    ['on', 'Using your location'],
+    ['on', 'Nearest first'],
     ['denied', 'Location unavailable'],
     ['no-signal', 'No GPS signal'],
   ] as const)('location %s shows "%s" with an off button', (location, text) => {
     renderHome(root, model({ others: [row('queens-road')], location }), opts);
     expect(root.querySelector('.home-locate')).toBeNull();
     expect(root.querySelector('.home-location-text')!.textContent).toBe(text);
+    expect(root.querySelector('.home-location-off')!.textContent).toBe('Turn off');
     root.querySelector<HTMLElement>('.home-location-off')!.click();
     expect(opts.onLocationOff).toHaveBeenCalledTimes(1);
   });
@@ -147,6 +181,13 @@ describe('renderHome', () => {
     renderHome(root, model({ others: [row('queens-road')], location: 'unavailable' }), opts);
     expect(root.querySelector('.home-locate')).toBeNull();
     expect(root.querySelector('.home-location')).toBeNull();
+  });
+
+  it('a countdown that changes keeps its elements', () => {
+    renderHome(root, model({ others: [row('queens-road')] }), opts);
+    const num = root.querySelector('.home-count-num');
+    renderHome(root, model({ others: [row('queens-road', { countdown: { kind: 'seconds', text: '40 sec' } })] }), opts);
+    expect(root.querySelector('.home-count-num')).toBe(num);
   });
 
   it('keeps each row element across redraws and re-sorts', () => {
@@ -161,7 +202,7 @@ describe('renderHome', () => {
     expect(after!.querySelector('.home-star')).toBe(starBefore);
     expect(ids('.home-others .home-row')).toEqual(['queens-road', 'east-ave']);
     const countdown = after!.querySelector('.home-row-countdown')!;
-    expect(countdown.textContent).toBe('40 sec');
+    expect(countdown.querySelector('.home-count-num')!.textContent).toBe('40');
     expect(countdown.classList.contains('seconds')).toBe(true);
     expect(countdown.classList.contains('minutes')).toBe(false);
   });
