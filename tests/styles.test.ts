@@ -71,3 +71,16 @@ describe('ticket badge', () => {
     expect(badge).not.toMatch(/overflow:\s*hidden/);
   });
 });
+
+describe('compact layout', () => {
+  const compact = css.match(/@media \(max-height: 600px\)\s*\{([\s\S]*?)\n\}/);
+  it('has a short-screen block that shrinks the countdown, button and slot', () => {
+    expect(compact).not.toBeNull();
+    const block = compact![1];
+    expect(block).toMatch(/\.value-num\s*\{[^}]*font-size/);
+    expect(block).toMatch(/\.tap-button-main\s*\{[^}]*font-size/);
+    // One fixed height in every state there too.
+    expect(block).toMatch(/\.tap-slot\s*\{[^}]*(^|[;\s])height:\s*[\d.]+rem/);
+    expect(block).not.toMatch(/\.tap-slot[.\[][^{]*\{[^}]*height/);
+  });
+});

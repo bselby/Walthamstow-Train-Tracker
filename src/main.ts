@@ -627,6 +627,7 @@ function rerender(): void {
     onTap: (dir, pressedAtMs) => { void onTap(dir, pressedAtMs); },
     onHelpChoice,
     onOpenTicket: openTicket,
+    onOpenHow: openHow,
   });
 }
 

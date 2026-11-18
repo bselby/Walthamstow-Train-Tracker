@@ -161,19 +161,20 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Board 10: a soft brown pill beside the destination. */
 .freight-tag {
   display: inline-block;
-  margin-left: 0.4em;
-  padding: 2px 6px;
+  margin-left: 0.25em;
+  padding: 2px 10px;
+  background: var(--freight-tag-bg);
+  border-radius: 10px;
   font-family: var(--font-body);
-  font-size: 0.7rem;
+  font-size: 0.8125rem;
   font-weight: 800;
-  letter-spacing: 0.1em;
-  color: var(--freight);
-  text-transform: uppercase;
-  border: 1px solid currentColor;
-  border-radius: 3px;
+  line-height: 1.3;
+  color: var(--freight-tag-ink);
   vertical-align: 0.1em;
+  white-space: nowrap;
 }
 
 .value {
@@ -221,57 +222,113 @@ html, body {
   50% { opacity: 0.55; }
 }
 
+/* The data age (boards 1, 11, 12): small, dim, left-aligned at the foot. */
 .footer {
-  margin-top: auto;
-  padding-top: 0.5rem;
   font-family: var(--font-body);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 600;
+  line-height: 1.3;
   color: var(--dim);
+}
+
+/* ───── No trains, connecting, error (board 11) ─────
+   One card in place of both direction cards: a sleeping train, a heading,
+   a plain line and, where it helps, TfL's own status page. */
+
+.quiet-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 28px 20px;
+  background: var(--card);
+  border-radius: var(--radius-card);
   text-align: center;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.footer.stale {
-  color: var(--warn);
-}
-
-.footer.stale::before {
-  content: '⚠ ';
-}
-
-.footer.no-data {
-  color: var(--dim);
-}
-
-.empty {
-  text-align: center;
-  color: var(--dim);
-  font-family: var(--font-body);
-  font-size: 1rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.empty a {
   color: var(--ink);
-  display: inline-block;
-  margin-top: 1rem;
+}
+.quiet-art {
+  width: 200px;
+  max-width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+.quiet-track { fill: var(--track); }
+.quiet-card[data-line="weaver"] .quiet-train { color: var(--weaver); }
+.quiet-card[data-line="suffragette"] .quiet-train { color: var(--suffragette); }
+.quiet-z {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  fill: var(--placeholder-edge);
+}
+.quiet-z-small { font-size: 16px; }
+.quiet-heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.875rem;
+  font-weight: 800;
+  line-height: 1.05;
+}
+.quiet-body {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.quiet-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 24px;
+  border: 3px solid var(--ink);
+  border-radius: 26px;
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--ink);
   text-decoration: none;
-  border-bottom: 2px solid var(--ink);
-  padding-bottom: 2px;
+}
+.quiet-link:hover { color: var(--line-color); }
+.quiet-link:focus-visible {
+  outline: 3px solid var(--line-color);
+  outline-offset: 3px;
 }
 
-.error {
-  color: var(--error);
-  font-family: var(--font-body);
-  font-size: 1rem;
-  font-weight: 500;
-  text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+/* ───── Live times lost (board 12) ─────
+   A cream notice above the cards, and each card holds a dash. */
+
+.lost-notice {
+  padding: 14px 16px;
+  background: var(--ticket);
+  border: 2px solid var(--badge-edge);
+  border-radius: 16px;
+  color: var(--ink);
+}
+.lost-notice p { margin: 0; }
+.lost-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.lost-line {
+  margin-top: 2px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.direction-card.lost { gap: 8px; }
+.value.lost {
+  font-size: 4.5rem;
+  line-height: 0.85;
+  color: var(--dim);
+}
+.card-lost-note {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--dim);
 }
 
 /* ───── Line diagram ─────
@@ -473,30 +530,33 @@ html, body {
   letter-spacing: 0.05em;
 }
 
-/* ───── Freight journey row ─────
-   Origin → destination subtitle that appears under the freight countdown.
-   Sits muted because the countdown above is the hero. */
+/* ───── Freight journey (board 10) ─────
+   "Coming from X, off to Y." under the freight countdown, each end with its
+   region as a small chip. */
 
 .freight-journey {
-  text-align: center;
+  margin: 0;
   font-family: var(--font-body);
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--freight);
-  opacity: 0.85;
-  line-height: 1.3;
-  padding: 0.25rem 1rem 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--ink);
 }
 
-/* Inline region marker — quiet at rest, brief warm flash on its first sighting
-   this session (handled in render.ts via a one-shot animationend listener that
-   strips the .new-this-session class). Colour is inherited from the
-   surrounding .freight-journey so chips share its freight-brown tone; the
-   flash keyframe explicitly sets ink at 0% and lets the close interpolate
-   back to the inherited resting colour. */
+/* Region chip: quiet at rest, a brief warm flash on its first sighting this
+   session (render.ts strips .new-this-session when the animation ends). */
 .region-chip {
-  font-weight: 700;
+  display: inline-block;
+  margin: 0 0.1em 0 0.35em;
+  padding: 0 7px;
+  background: var(--freight-tag-bg);
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1.5;
+  color: var(--freight-tag-ink);
+  white-space: nowrap;
+  vertical-align: 0.08em;
 }
 
 .region-chip.new-this-session {
@@ -506,10 +566,10 @@ html, body {
 @keyframes region-chip-flash {
   0% {
     background-color: var(--yellow);
-    color: var(--ink);
+    color: #1F2A44;
   }
   100% {
-    background-color: transparent;
+    background-color: var(--freight-tag-bg);
   }
 }
 
@@ -531,176 +591,137 @@ html, body {
   100% { transform: scale(1); }
 }
 
-/* ───── Map-verify link ─────
-   Tiny tap target sat directly under the header — opens Google Maps
-   on the viewpoint's exact coords so the user can confirm they're at the
-   right bridge / station before they look up at the line. */
+/* ───── Walking time and "Verify on map" ─────
+   One row under the cards: the opt-in walking time (with its off control) on
+   the left, the map link on the right. Every control is 44 px tall. */
 
-.map-link {
+.spot-tools {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  padding: 0.15rem 0 0.3rem;
+  justify-content: space-between;
+  gap: 0 12px;
+  padding: 0 4px;
   font-family: var(--font-body);
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--dim);
-  text-decoration: none;
-  opacity: 0.75;
-  transition: opacity 160ms ease, color 160ms ease;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--ink);
 }
 
+.map-link,
+.walking-time-enable {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 2.75rem;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  border-radius: 6px;
+  cursor: pointer;
+}
 .map-link:hover,
-.map-link:focus-visible {
-  opacity: 1;
-  color: var(--line-color);
-}
-
-.map-link:focus-visible {
+.walking-time-enable:hover { color: var(--line-color); }
+.map-link:focus-visible,
+.walking-time-enable:focus-visible {
   outline: 2px solid var(--line-color);
-  outline-offset: 3px;
-  border-radius: 3px;
+  outline-offset: 2px;
 }
-
-/* ───── Walking time row ───── */
+.map-link { margin-left: auto; }
 
 .walking-time {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  padding-bottom: 0.25rem;
-  font-family: var(--font-body);
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--dim);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.walking-time-enable {
+  gap: 6px;
+  min-height: 2.75rem;
   color: var(--ink);
-  cursor: pointer;
-  user-select: none;
 }
-
-.walking-time-enable:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 2px;
-  border-radius: 2px;
-}
+.walking-time-enable { user-select: none; }
 
 .walking-icon {
-  width: 9px;
-  height: 12px;
+  width: 11px;
+  height: 14px;
   flex-shrink: 0;
-  color: var(--ink);
+  color: var(--pin);
   display: block;
 }
 
-/* Small "off" button next to the active walking-time label. Subtle so it doesn't
-   compete with the data, but tappable enough for fingers. */
+/* "off" next to the walking time: small type, full 44 px target. */
 .walking-time-off {
   appearance: none;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  margin: 0;
+  padding: 0 8px;
   background: transparent;
   border: none;
-  padding: 2px 6px;
-  margin-left: 0.15rem;
+  border-radius: 6px;
   font: inherit;
-  font-size: 0.7rem;
+  font-size: 0.875rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
   color: var(--dim);
-  opacity: 0.55;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
   cursor: pointer;
-  text-transform: lowercase;
-  border-radius: 3px;
 }
-
-.walking-time-off:hover,
+.walking-time-off:hover { color: var(--ink); }
 .walking-time-off:focus-visible {
-  opacity: 1;
-  color: var(--ink);
-}
-
-.walking-time-off:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 2px;
+  outline: 2px solid var(--line-color);
+  outline-offset: -2px;
 }
 
 /* ───── Rotating fact line ─────
-   Sits between the "updated Xs ago" footer and the doc-links row. Styled as
-   an editorial line (sentence case, navy text) rather than metadata, with a
-   category-aware mini icon that visibly cycles through subjects (line,
-   station, train, local). Tapping the whole row advances to the next fact —
-   a tiny interactive toy for toddler prodding. */
+   Above the data age, in the same quiet type (boards 1 and 10). Tapping the
+   row advances to the next fact. */
 
 .fact-line {
-  /* Reset the <button> defaults so the row looks like content, not a control. */
+  /* Reset the <button> defaults so the row reads as content. */
   appearance: none;
   border: none;
   background: transparent;
-  padding: 0.75rem 0.5rem 0.25rem;
-  margin: 0 auto;
+  margin: 0;
+  padding: 0;
+  min-height: 2.75rem;
   font: inherit;
   cursor: pointer;
 
   display: flex;
-  justify-content: center;
   align-items: center;
-  gap: 0.4em;
+  gap: 0.45em;
   font-family: var(--font-body);
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   font-weight: 600;
-  color: var(--ink);
-  text-align: center;
-  letter-spacing: 0;
-  opacity: 0.82;
+  line-height: 1.3;
+  color: var(--dim);
+  text-align: left;
   max-width: 100%;
   border-radius: 6px;
-
-  /* Squeeze-on-press and gentle hover lift — handled in a single transition. */
-  transition: transform 180ms cubic-bezier(0.25, 1, 0.5, 1),
-              opacity 180ms ease;
+  transition: transform 180ms cubic-bezier(0.25, 1, 0.5, 1), color 180ms ease;
 }
 
-.fact-line:hover {
-  opacity: 1;
-}
+.fact-line:hover { color: var(--ink); }
 
 .fact-line:active {
-  transform: scale(0.97);
+  transform: scale(0.98);
   transition-duration: 60ms;
 }
 
 .fact-line:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 3px;
+  outline: 2px solid var(--line-color);
+  outline-offset: 2px;
 }
 
-.fact-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;         /* lets flex item actually shrink + ellipsise */
-}
+.fact-text { min-width: 0; }
 
 .fact-icon {
-  width: 1.05rem;
-  height: 1.05rem;
+  width: 1rem;
+  height: 1rem;
   flex-shrink: 0;
-  color: var(--ink);  /* currentColor feeds the SVG strokes/fill */
-  opacity: 0.95;
+  color: var(--dim);
   transform-origin: center;
-  transform: translateY(-0.5px);  /* optical centring against text x-height */
 }
 
-/* When the fact changes, the row fades + rises; the icon additionally bounces
-   with a little overshoot so the "new arrival" registers as a small event,
-   not a silent re-paint. Two separate keyframes so the effects compose cleanly. */
+/* When the fact changes the row fades in and the icon pops, once. */
 .fact-line.fact-enter {
   animation: fact-fade 420ms ease both;
 }
@@ -710,13 +731,13 @@ html, body {
 
 @keyframes fact-fade {
   from { opacity: 0; transform: translateY(3px); }
-  to   { opacity: 0.82; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fact-icon-pop {
-  0%   { transform: translateY(-0.5px) scale(0.3) rotate(-18deg); opacity: 0; }
-  55%  { transform: translateY(-0.5px) scale(1.18) rotate(4deg);  opacity: 1; }
-  100% { transform: translateY(-0.5px) scale(1)    rotate(0);     opacity: 0.95; }
+  0%   { transform: scale(0.3) rotate(-18deg); opacity: 0; }
+  55%  { transform: scale(1.18) rotate(4deg);  opacity: 1; }
+  100% { transform: scale(1)    rotate(0);     opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -729,52 +750,50 @@ html, body {
   }
 }
 
-.walking-time-off::before {
-  content: '·';
-  margin-right: 0.4em;
-  color: var(--dim);
-  opacity: 0.7;
-}
-
 /* ───── Footer doc links (About · Privacy · Terms) ───── */
 
 .doc-links {
   display: flex;
-  justify-content: center;
-  align-items: baseline;
-  gap: 0.5em;
-  padding-top: 0.4rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 2px;
   font-family: var(--font-body);
-  font-size: 0.6875rem;
+  font-size: 0.8125rem;
   font-weight: 700;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
   color: var(--dim);
-  opacity: 0.65;
 }
 
 .doc-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 6px;
   color: inherit;
-  text-decoration: none;
-  padding: 2px 4px;
-  border-radius: 2px;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  border-radius: 6px;
 }
+.doc-links a:first-child { padding-left: 4px; }
 
-.doc-links a:hover,
-.doc-links a:focus-visible {
-  color: var(--ink);
-  opacity: 1;
-}
+.doc-links a:hover { color: var(--ink); }
 
 .doc-links a:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 2px;
+  outline: 2px solid var(--line-color);
+  outline-offset: -2px;
 }
 
-.doc-links span {
-  color: var(--ink);
-  opacity: 0.6;
+/* The spot screen reads top-down: header, cards, then a gap, then the fact,
+   the data age and the links at the foot (boards 1, 10, 11, 12). */
+#app:has(> .spot-header) {
+  justify-content: flex-start;
+  gap: 12px;
 }
+#app:has(> .spot-header) > .fact-line,
+#app:has(> .spot-header) > .spot-tools + .footer {
+  margin-top: auto;
+}
+#app:has(> .spot-header) > .fact-line + .footer { margin-top: -10px; }
+#app:has(> .spot-header) > .doc-links { margin-top: -8px; }
 
 /* ───── Arrow emphasis (last-minute countdown) ───── */
 
@@ -1068,60 +1087,80 @@ html, body {
   .tap-button.pressed { transform: none; }
 }
 
-/* Ask card: in the page flow below both cards, never over a countdown.
-   Task 8 restyles it as the board 1 invitation. */
+/* ───── Invitation (board 1) ─────
+   In the page flow below both cards, never over a countdown: a cream card
+   with a stopwatch, "Show me how" as a big outlined button, "No thanks" as
+   a text button. */
 .ask-card {
-  padding: 1rem 1.1rem;
-  border: 1px solid var(--border);
-  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: var(--ticket);
+  border-radius: var(--radius-card);
   font-family: var(--font-body);
   color: var(--ink);
 }
+.ask-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ask-icon {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  color: var(--ink);
+}
 .ask-heading {
-  margin: 0 0 0.35rem;
+  margin: 0;
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 800;
-  line-height: 1.05;
+  line-height: 1.1;
 }
 .ask-body {
-  margin: 0 0 0.9rem;
-  font-size: 0.95rem;
-  font-weight: 500;
-  line-height: 1.35;
-  color: var(--dim);
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
 }
-.ask-choices {
+.ask-how {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  border: 3px solid var(--ink);
+  border-radius: 26px;
+  background: var(--card);
+  font-family: var(--font-display);
+  font-size: 1.1875rem;
+  font-weight: 800;
+  color: var(--ink);
+  text-decoration: none;
 }
-.ask-help,
+.ask-how:hover { color: var(--line-color); }
 .ask-decline {
   appearance: none;
+  align-self: center;
   min-height: 2.75rem;
-  padding: 0.5rem 1.1rem;
-  border-radius: 999px;
+  margin: -4px 0 -6px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
   font-family: var(--font-body);
-  font-size: 1rem;
+  font-size: 0.9375rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
   cursor: pointer;
 }
-.ask-help {
-  border: 2px solid var(--ink);
-  background: var(--ink);
-  color: var(--bg);
-}
-.ask-decline {
-  border: 2px solid transparent;
-  background: transparent;
-  color: var(--dim);
-}
-.ask-help:focus-visible,
+.ask-how:focus-visible,
 .ask-decline:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 3px;
+  outline: 3px solid var(--line-color);
+  outline-offset: 2px;
+  border-radius: 26px;
 }
 
 /* ───── Home ─────
@@ -1367,4 +1406,68 @@ html, body {
     transition: none;
   }
   .home-star:active { transform: none; }
+}
+
+/* ───── Compact layout (short screens) ─────
+   Below 600 px of height both directions' countdowns must show without
+   scrolling, down to a 320 × 460 visible area, with the yellow button in
+   view. The countdown moves up beside "To <destination>" and the "then"
+   times, with the diagram under them; numbers, button and spacing shrink.
+   The timing slot is still one fixed height in every state. */
+@media (max-height: 600px) {
+  #app:has(> .spot-header) {
+    gap: 8px;
+    padding-top: calc(6px + env(safe-area-inset-top));
+  }
+  .spot-header { gap: 0; }
+  .spot-header-title { gap: 0; }
+  .spot-header-name { font-size: 1.5rem; }
+  .spot-header-line { font-size: 0.8125rem; }
+
+  .direction-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 4px 12px;
+    padding: 10px 12px;
+  }
+  .direction-card > * { grid-column: 1 / -1; }
+  .direction-card > .card-top {
+    grid-column: 1;
+    grid-row: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+  }
+  .direction-card > .value {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+  .value-num { font-size: 3.5rem; }
+  .value-unit { font-size: 1.25rem; }
+  .value.now { font-size: 3.5rem; }
+  .value.just-crossed { font-size: 1.625rem; }
+  .value.sleeping { font-size: 1rem; text-align: right; }
+  .value.lost { font-size: 3rem; }
+
+  .tap-slot {
+    height: 6.25rem;
+    margin-top: 2px;
+  }
+  .tap-button { padding: 0.25rem 1rem; border-radius: 32px; }
+  .tap-button-main { font-size: 1.25rem; }
+  .tap-button-sub { font-size: 0.8125rem; }
+  .tap-placeholder { padding: 0.25rem 1rem; }
+  .tap-thanks { padding: 4px 10px; gap: 2px; }
+  .tap-heading { font-size: 1.0625rem; }
+  .tap-line { font-size: 0.8125rem; line-height: 1.2; }
+  .tap-offline { font-size: 0.75rem; line-height: 1.15; }
+
+  .lost-notice { padding: 10px 14px; }
+  .ask-card { padding: 12px; gap: 8px; }
+  .ask-how { min-height: 48px; }
+  .quiet-card { padding: 16px; gap: 10px; }
+  .quiet-art { width: 150px; }
+  .quiet-heading { font-size: 1.5rem; }
 }
