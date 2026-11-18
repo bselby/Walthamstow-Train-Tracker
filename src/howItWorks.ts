@@ -143,7 +143,20 @@ function pageTwo(handlers: HowHandlers): HTMLElement[] {
   ];
 }
 
-export function renderHowItWorks(root: HTMLElement, handlers: HowHandlers): void {
+export function renderHowItWorks(root: HTMLElement, raw: HowHandlers): void {
+  // Only one way out per visit: the buttons stay in the DOM until the browser
+  // has gone back, so a quick second tap must not go back again.
+  let left = false;
+  const once = (fn: () => void) => (): void => {
+    if (left) return;
+    left = true;
+    fn();
+  };
+  const handlers: HowHandlers = {
+    onCountMeIn: once(raw.onCountMeIn),
+    onNotNow: once(raw.onNotNow),
+    onBack: once(raw.onBack),
+  };
   const paint = (page: 1 | 2, moveFocus: boolean): void => {
     const go = (p: 1 | 2): void => paint(p, true);
     const sheet = el('section', 'how-sheet');
