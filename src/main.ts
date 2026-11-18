@@ -19,7 +19,7 @@ import { snapshotViewpoint, type DirectionSnapshot, type ViewpointSnapshots } fr
 import type { BerthEvent } from './tdProxy';
 import { fetchFreight, clampFreightPosition } from './freight';
 import { atViewpoint, canTuneViewpoint, passKey, updatePass, type TapPass } from './tap';
-import { chooseHelp, loadTapState, recordTap, resetChoice, saveTapState } from './tapStore';
+import { chooseHelp, loadTapState, recordTap, saveTapState } from './tapStore';
 import { buildTapPayload, sendTap, shouldSendTaps } from './tapClient';
 import { msUntilButton, newDeviceId, tapAsk, tapDirectionView, tflExpectedArrivalMs } from './tapView';
 import { parseRoute, viewpointPath, HOME_PATH, TICKET_PATH, HOW_PATH } from './routes';
@@ -118,21 +118,14 @@ function safeLocalRemove(key: string): void {
 let tapState = loadTapState(safeLocalRead, () => newDeviceId());
 
 // QA / debugging: visiting `?reset=walking` clears the locationEnabled flag so
-// the opt-in row reappears on next load. `?help=1` (the About page's "Help
-// tune this spot" link) undoes a "Not now" so the ask card comes back. Both
-// params are stripped from the URL after reading so a refresh doesn't repeat them.
+// the opt-in row reappears on next load. The param is stripped from the URL
+// after reading so a refresh doesn't repeat it.
 try {
   const url = new URL(window.location.href);
   let changed = false;
   if (url.searchParams.get('reset') === 'walking') {
     safeLocalRemove(LOCATION_STORAGE_KEY);
     url.searchParams.delete('reset');
-    changed = true;
-  }
-  if (url.searchParams.get('help') === '1') {
-    tapState = resetChoice(tapState);
-    saveTapState(safeLocalWrite, tapState);
-    url.searchParams.delete('help');
     changed = true;
   }
   if (changed) window.history.replaceState({}, '', url.toString());
