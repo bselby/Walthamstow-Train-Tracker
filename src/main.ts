@@ -2,7 +2,7 @@ import { fetchArrivals, fetchStopArrivals } from './tfl';
 import { pickNextNPerDirection } from './bridge';
 import type { BridgeEvent } from './bridge';
 import { classifyFreshness } from './freshness';
-import { startPoller } from './poller';
+import { startPoller, createRetry } from './poller';
 import { render, type ViewModel } from './render';
 import { formatCountdown } from './display';
 import { estimatePosition } from './trainPosition';
@@ -268,6 +268,8 @@ function showHome(): void {
   stopCountdownPollers();
   screen = 'home';
   resetCountdownState();
+  // Whether TfL can be reached is for the poll about to run to say.
+  lastHomePollFailed = false;
   document.title = HOME_TITLE;
   document.documentElement.style.removeProperty('--line-color');
   rerender();
@@ -575,9 +577,17 @@ function startFreightPoller(): void {
   freightPollerStop = startPoller(freightTick, FREIGHT_POLL_INTERVAL_MS);
 }
 
+// The quick retry after a failed first fetch. One at a time, and dropped
+// when the countdown it was for is left.
+const tickRetry = createRetry(() => { void tick(); }, 3000);
+let berthUnsubscribe: (() => void) | null = null;
+
+/** Everything the countdown screen listens to: TfL, freight where the
+ *  viewpoint has it, and live signalling steps. */
 function startCountdownPollers(): void {
   if (countdownPollerStop === null) countdownPollerStop = startPoller(tick, POLL_INTERVAL_MS);
   startFreightPoller();
+  if (berthUnsubscribe === null) berthUnsubscribe = subscribeBerthEvents(onBerthEvent);
 }
 
 function stopCountdownPollers(): void {
@@ -585,11 +595,19 @@ function stopCountdownPollers(): void {
     countdownPollerStop();
     countdownPollerStop = null;
   }
+  tickRetry.cancel();
   stopFreightPoller();
+  // Home shows TfL times only, so it holds no signalling connection.
+  if (berthUnsubscribe !== null) {
+    berthUnsubscribe();
+    berthUnsubscribe = null;
+  }
 }
 
 /** One home poll: each TfL stop behind the rows on screen, asked once. */
+let homeTickSeq = 0;
 async function homeTick(): Promise<void> {
+  const seq = ++homeTickSeq;
   const position = locationEnabled ? getLocationState().position : null;
   const result = await pollHome(
     homeRowOrder(VIEWPOINTS, favouriteIds, position),
@@ -597,6 +615,8 @@ async function homeTick(): Promise<void> {
     fetchStopArrivals,
     Date.now,
   );
+  // A slow older poll must not overwrite a newer one's answer.
+  if (seq !== homeTickSeq) return;
   homeSnapshots = result.snapshots;
   lastHomePollFailed = result.polled > 0 && result.failed === result.polled;
   rerender();
@@ -641,7 +661,7 @@ async function tick(): Promise<void> {
     // If we have no data yet (e.g. right after a viewpoint switch cleared
     // lastFetchMs), retry in 3 s rather than leaving the user stuck on the
     // error screen for the full 20 s poll interval.
-    if (lastFetchMs === null) setTimeout(() => { void tick(); }, 3000);
+    if (lastFetchMs === null) tickRetry.schedule();
   }
   rerender();
 }
@@ -707,7 +727,6 @@ function onBerthEvent(event: BerthEvent): void {
   }
 }
 
-subscribeBerthEvents(onBerthEvent);
 
 startRenderLoop();
 if (screen === 'countdown') startCountdownPollers();

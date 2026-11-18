@@ -21,7 +21,14 @@ let source: EventSource | null = null;
 export function subscribeBerthEvents(cb: BerthCallback): () => void {
   callbacks.add(cb);
   ensureConnected();
-  return () => { callbacks.delete(cb); };
+  return () => {
+    callbacks.delete(cb);
+    // Nobody listening: drop the connection instead of holding it open.
+    if (callbacks.size === 0 && source) {
+      source.close();
+      source = null;
+    }
+  };
 }
 
 function ensureConnected(): void {
