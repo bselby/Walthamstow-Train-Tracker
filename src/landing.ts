@@ -2,7 +2,11 @@
 import type { Route } from './routes';
 import { getViewpointById, type Viewpoint } from './viewpoints';
 
-export type Landing = { screen: 'home' } | { screen: 'viewpoint'; viewpoint: Viewpoint };
+export type Landing =
+  | { screen: 'home' }
+  | { screen: 'viewpoint'; viewpoint: Viewpoint }
+  | { screen: 'ticket' }
+  | { screen: 'how' };
 
 /**
  * A viewpoint's own URL opens that viewpoint. The root URL (and anything
@@ -11,6 +15,8 @@ export type Landing = { screen: 'home' } | { screen: 'viewpoint'; viewpoint: Vie
  * on home.
  */
 export function landingFor(route: Route, favouriteIds: readonly string[]): Landing {
+  if (route.kind === 'ticket') return { screen: 'ticket' };
+  if (route.kind === 'how') return { screen: 'how' };
   if (route.kind === 'viewpoint') return { screen: 'viewpoint', viewpoint: route.viewpoint };
   if (favouriteIds.length === 1) {
     const viewpoint = getViewpointById(favouriteIds[0]);
