@@ -88,4 +88,15 @@ describe('compact layout', () => {
     expect(block).toMatch(/\.tap-slot\s*\{[^}]*(^|[;\s])height:\s*[\d.]+rem/);
     expect(block).not.toMatch(/\.tap-slot[.\[][^{]*\{[^}]*height/);
   });
+
+  it('keeps the card head short at 320 × 460: number from the top, "then" on its own line', () => {
+    const block = compact![1];
+    expect(block).toMatch(/\.direction-card > \.card-top\s*\{[^}]*display:\s*contents/);
+    expect(block).toMatch(/\.card-top > \.card-then\s*\{[^}]*grid-column:\s*1 \/ -1[^}]*grid-row:\s*2/);
+    expect(block).toMatch(/\.direction-card > \.value\s*\{[^}]*align-self:\s*start/);
+  });
+
+  it('centres a freight journey in the slot it borrows', () => {
+    expect(css).toMatch(/\.tap-slot > \.freight-journey\s*\{/);
+  });
 });

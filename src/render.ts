@@ -493,6 +493,13 @@ function renderWalkingTime(
   return el;
 }
 
+/** The freight journey line, only with both ends known: half a journey reads
+ *  as broken, so the line is skipped. */
+function journeyFor(event: BridgeEvent | undefined): HTMLElement | null {
+  if (!event?.arrival.origin || !event.arrival.destinationName) return null;
+  return renderJourney(event.arrival.origin, event.arrival.destinationName);
+}
+
 function renderJourney(origin: string, destination: string): HTMLElement {
   const journey = document.createElement('p');
   journey.className = 'freight-journey';
@@ -584,7 +591,7 @@ function renderCard(existing: HTMLElement | null, vm: ViewModel, dir: Direction)
     card.classList.remove('card-imminent');
     previousValueText[dir] = '–';
   } else {
-    renderLiveParts(card, vm, dir, event, isFreight, nodes);
+    renderLiveParts(card, vm, dir, event, isFreight, nodes, vm.tap[dir].state === 'none');
   }
 
   const slot = renderTapSlot(
@@ -597,6 +604,16 @@ function renderCard(existing: HTMLElement | null, vm: ViewModel, dir: Direction)
   );
   if (slot) {
     slot.dataset.direction = dir;
+    // Board 10's "Coming from X, off to Y." goes in the slot a freight hero
+    // leaves empty, so it never pushes the next card down. The button, the
+    // thank-you and the rank-up come first; then the journey; then the
+    // placeholder (which a freight hero never gets).
+    const journey = slot.dataset.state === 'reserved' && isFreight ? journeyFor(event) : null;
+    if (journey) {
+      slot.replaceChildren(journey);
+      slot.removeAttribute('aria-hidden');
+      slot.dataset.state = 'journey';
+    }
     nodes.push(slot);
   }
 
@@ -613,6 +630,8 @@ function renderLiveParts(
   event: BridgeEvent | undefined,
   isFreight: boolean,
   nodes: HTMLElement[],
+  /** No timing slot on this card, so the freight journey goes under the countdown. */
+  noSlot: boolean,
 ): void {
   const valueEl = document.createElement('div');
   valueEl.className = 'value';
@@ -644,11 +663,10 @@ function renderLiveParts(
   previousValueText[dir] = currentText;
   nodes.push(valueEl);
 
-  // Board 10: "Coming from X, off to Y." under the countdown, only with
-  // both ends known: half a journey reads as broken, so the line is skipped.
-  if (isFreight && event?.arrival.origin && event?.arrival.destinationName) {
-    nodes.push(renderJourney(event.arrival.origin, event.arrival.destinationName));
-  }
+  // Board 10: "Coming from X, off to Y." under the countdown where the card
+  // has no timing slot (else it goes in the slot, see renderCard).
+  const journey = isFreight && noSlot ? journeyFor(event) : null;
+  if (journey) nodes.push(journey);
 
   nodes.push(renderDirectionStrip(card.querySelector<HTMLElement>(':scope > .strip'), {
     direction: dir,

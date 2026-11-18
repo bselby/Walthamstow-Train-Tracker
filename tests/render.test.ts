@@ -122,6 +122,40 @@ describe('render — freight', () => {
       .toEqual(['card-top', 'value', 'freight-journey', 'strip']);
   });
 
+  it('freight hero with a reserved slot: the journey line sits in the slot, not under the countdown', () => {
+    const tap: TapView = { ...NEUTRAL_TAP, north: { ...NO_TAP, state: 'reserved' } };
+    render(root, vm({ north: event(freightArrival(), 60), tap }), opts);
+    const journeys = root.querySelectorAll('.freight-journey');
+    expect(journeys).toHaveLength(1);
+    const slot = journeys[0].parentElement!;
+    expect(slot.classList.contains('tap-slot')).toBe(true);
+    expect(slot.getAttribute('aria-hidden')).toBeNull();
+    const card = slot.closest('.direction-card')!;
+    expect(Array.from(card.children).map((c) => c.className.split(' ')[0]))
+      .toEqual(['card-top', 'value', 'strip', 'tap-slot']);
+    // Redrawn each second, still exactly one line; empty again once the hero is a passenger train.
+    render(root, vm({ north: event(freightArrival(), 59), tap }), opts);
+    expect(root.querySelectorAll('.freight-journey')).toHaveLength(1);
+    render(root, vm({ north: event(passengerArrival(), 120), tap }), opts);
+    expect(root.querySelector('.freight-journey')).toBeNull();
+    expect(root.querySelector('.direction-card .tap-slot')!.childElementCount).toBe(0);
+    expect(root.querySelector('.direction-card .tap-slot')!.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it('freight hero while a thank-you shows: the thank-you keeps the slot', () => {
+    const tap: TapView = {
+      ...NEUTRAL_TAP,
+      taps: 3,
+      north: { ...NO_TAP, state: 'thanks', passKey: 'qr|north|1', destination: 'Barking Riverside',
+        entry: { tapMs: 1, predictedMs: 1, tapsBefore: 2 } },
+    };
+    render(root, vm({ north: event(freightArrival(), 60), tap }), opts);
+    const slot = root.querySelector('.direction-card .tap-slot')!;
+    expect(slot.querySelector('.tap-thanks')).not.toBeNull();
+    // Not pushed back under the countdown either: the card keeps its height.
+    expect(root.querySelector('.freight-journey')).toBeNull();
+  });
+
   it('freight hero missing origin: no .freight-journey (avoid half-rendered arrow)', () => {
     render(root, vm({ north: event(freightArrival({ origin: undefined }), 60) }), opts);
     expect(root.querySelector('.freight-journey')).toBeNull();
