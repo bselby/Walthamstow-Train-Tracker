@@ -12,7 +12,7 @@ describe('picture book tokens', () => {
   it('has the light palette', () => {
     expect(css).toMatch(/--bg:\s*#DCEEF5/i);
     expect(css).toMatch(/--radius-card:\s*22px/);
-    for (const t of ['card', 'ink', 'dim', 'weaver', 'suffragette', 'yellow', 'ticket', 'pin', 'freight', 'container', 'freight-tag-bg', 'freight-tag-ink', 'border']) {
+    for (const t of ['card', 'ink', 'dim', 'weaver', 'suffragette', 'yellow', 'ticket', 'pin', 'freight', 'freight-tag-bg', 'freight-tag-ink', 'border']) {
       expect(css).toMatch(new RegExp(`--${t}:`));
     }
   });
@@ -37,6 +37,11 @@ describe('picture book tokens', () => {
   });
   it('has no dead freight or bridge marker rules', () => {
     expect(css).not.toMatch(/\.strip-freight-svg|\.freight-(body|roof|window|bogie|container)|\.strip-bridge/);
+  });
+  it('has no dead page header rule or unused tokens', () => {
+    expect(css).not.toMatch(/\.page-header/);
+    expect(css).not.toMatch(/--warn:/);
+    expect(css).not.toMatch(/--container:/);
   });
   it('outlines the freight drawing on the dark card', () => {
     expect(css).toMatch(/@media \(prefers-color-scheme: dark\)[^}]*\{[^}]*\.train-freight[^{]*\{[^}]*(drop-shadow|stroke)/);
