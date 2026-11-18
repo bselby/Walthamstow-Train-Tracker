@@ -13,6 +13,15 @@ export interface BerthStepEvent {
   toBerth: string;
   /** Unix ms timestamp of the step, from the TD message. */
   timestamp: number;
+  /** The train's headcode from the TD message, e.g. 2T45. */
+  trainId: string;
+}
+
+/** Headcodes starting 1, 2 or 9 are passenger trains. The rest are light
+ *  engines, empty stock, freight and engineering trains (0, 3 to 8), which
+ *  the countdown is not about and TfL does not predict. */
+export function isPassengerHeadcode(trainId: string): boolean {
+  return /^[129]/.test(trainId);
 }
 
 /** How long after the predicted crossing a berth ETA keeps driving the
@@ -28,6 +37,7 @@ export function berthEtaFromStep(
   steps: readonly BerthStep[] | undefined,
 ): number | null {
   if (!steps) return null;
+  if (!isPassengerHeadcode(event.trainId)) return null;
   const step = steps.find((s) => s.fromBerth === event.fromBerth && s.toBerth === event.toBerth);
   if (!step) return null;
   return event.timestamp + step.secondsToViewpoint * 1000;

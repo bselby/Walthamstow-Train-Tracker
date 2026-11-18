@@ -9,22 +9,41 @@ const STEPS = [
 
 describe('berthEtaFromStep', () => {
   it('times the viewpoint from the moment of the matching berth step', () => {
-    const eta = berthEtaFromStep({ fromBerth: '1418', toBerth: '1414', timestamp: 1_000_000 }, STEPS);
+    const eta = berthEtaFromStep({ fromBerth: '1418', toBerth: '1414', timestamp: 1_000_000, trainId: '2T45' }, STEPS);
     expect(eta).toBe(1_005_000);
   });
 
   it('ignores the SMART station offset, which describes the platform event and not the viewpoint', () => {
-    const proxyEvent = { fromBerth: '1422', toBerth: '1420', timestamp: 2_000_000, offsetSeconds: -25 };
+    const proxyEvent = { fromBerth: '1422', toBerth: '1420', timestamp: 2_000_000, offsetSeconds: -25, trainId: '2T45' };
     const eta = berthEtaFromStep(proxyEvent, STEPS);
     expect(eta).toBe(2_048_000);
   });
 
   it('returns null for a step the viewpoint does not watch', () => {
-    expect(berthEtaFromStep({ fromBerth: '1429', toBerth: '1431', timestamp: 1 }, STEPS)).toBeNull();
+    expect(berthEtaFromStep({ fromBerth: '1429', toBerth: '1431', timestamp: 1, trainId: '2T45' }, STEPS)).toBeNull();
   });
 
   it('returns null when the direction has no berth steps', () => {
-    expect(berthEtaFromStep({ fromBerth: '1418', toBerth: '1414', timestamp: 1 }, undefined)).toBeNull();
+    expect(berthEtaFromStep({ fromBerth: '1418', toBerth: '1414', timestamp: 1, trainId: '2T45' }, undefined)).toBeNull();
+  });
+});
+
+describe('berthEtaFromStep and non-passenger trains', () => {
+  const step = { fromBerth: '1418', toBerth: '1414', timestamp: 1_000_000 };
+
+  it.each(['3S20', '0Z99', '4L85', '5T45', '6M23', '7A09', '8X01'])(
+    'ignores %s, which is not a passenger train',
+    (trainId) => {
+      expect(berthEtaFromStep({ ...step, trainId }, STEPS)).toBeNull();
+    },
+  );
+
+  it.each(['2T45', '1A23', '9C10'])('times %s, a passenger train', (trainId) => {
+    expect(berthEtaFromStep({ ...step, trainId }, STEPS)).toBe(1_005_000);
+  });
+
+  it('ignores a step with no train description', () => {
+    expect(berthEtaFromStep({ ...step, trainId: '' }, STEPS)).toBeNull();
   });
 });
 
