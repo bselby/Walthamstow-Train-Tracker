@@ -452,7 +452,7 @@ function rerender(): void {
       advanceFact();
       rerender();
     },
-    onSwitchViewpoint: switchToViewpoint,
+    onHome: () => {}, // wired to the home screen in the next commit
     onToggleFavourite: toggleFavouriteViewpoint,
     onTap,
     onHelpChoice,
