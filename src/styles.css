@@ -1,24 +1,60 @@
 :root {
-  color-scheme: light;
+  color-scheme: light dark;
 
-  /* TfL Overground-inspired light palette */
-  --bg:           oklch(97% 0.012 85);   /* warm paper cream */
-  --ink:          oklch(28% 0.12 265);   /* TfL corporate navy — primary text */
-  --dim:          oklch(50% 0.02 85);    /* warm graphite — secondary */
-  --line:         oklch(85% 0.01 85);    /* soft greige divider */
-  --overground:   oklch(70% 0.175 55);   /* TfL Overground orange */
-  --now:          oklch(58% 0.17 150);   /* go-signal green */
-  --warn:         oklch(72% 0.15 75);    /* stale-data amber */
-  --error:        oklch(50% 0.19 25);    /* deep red */
+  /* Picture book palette (light) */
+  --bg:             #DCEEF5;
+  --card:           #FFFFFF;
+  --ink:            #1F2A44;
+  --dim:            #46536E;
+  --border:         #C3D6E0;
+  --weaver:         #7A2E54;
+  --weaver-text:    #7A2E54;
+  --suffragette:    #1E7B4B;
+  --suffragette-text: #1E7B4B;
+  --yellow:         #FFC93C;
+  --ticket:         #FFF4CF;
+  --pin:            #E4572E;
+  --freight:        #8A5A2B;
+  --container:      #2F7D8C;
+  --freight-tag-bg: #F3E6D8;
+  --freight-tag-ink:#6B4A1E;
+
+  /* Status */
+  --now:            #1E7B4B;
+  --warn:           #8A5A00;
+  --error:          #B3261E;
+
+  --radius-card: 22px;
+  --font-display: 'Baloo 2', 'Nunito', system-ui, sans-serif;
+  --font-body:    'Nunito', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
 
   --gap: clamp(1rem, 3vw, 2rem);
 
-  --line-color: oklch(35% 0.12 10); /* Weaver burgundy — default; main.ts overrides per viewpoint */
+  --line-color: var(--weaver-text); /* default; main.ts overrides per spot */
+}
 
-  /* Freight diesel brown — deliberately NOT themed per-viewpoint; freight is
-     its own category across every line. Muted to stay visually secondary to
-     passenger data. */
-  --freight-color: oklch(45% 0.06 30);
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:             #121829;
+    --card:           #1D2539;
+    --ink:            #F2F4F8;
+    --dim:            #A9B3C6;
+    --border:         #3A4560;
+    --weaver:         #B4517F;   /* doors, fills */
+    --weaver-text:    #E79BC0;
+    --suffragette:    #4CC38A;   /* 6.9:1 on card #1D2539 */
+    --suffragette-text: #4CC38A;
+    --ticket:         #3D3720;
+    --pin:            #F0663F;
+    --freight:        #C9965A;
+    --container:      #5FB3C2;
+    --freight-tag-bg: #3A2F22;
+    --freight-tag-ink:#EBCB9E;
+
+    --now:            #4CC38A;
+    --warn:           #FFC93C;
+    --error:          #FF8A7A;
+  }
 }
 
 * { box-sizing: border-box; }
@@ -28,7 +64,7 @@ html, body {
   padding: 0;
   background: var(--bg);
   color: var(--ink);
-  font-family: 'Big Shoulders Text', 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-body);
   font-weight: 500;
   height: 100%;
   overscroll-behavior: none;
@@ -50,7 +86,7 @@ html, body {
 }
 
 .page-header {
-  font-family: 'Big Shoulders Text', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.8125rem;
   font-weight: 800;
   color: var(--dim);
@@ -67,7 +103,7 @@ html, body {
   content: '·';
   display: inline-block;
   margin: 0 0.6em;
-  color: var(--overground);
+  color: var(--ink);
 }
 
 .row {
@@ -85,7 +121,7 @@ html, body {
 }
 
 .label {
-  font-family: 'Big Shoulders Text', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--dim);
@@ -95,7 +131,7 @@ html, body {
 
 /* The arrow character at the start of each label wears the brand colour. */
 .label::first-letter {
-  color: var(--overground);
+  color: var(--ink);
   font-weight: 700;
 }
 
@@ -106,11 +142,11 @@ html, body {
   display: inline-block;
   margin-left: 0.4em;
   padding: 2px 6px;
-  font-family: 'Big Shoulders Text', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.1em;
-  color: var(--freight-color);
+  color: var(--freight);
   text-transform: uppercase;
   border: 1px solid currentColor;
   border-radius: 3px;
@@ -118,7 +154,7 @@ html, body {
 }
 
 .value {
-  font-family: 'Big Shoulders Display', 'Helvetica Neue', Impact, sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(4rem, 16vw, 7rem);
   font-weight: 900;
   line-height: 0.92;
@@ -156,7 +192,7 @@ html, body {
 .footer {
   margin-top: auto;
   padding-top: 0.5rem;
-  font-family: 'Big Shoulders Text', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--dim);
@@ -180,7 +216,7 @@ html, body {
 .empty {
   text-align: center;
   color: var(--dim);
-  font-family: 'Big Shoulders Text', sans-serif;
+  font-family: var(--font-body);
   font-size: 1rem;
   font-weight: 500;
   text-transform: uppercase;
@@ -188,17 +224,17 @@ html, body {
 }
 
 .empty a {
-  color: var(--overground);
+  color: var(--ink);
   display: inline-block;
   margin-top: 1rem;
   text-decoration: none;
-  border-bottom: 2px solid var(--overground);
+  border-bottom: 2px solid var(--ink);
   padding-bottom: 2px;
 }
 
 .error {
   color: var(--error);
-  font-family: 'Big Shoulders Text', sans-serif;
+  font-family: var(--font-body);
   font-size: 1rem;
   font-weight: 500;
   text-align: center;
@@ -220,7 +256,7 @@ html, body {
   left: 16px;
   right: 16px;
   height: 2px;
-  background: var(--line);
+  background: var(--border);
   transform: translateY(-50%);
 }
 
@@ -247,7 +283,7 @@ html, body {
 .strip-pip-label {
   position: absolute;
   top: 16px;
-  font-family: 'Big Shoulders Text', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--dim);
@@ -265,7 +301,7 @@ html, body {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  color: var(--overground);
+  color: var(--ink);
   pointer-events: none;
   z-index: 2;
 }
@@ -279,10 +315,10 @@ html, body {
 .strip-bridge-label {
   position: absolute;
   bottom: 18px;
-  font-family: 'Big Shoulders Text', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.75rem;
   font-weight: 800;
-  color: var(--overground);
+  color: var(--ink);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -361,7 +397,7 @@ html, body {
    carry on using the viewpoint's line colour as before. */
 
 .strip-train.freight {
-  color: var(--freight-color);
+  color: var(--freight);
   /* Freight SVG viewBox is 0 0 62 22 (vs passenger 0 0 52 22) — wider so the
      wagon doesn't look squashed. */
   width: 62px;
@@ -436,8 +472,8 @@ html, body {
     transform: scale(1);
   }
   35% {
-    background: var(--overground);
-    border-color: var(--overground);
+    background: var(--yellow);
+    border-color: var(--yellow);
     transform: scale(1.8);
   }
   100% {
@@ -481,7 +517,7 @@ html, body {
   align-items: baseline;
   gap: 0.5rem;
   padding-top: 0.2rem;
-  font-family: 'Big Shoulders Text', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--ink);
@@ -491,12 +527,12 @@ html, body {
 }
 
 .ticker-prefix {
-  color: var(--overground);
+  color: var(--ink);
   font-weight: 700;
 }
 
 .ticker-sep {
-  color: var(--overground);
+  color: var(--ink);
 }
 
 /* Ticker freight marker — superscript 'fr' rendered via ::after so the DOM
@@ -506,7 +542,7 @@ html, body {
   content: 'fr';
   font-size: 0.65em;
   font-weight: 800;
-  color: var(--freight-color);
+  color: var(--freight);
   margin-left: 0.15em;
   vertical-align: 0.5em;
   letter-spacing: 0.05em;
@@ -526,11 +562,11 @@ html, body {
 
 .freight-journey {
   text-align: center;
-  font-family: 'Big Shoulders Text', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.04em;
-  color: var(--freight-color);
+  color: var(--freight);
   opacity: 0.85;
   line-height: 1.3;
   padding: 0.25rem 1rem 0;
@@ -552,7 +588,7 @@ html, body {
 
 @keyframes region-chip-flash {
   0% {
-    background-color: oklch(88% 0.11 75);
+    background-color: var(--yellow);
     color: var(--ink);
   }
   100% {
@@ -589,7 +625,7 @@ html, body {
   justify-content: center;
   gap: 0.4rem;
   padding: 0.15rem 0 0.3rem;
-  font-family: 'Big Shoulders Text', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -620,7 +656,7 @@ html, body {
   justify-content: center;
   gap: 0.45rem;
   padding-bottom: 0.25rem;
-  font-family: 'Big Shoulders Text', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--dim);
@@ -629,13 +665,13 @@ html, body {
 }
 
 .walking-time-enable {
-  color: var(--overground);
+  color: var(--ink);
   cursor: pointer;
   user-select: none;
 }
 
 .walking-time-enable:focus-visible {
-  outline: 2px solid var(--overground);
+  outline: 2px solid var(--ink);
   outline-offset: 2px;
   border-radius: 2px;
 }
@@ -644,7 +680,7 @@ html, body {
   width: 9px;
   height: 12px;
   flex-shrink: 0;
-  color: var(--overground);
+  color: var(--ink);
   display: block;
 }
 
@@ -670,11 +706,11 @@ html, body {
 .walking-time-off:hover,
 .walking-time-off:focus-visible {
   opacity: 1;
-  color: var(--overground);
+  color: var(--ink);
 }
 
 .walking-time-off:focus-visible {
-  outline: 2px solid var(--overground);
+  outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
 
@@ -699,10 +735,10 @@ html, body {
   justify-content: center;
   align-items: center;
   gap: 0.4em;
-  font-family: 'Big Shoulders Text', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.8rem;
   font-weight: 600;
-  color: var(--navy);
+  color: var(--ink);
   text-align: center;
   letter-spacing: 0;
   opacity: 0.82;
@@ -724,7 +760,7 @@ html, body {
 }
 
 .fact-line:focus-visible {
-  outline: 2px solid var(--overground);
+  outline: 2px solid var(--ink);
   outline-offset: 3px;
 }
 
@@ -739,7 +775,7 @@ html, body {
   width: 1.05rem;
   height: 1.05rem;
   flex-shrink: 0;
-  color: var(--overground);  /* currentColor feeds the SVG strokes/fill */
+  color: var(--ink);  /* currentColor feeds the SVG strokes/fill */
   opacity: 0.95;
   transform-origin: center;
   transform: translateY(-0.5px);  /* optical centring against text x-height */
@@ -791,7 +827,7 @@ html, body {
   align-items: baseline;
   gap: 0.5em;
   padding-top: 0.4rem;
-  font-family: 'Big Shoulders Text', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.15em;
@@ -809,17 +845,17 @@ html, body {
 
 .doc-links a:hover,
 .doc-links a:focus-visible {
-  color: var(--overground);
+  color: var(--ink);
   opacity: 1;
 }
 
 .doc-links a:focus-visible {
-  outline: 2px solid var(--overground);
+  outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
 
 .doc-links span {
-  color: var(--overground);
+  color: var(--ink);
   opacity: 0.6;
 }
 
@@ -862,7 +898,7 @@ html, body {
   gap: 0.3rem;
   min-height: 2.75rem;
   padding: 0 0.5rem 0 0;
-  font-family: 'Big Shoulders Text', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -876,12 +912,12 @@ html, body {
 .spot-header-chevron {
   font-size: 1.5em;
   line-height: 0.6;
-  color: var(--overground);
+  color: var(--ink);
   /* The glyph sits low in this face; lift it onto the text's midline. */
   transform: translateY(-0.08em);
 }
 
-.spot-header-home:hover { color: var(--overground); }
+.spot-header-home:hover { color: var(--ink); }
 .spot-header-home:focus-visible,
 .spot-header-star:focus-visible {
   outline: 2px solid var(--line-color);
@@ -896,7 +932,7 @@ html, body {
   gap: 0.15em;
   min-width: 0;
   text-align: center;
-  font-family: 'Big Shoulders Text', sans-serif;
+  font-family: var(--font-body);
   font-size: clamp(1.125rem, 4.5vw, 1.375rem);
 }
 
@@ -937,7 +973,7 @@ html, body {
 }
 
 .spot-header-star svg { width: 22px; height: 22px; display: block; }
-.spot-header-star.filled { color: var(--overground); }
+.spot-header-star.filled { color: var(--ink); }
 .spot-header-star:hover:not(.filled) { color: oklch(from var(--ink) l c h / 0.75); }
 .spot-header-star:active { transform: scale(0.88); transition-duration: 60ms; }
 
@@ -960,7 +996,7 @@ html, body {
   border-radius: 999px;
   background: transparent;
   color: var(--ink);
-  font-family: 'Big Shoulders Text', sans-serif;
+  font-family: var(--font-body);
   font-size: 1.05rem;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -974,7 +1010,7 @@ html, body {
   color: var(--bg);
 }
 .tap-button:focus-visible {
-  outline: 2px solid var(--overground);
+  outline: 2px solid var(--ink);
   outline-offset: 3px;
 }
 
@@ -985,7 +1021,7 @@ html, body {
   align-items: center;
   gap: 0.35rem 1rem;
   margin-top: 0.35rem;
-  font-family: 'Big Shoulders Text', sans-serif;
+  font-family: var(--font-body);
   color: var(--ink);
 }
 .tap-thanks > p { margin: 0; flex-basis: 100%; }
@@ -999,7 +1035,7 @@ html, body {
   font-weight: 800;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--overground);
+  color: var(--ink);
 }
 .tap-notice-kit,
 .tap-gap {
@@ -1036,14 +1072,14 @@ html, body {
 .ask-card {
   margin-top: clamp(0.75rem, 3vw, 1.5rem);
   padding: 1rem 1.1rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 14px;
-  font-family: 'Big Shoulders Text', sans-serif;
+  font-family: var(--font-body);
   color: var(--ink);
 }
 .ask-heading {
   margin: 0 0 0.35rem;
-  font-family: 'Big Shoulders Display', 'Helvetica Neue', Impact, sans-serif;
+  font-family: var(--font-display);
   font-size: 1.5rem;
   font-weight: 800;
   line-height: 1.05;
@@ -1066,7 +1102,7 @@ html, body {
   min-height: 2.75rem;
   padding: 0.5rem 1.1rem;
   border-radius: 999px;
-  font-family: 'Big Shoulders Text', sans-serif;
+  font-family: var(--font-body);
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -1084,7 +1120,7 @@ html, body {
 }
 .ask-help:focus-visible,
 .ask-decline:focus-visible {
-  outline: 2px solid var(--overground);
+  outline: 2px solid var(--ink);
   outline-offset: 3px;
 }
 /* The ticket strip: the permanent form of the card once the ask is answered.
@@ -1116,14 +1152,14 @@ html, body {
   transform: translateY(0.05em) rotate(-135deg);
 }
 .ask-strip-summary:focus-visible {
-  outline: 2px solid var(--overground);
+  outline: 2px solid var(--ink);
   outline-offset: 3px;
   border-radius: 8px;
 }
 .ask-strip-body {
   margin-top: 0.75rem;
   padding-top: 0.75rem;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--border);
 }
 .ask-strip-body .ask-body {
   margin: 0 0 0.6rem;
@@ -1154,9 +1190,9 @@ html, body {
   padding: 0.5rem 0.75rem 0.55rem;
   border: 1.5px solid var(--ink);
   border-radius: 6px;
-  background: color-mix(in oklch, var(--overground) 16%, var(--bg));
+  background: var(--ticket);
   color: var(--ink);
-  font-family: 'Big Shoulders Text', sans-serif;
+  font-family: var(--font-body);
 }
 .ticket-head {
   display: flex;
@@ -1171,7 +1207,7 @@ html, body {
 }
 .ticket-kind { color: var(--line-color); }
 .ticket-grade {
-  font-family: 'Big Shoulders Display', 'Helvetica Neue', Impact, sans-serif;
+  font-family: var(--font-display);
   font-size: 1.6rem;
   font-weight: 900;
   line-height: 1;
@@ -1230,7 +1266,7 @@ html, body {
 
 .home-header h1 {
   margin: 0;
-  font-family: 'Big Shoulders Display', 'Helvetica Neue', Impact, sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(2rem, 9vw, 2.75rem);
   font-weight: 900;
   line-height: 1;
@@ -1245,13 +1281,13 @@ html, body {
   width: 2.5rem;
   height: 5px;
   margin-top: 0.5rem;
-  background: var(--overground);
+  background: var(--yellow);
   border-radius: 3px;
 }
 
 .home-section h2 {
   margin: 0 0 0.25rem;
-  font-family: 'Big Shoulders Text', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.8125rem;
   font-weight: 800;
   letter-spacing: 0.2em;
@@ -1268,10 +1304,10 @@ html, body {
 .home-row {
   display: flex;
   align-items: stretch;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--border);
 }
 
-.home-row:last-child { border-bottom: 1px solid var(--line); }
+.home-row:last-child { border-bottom: 1px solid var(--border); }
 
 .home-row-link {
   flex: 1;
@@ -1290,7 +1326,7 @@ html, body {
 .home-row-link:hover { background-color: oklch(from var(--bg) calc(l - 0.03) c h); }
 .home-row-link:active { background-color: oklch(from var(--bg) calc(l - 0.06) c h); }
 .home-row-link:focus-visible {
-  outline: 2px solid var(--overground);
+  outline: 2px solid var(--ink);
   outline-offset: -2px;
 }
 
@@ -1328,7 +1364,7 @@ html, body {
 
 .home-row-countdown {
   flex-shrink: 0;
-  font-family: 'Big Shoulders Display', 'Helvetica Neue', Impact, sans-serif;
+  font-family: var(--font-display);
   font-size: 2rem;
   font-weight: 900;
   line-height: 1;
@@ -1344,7 +1380,7 @@ html, body {
 .home-row-countdown.loading,
 .home-row-countdown.stale,
 .home-row-countdown.none {
-  font-family: 'Big Shoulders Text', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.9375rem;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -1371,11 +1407,11 @@ html, body {
 }
 
 .home-star svg { width: 22px; height: 22px; display: block; }
-.home-star.filled { color: var(--overground); }
+.home-star.filled { color: var(--ink); }
 .home-star:hover:not(.filled) { color: oklch(from var(--ink) l c h / 0.75); }
 .home-star:active { transform: scale(0.88); transition-duration: 60ms; }
 .home-star:focus-visible {
-  outline: 2px solid var(--overground);
+  outline: 2px solid var(--ink);
   outline-offset: -2px;
 }
 
@@ -1405,7 +1441,7 @@ html, body {
 }
 
 .home-locate:focus-visible {
-  outline: 2px solid var(--overground);
+  outline: 2px solid var(--ink);
   outline-offset: 3px;
 }
 
@@ -1439,7 +1475,7 @@ html, body {
 
 .home-location-off:hover { color: var(--ink); }
 .home-location-off:focus-visible {
-  outline: 2px solid var(--overground);
+  outline: 2px solid var(--ink);
   outline-offset: -2px;
 }
 

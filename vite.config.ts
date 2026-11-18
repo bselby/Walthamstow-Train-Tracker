@@ -10,8 +10,8 @@ export default defineConfig({
         name: 'E17 Trains',
         short_name: 'E17 Trains',
         description: 'Live train times from popular E17 toddler viewpoints',
-        theme_color: '#f6efdf',
-        background_color: '#f6efdf',
+        theme_color: '#DCEEF5',
+        background_color: '#DCEEF5',
         // standalone (not fullscreen) so Android keeps the status bar visible
         // — the parent still needs their clock, battery, and signal while walking.
         display: 'standalone',
