@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatCountdown, formatAge, type CountdownLabel } from '../src/display';
+import { formatCountdown, formatAge, formatLastLive, type CountdownLabel } from '../src/display';
 
 describe('formatCountdown', () => {
   it('shows NOW when 10s or less', () => {
@@ -27,14 +27,23 @@ describe('formatCountdown', () => {
 });
 
 describe('formatAge', () => {
-  it('formats seconds under 60s', () => {
-    expect(formatAge(5_000)).toBe('updated 5s ago');
-    expect(formatAge(59_000)).toBe('updated 59s ago');
-    expect(formatAge(0)).toBe('updated 0s ago');
+  it('says the seconds in words under a minute', () => {
+    expect(formatAge(5_000)).toBe('updated 5 seconds ago');
+    expect(formatAge(59_000)).toBe('updated 59 seconds ago');
+    expect(formatAge(1_000)).toBe('updated 1 second ago');
+    expect(formatAge(0)).toBe('updated just now');
   });
 
-  it('formats minutes for 60s and above', () => {
-    expect(formatAge(60_000)).toBe('updated 1m ago');
-    expect(formatAge(180_000)).toBe('updated 3m ago');
+  it('says the minutes in words from a minute', () => {
+    expect(formatAge(60_000)).toBe('updated 1 minute ago');
+    expect(formatAge(180_000)).toBe('updated 3 minutes ago');
+  });
+});
+
+describe('formatLastLive', () => {
+  it('says how long ago the last live times came in (board 12)', () => {
+    expect(formatLastLive(61_000)).toBe('Last live times 1 minute ago');
+    expect(formatLastLive(180_000)).toBe('Last live times 3 minutes ago');
+    expect(formatLastLive(30_000)).toBe('Last live times 30 seconds ago');
   });
 });

@@ -4,7 +4,7 @@
 // tapStore and is wired in main.ts.
 import type { AskKind } from './tapStore';
 import { promotionFor } from './tap';
-import { TICKET_PATH } from './routes';
+import { HOW_PATH, TICKET_PATH } from './routes';
 import { NO_SIGNAL_LINE, placeholderLine, progressLine, rankUpLines } from './tapCopy';
 
 export interface TapDirectionView {
@@ -218,34 +218,46 @@ function setOffline(box: HTMLElement, offline: boolean): void {
   }
 }
 
-const ASK_BODY =
-  "Our timings can be a little out. When the front of a train reaches you, tap its button and we'll tune this spot for everyone.";
+export interface AskCardHandlers {
+  onChoice: (choice: 'helping' | 'declined') => void;
+  /** "Show me how": the explainer, on its own address. */
+  onOpenHow: () => void;
+}
 
-/** The card below both direction cards, for `first` and `again` only. The
- *  other kinds used to draw a ticket strip; that job is the header badge's. */
-export function renderAskCard(
-  ask: AskKind,
-  onChoice: (choice: 'helping' | 'declined') => void,
-): HTMLElement | null {
+const STOPWATCH_SVG =
+  '<svg class="ask-icon" viewBox="0 0 30 30" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="15" cy="17" r="10"/><path d="M15 17 V11"/><path d="M12 3 H18"/><path d="M15 3 V7"/></g></svg>';
+
+/** The invitation (board 1) below both direction cards, for `first` and
+ *  `again` only. The other kinds used to draw a ticket strip; that job is the
+ *  header badge's. "Show me how" opens the explainer, whose "Count me in" is
+ *  the yes; "No thanks" is the no. */
+export function renderAskCard(ask: AskKind, handlers: AskCardHandlers): HTMLElement | null {
   if (ask !== 'first' && ask !== 'again') return null;
 
   const card = el('section', 'ask-card');
-
   card.setAttribute('aria-labelledby', 'ask-card-heading');
-  const heading = el('h2', 'ask-heading', 'Help make this spot-on');
-  heading.id = 'ask-card-heading';
-  card.appendChild(heading);
-  card.appendChild(el('p', 'ask-body', ASK_BODY));
 
-  const choices = el('div', 'ask-choices');
-  const choice = (label: string, value: 'helping' | 'declined', className: string) => {
-    const b = el('button', className, label);
-    b.type = 'button';
-    b.addEventListener('click', () => onChoice(value));
-    choices.appendChild(b);
-  };
-  choice("I'll help", 'helping', 'ask-help');
-  choice('Not now', 'declined', 'ask-decline');
-  card.appendChild(choices);
+  const head = el('div', 'ask-head');
+  head.innerHTML = STOPWATCH_SVG;
+  const heading = el('h2', 'ask-heading', 'Fancy timing a train?');
+  heading.id = 'ask-card-heading';
+  head.appendChild(heading);
+  card.appendChild(head);
+  card.appendChild(el('p', 'ask-body', "Tap as it passes and you'll help make this countdown spot-on."));
+
+  const how = el('a', 'ask-how', 'Show me how');
+  how.href = HOW_PATH;
+  how.addEventListener('click', (e) => {
+    // A new tab or window is the browser's to handle.
+    if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    handlers.onOpenHow();
+  });
+  card.appendChild(how);
+
+  const no = el('button', 'ask-decline', 'No thanks');
+  no.type = 'button';
+  no.addEventListener('click', () => handlers.onChoice('declined'));
+  card.appendChild(no);
   return card;
 }

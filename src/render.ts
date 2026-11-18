@@ -2,7 +2,7 @@ import type { BridgeEvent } from './bridge';
 import type { FreshnessState } from './freshness';
 import type { Fact } from './facts';
 import type { Viewpoint } from './viewpoints';
-import { formatCountdown, formatAge } from './display';
+import { formatCountdown, formatAge, formatLastLive } from './display';
 import { renderDirectionStrip, clearPreviousPositions } from './strip';
 import { renderSpotHeader } from './spotHeader';
 import { escapeHtml } from './escapeHtml';
@@ -42,6 +42,8 @@ export interface RenderOptions {
   onHelpChoice: (choice: 'helping' | 'declined') => void;
   /** The header ticket badge and a rank-up's "See my ticket". */
   onOpenTicket: () => void;
+  /** The invitation's "Show me how": the explainer. */
+  onOpenHow: () => void;
 }
 
 // The options from the latest render. Kept cards, slots and the ask card outlive
@@ -81,6 +83,9 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
   if (existingCardN) preserved.add(existingCardN);
   if (existingCardS) preserved.add(existingCardS);
   if (ask?.parentElement === root) preserved.add(ask);
+  for (const kept of root.querySelectorAll(':scope > .quiet-card, :scope > .lost-notice, :scope > .spot-tools')) {
+    preserved.add(kept);
+  }
 
   Array.from(root.children).forEach((child) => {
     if (!preserved.has(child)) root.removeChild(child);
@@ -117,42 +122,22 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
     focusAfterPlace = out[0].querySelector<HTMLElement>('.ticket-badge');
   }
 
-  // Map-verify link: tap to open Google Maps with the viewpoint's exact coords —
-  // disambiguates "which Northcote Road bridge?" without an in-app thumbnail.
-  out.push(renderMapLink(vm.viewpoint));
+  const lost = vm.freshness.state === 'stale';
+  const failed = vm.freshness.state === 'no-data' && vm.error !== undefined;
 
-  // Walking-time row immediately below the header (only when we're showing rows,
-  // not in the error-only state — same treatment as the rows themselves).
-  if (vm.freshness.state !== 'no-data' || !vm.error) {
-    out.push(renderWalkingTime(vm.walkingLabel, options.onEnableWalkingTime, options.onDisableWalkingTime));
-  }
-
-  if (vm.freshness.state === 'no-data' && vm.error) {
-    const err = document.createElement('div');
-    err.className = 'error';
-    err.textContent = vm.error;
-    out.push(err);
-    if (ask) out.push(ask);
-    place(root, out);
-    takeFocus();
-    return;
-  }
-
-  // First paint fires before the initial TfL fetch resolves — show a connecting
-  // state instead of the (misleading) "No trains right now" empty state.
+  // What stands where the cards go. Nothing goes above a live countdown; the
+  // paused notice only shows when the cards hold a dash instead.
   if (vm.freshness.state === 'no-data') {
-    const connecting = document.createElement('div');
-    connecting.className = 'empty';
-    connecting.innerHTML = '<p>Connecting to TfL…</p>';
-    out.push(connecting);
+    // Before the first live times: connecting, or a plain-words error (the
+    // error's own text is technical, so it is never shown).
+    out.push(quietCard(root, failed ? 'error' : 'connecting', vm.viewpoint.lineId));
+  } else if (lost) {
+    out.push(lostNotice(root));
+    for (const dir of ['north', 'south'] as const) {
+      out.push(renderCard(dir === 'north' ? existingCardN : existingCardS, vm, dir));
+    }
   } else if (!vm.north && !vm.south) {
-    const empty = document.createElement('div');
-    empty.className = 'empty';
-    empty.innerHTML = `
-      <p>No trains right now.</p>
-      <a href="https://tfl.gov.uk/tube-dlr-overground/status/" target="_blank" rel="noopener">Check TfL status</a>
-    `;
-    out.push(empty);
+    out.push(quietCard(root, 'none', vm.viewpoint.lineId));
   } else {
     for (const dir of ['north', 'south'] as const) {
       out.push(renderCard(dir === 'north' ? existingCardN : existingCardS, vm, dir));
@@ -163,18 +148,22 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
   // countdown, and stays through spells with no trains to show.
   if (ask) out.push(ask);
 
-  const footer = document.createElement('div');
-  footer.className = `footer ${vm.freshness.state}`;
-  footer.textContent = vm.freshness.state === 'no-data'
-    ? 'connecting…'
-    : formatAge(vm.freshness.ageMs);
-  out.push(footer);
+  // The walking time (with its off control) and "Verify on map", together
+  // under the cards so neither pushes a countdown down.
+  out.push(spotTools(root, vm, failed));
 
-  // Quiet rotating line of verified Weaver-line trivia, below the "updated Xs ago"
-  // footer and above the About/Privacy/Terms links. Never competes with the data.
-  // Tap to advance — turns it into a tiny interactive toy for toddler prodding.
+  // Quiet rotating line of verified trivia above the data age. Tap to advance.
   const factLine = renderFactLine(vm.fact, options.onAdvanceFact);
   if (factLine) out.push(factLine);
+
+  if (vm.freshness.state !== 'no-data') {
+    const footer = document.createElement('div');
+    footer.className = `footer ${vm.freshness.state}`;
+    footer.textContent = vm.freshness.state === 'stale'
+      ? formatLastLive(vm.freshness.ageMs)
+      : `Live times · ${formatAge(vm.freshness.ageMs)}`;
+    out.push(footer);
+  }
 
   const docs = document.createElement('nav');
   docs.className = 'doc-links';
@@ -210,6 +199,110 @@ function takeFocus(): void {
   }
 }
 
+const TFL_STATUS_URL = 'https://tfl.gov.uk/tube-dlr-overground/status/';
+
+type QuietKind = 'none' | 'connecting' | 'error';
+
+const QUIET_COPY: Record<QuietKind, { heading: string; body: string; tfl: boolean }> = {
+  // Board 11.
+  none: { heading: 'No trains for a while', body: "The line's having a rest. Check back soon.", tfl: true },
+  connecting: { heading: 'Getting the live times', body: "Won't be a moment.", tfl: false },
+  error: { heading: "Can't get the live times", body: "Check your signal. We'll keep trying.", tfl: true },
+};
+
+// Board 11's sleeping train: the passenger drawing with its eye shut and its
+// lamp off, doors in the line's colour, and "z z" only when the line rests.
+const SLEEPING_TRAIN =
+  '<path d="M4 12 H90 Q106 12 113 27 L116 36 Q116 41 111 41 H4 Z" fill="#FFFFFF" stroke="#1F2A44" stroke-width="2.5" stroke-linejoin="round"/>' +
+  '<path d="M93 16 Q104 17 109 28 H95 Z" fill="#1F2A44"/>' +
+  '<path d="M100 22 Q104 25 108 22" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>' +
+  '<rect x="10" y="17" width="78" height="10" rx="3" fill="#1F2A44"/>' +
+  '<rect x="26" y="15" width="10" height="23" rx="1.5" fill="currentColor" stroke="#1F2A44" stroke-width="1.5"/>' +
+  '<rect x="62" y="15" width="10" height="23" rx="1.5" fill="currentColor" stroke="#1F2A44" stroke-width="1.5"/>' +
+  '<rect x="4" y="33" width="112" height="4" fill="currentColor"/>' +
+  '<circle cx="111" cy="33" r="2.6" fill="#C9D3E0"/>' +
+  '<path d="M40 12 L47 8 L54 12" fill="none" stroke="#1F2A44" stroke-width="2" stroke-linecap="round"/>' +
+  '<rect x="10" y="40" width="26" height="5" rx="2" fill="#1F2A44"/>' +
+  '<rect x="74" y="40" width="26" height="5" rx="2" fill="#1F2A44"/>';
+const SNORE = '<text x="128" y="26" class="quiet-z">z</text><text x="146" y="14" class="quiet-z quiet-z-small">z</text>';
+
+/** The card that stands in for both direction cards when there is nothing
+ *  to count down: no trains (board 11), connecting, or an error. Kept while
+ *  its kind is unchanged, so the one-second redraw keeps a focused link. */
+function quietCard(root: HTMLElement, kind: QuietKind, lineId: string): HTMLElement {
+  const existing = root.querySelector<HTMLElement>(':scope > .quiet-card');
+  if (existing && existing.dataset.kind === kind && existing.dataset.line === lineId) return existing;
+  const copy = QUIET_COPY[kind];
+  const card = document.createElement('section');
+  card.className = `quiet-card ${kind}`;
+  card.dataset.kind = kind;
+  card.dataset.line = lineId;
+  card.innerHTML =
+    `<svg class="quiet-art" viewBox="0 0 200 96" aria-hidden="true">${kind === 'none' ? SNORE : ''}` +
+    '<rect class="quiet-track" x="0" y="88" width="200" height="4" rx="2"/>' +
+    `<g class="quiet-train" transform="translate(28 34) scale(1.15)">${SLEEPING_TRAIN}</g></svg>`;
+  const heading = document.createElement('h2');
+  heading.className = 'quiet-heading';
+  heading.textContent = copy.heading;
+  const body = document.createElement('p');
+  body.className = 'quiet-body';
+  body.textContent = copy.body;
+  card.append(heading, body);
+  if (copy.tfl) {
+    const link = document.createElement('a');
+    link.className = 'quiet-link';
+    link.href = TFL_STATUS_URL;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.textContent = 'See what TfL says';
+    card.appendChild(link);
+  }
+  // Connecting and the error are announced; the resting line is not news.
+  if (kind !== 'none') card.setAttribute('role', 'status');
+  return card;
+}
+
+/** Board 12: the live times have gone quiet. Kept across redraws so it is
+ *  announced once. */
+function lostNotice(root: HTMLElement): HTMLElement {
+  const existing = root.querySelector<HTMLElement>(':scope > .lost-notice');
+  if (existing) return existing;
+  const notice = document.createElement('div');
+  notice.className = 'lost-notice';
+  notice.setAttribute('role', 'status');
+  const title = document.createElement('p');
+  title.className = 'lost-title';
+  title.textContent = 'Live times paused';
+  const line = document.createElement('p');
+  line.className = 'lost-line';
+  line.textContent = "Lost the signal. We'll keep trying.";
+  notice.append(title, line);
+  return notice;
+}
+
+/** The walking time and "Verify on map" on one row under the cards. Kept
+ *  while the spot and label are unchanged, so a focused control survives the
+ *  one-second redraw. After an error the walking time is left out. */
+function spotTools(root: HTMLElement, vm: ViewModel, failed: boolean): HTMLElement {
+  const key = `${vm.viewpoint.id}|${failed ? 'x' : vm.walkingLabel ?? '-'}`;
+  const existing = root.querySelector<HTMLElement>(':scope > .spot-tools');
+  if (existing && existing.dataset.key === key) return existing;
+  const tools = document.createElement('div');
+  tools.className = 'spot-tools';
+  tools.dataset.key = key;
+  if (!failed) {
+    tools.appendChild(renderWalkingTime(
+      vm.walkingLabel,
+      () => currentOptions?.onEnableWalkingTime(),
+      () => currentOptions?.onDisableWalkingTime(),
+    ));
+  }
+  // Map-verify link: opens Google Maps at the spot's exact coords, to tell
+  // which Northcote Road bridge without an in-app picture.
+  tools.appendChild(renderMapLink(vm.viewpoint));
+  return tools;
+}
+
 // Where the keyboard focus goes once the page is placed: the ticket badge,
 // when the ask card holding the focus has just been answered.
 let focusAfterPlace: HTMLElement | null = null;
@@ -221,7 +314,10 @@ function focusedAskCard(root: HTMLElement): boolean {
 
 function askCard(existing: HTMLElement | null, tap: TapView): HTMLElement | null {
   if (existing && existing.dataset.ask === tap.ask) return existing;
-  const card = renderAskCard(tap.ask, (choice) => currentOptions?.onHelpChoice(choice));
+  const card = renderAskCard(tap.ask, {
+    onChoice: (choice) => currentOptions?.onHelpChoice(choice),
+    onOpenHow: () => currentOptions?.onOpenHow(),
+  });
   if (card) card.dataset.ask = tap.ask ?? '';
   return card;
 }
@@ -397,10 +493,23 @@ function renderWalkingTime(
   return el;
 }
 
+function renderJourney(origin: string, destination: string): HTMLElement {
+  const journey = document.createElement('p');
+  journey.className = 'freight-journey';
+  const originRegion = regionFor(origin);
+  const destRegion = regionFor(destination);
+  journey.append('Coming from ', origin, regionChip(originRegion), ', off to ', destination);
+  // Same-region trips (e.g. Willesden to Wembley) skip the second chip so the
+  // line stays short and the chip keeps its meaning.
+  if (destRegion !== originRegion) journey.appendChild(regionChip(destRegion));
+  journey.append('.');
+  return journey;
+}
+
 function regionChip(region: Region): HTMLElement {
   const chip = document.createElement('span');
   chip.className = 'region-chip';
-  chip.textContent = ` · ${region}`;
+  chip.textContent = region;
   if (isNewRegionThisSession(region)) {
     chip.classList.add('new-this-session');
     // Strip the class once the shimmer completes so a re-render of the same
@@ -429,8 +538,10 @@ function renderCard(existing: HTMLElement | null, vm: ViewModel, dir: Direction)
   card.dataset.direction = dir;
   card.setAttribute('aria-label', `Next train to ${terminusName}`);
 
-  const isFreight = event?.arrival.category === 'freight';
+  const lost = vm.freshness.state === 'stale';
+  const isFreight = !lost && event?.arrival.category === 'freight';
   const nodes: HTMLElement[] = [];
+  card.classList.toggle('lost', lost);
 
   const top = document.createElement('div');
   top.className = 'card-top';
@@ -440,15 +551,30 @@ function renderCard(existing: HTMLElement | null, vm: ViewModel, dir: Direction)
   if (isFreight) {
     const tag = document.createElement('span');
     tag.className = 'freight-tag';
-    tag.textContent = 'FREIGHT';
-    tag.setAttribute('aria-label', 'Freight service');
+    tag.textContent = 'Freight train';
     dest.appendChild(document.createTextNode(' '));
     dest.appendChild(tag);
   }
   top.appendChild(dest);
-  const then = renderThen(ticker);
+  const then = lost ? null : renderThen(ticker);
   if (then) top.appendChild(then);
   nodes.push(top);
+
+  if (lost) {
+    // Board 12: a dash where the countdown was, until the live times return.
+    const dash = document.createElement('div');
+    dash.className = 'value lost';
+    dash.textContent = '–';
+    dash.setAttribute('aria-hidden', 'true');
+    const note = document.createElement('p');
+    note.className = 'card-lost-note';
+    note.textContent = 'Back when the live times are';
+    nodes.push(dash, note);
+    card.classList.remove('card-imminent');
+    previousValueText[dir] = '–';
+    place(card, nodes);
+    return card;
+  }
 
   const valueEl = document.createElement('div');
   valueEl.className = 'value';
@@ -480,6 +606,12 @@ function renderCard(existing: HTMLElement | null, vm: ViewModel, dir: Direction)
   previousValueText[dir] = currentText;
   nodes.push(valueEl);
 
+  // Board 10: "Coming from X, off to Y." under the countdown, only with
+  // both ends known: half a journey reads as broken, so the line is skipped.
+  if (isFreight && event?.arrival.origin && event?.arrival.destinationName) {
+    nodes.push(renderJourney(event.arrival.origin, event.arrival.destinationName));
+  }
+
   nodes.push(renderDirectionStrip(card.querySelector<HTMLElement>(':scope > .strip'), {
     direction: dir,
     pos: dir === 'north' ? vm.northPos : vm.southPos,
@@ -503,32 +635,6 @@ function renderCard(existing: HTMLElement | null, vm: ViewModel, dir: Direction)
   if (slot) {
     slot.dataset.direction = dir;
     nodes.push(slot);
-  }
-
-  // Origin → destination subtitle, only when we have BOTH ends — half an arrow
-  // ("Tilbury Riverside Yard →") looks broken, so skip the row instead.
-  if (isFreight && event?.arrival.origin && event?.arrival.destinationName) {
-    const journey = document.createElement('div');
-    journey.className = 'freight-journey';
-
-    const originRegion = regionFor(event.arrival.origin);
-    const destRegion = regionFor(event.arrival.destinationName);
-
-    journey.appendChild(document.createTextNode(event.arrival.origin));
-    journey.appendChild(regionChip(originRegion));
-    journey.appendChild(document.createTextNode(' → '));
-    journey.appendChild(document.createTextNode(event.arrival.destinationName));
-    // Same-region trips (e.g. Willesden → Wembley) skip the duplicate chip
-    // so the line stays compact and the chip retains meaning.
-    if (destRegion !== originRegion) {
-      journey.appendChild(regionChip(destRegion));
-    }
-
-    journey.setAttribute(
-      'aria-label',
-      `Freight journey: ${event.arrival.origin} (${originRegion}) to ${event.arrival.destinationName} (${destRegion})`,
-    );
-    nodes.push(journey);
   }
 
   place(card, nodes);

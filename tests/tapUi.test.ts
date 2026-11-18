@@ -267,25 +267,48 @@ describe('renderTapSlot', () => {
 });
 
 describe('renderAskCard', () => {
+  const handlers = () => ({ onChoice: vi.fn(), onOpenHow: vi.fn() });
+
   it('is null when there is nothing to ask', () => {
-    expect(renderAskCard(null, noop)).toBeNull();
+    expect(renderAskCard(null, handlers())).toBeNull();
   });
 
-  it.each(['first', 'again'] as const)('%s: heading, body and two choices', (kind) => {
-    const onChoice = vi.fn();
-    const card = renderAskCard(kind, onChoice)!;
-    expect(card.textContent).toContain('Help make this spot-on');
-    expect(card.textContent).toContain('Our timings can be a little out.');
-    const buttons = Array.from(card.querySelectorAll('button'));
-    expect(buttons.map((b) => b.textContent)).toEqual(["I'll help", 'Not now']);
-    buttons[0].click();
-    expect(onChoice).toHaveBeenLastCalledWith('helping');
-    buttons[1].click();
-    expect(onChoice).toHaveBeenLastCalledWith('declined');
+  it.each(['first', 'again'] as const)('%s: the board 1 invitation', (kind) => {
+    const card = renderAskCard(kind, handlers())!;
+    expect(card.querySelector('h2')!.textContent).toBe('Fancy timing a train?');
+    expect(card.textContent).toContain("Tap as it passes and you'll help make this countdown spot-on.");
+    const how = card.querySelector<HTMLAnchorElement>('a.ask-how')!;
+    expect(how.textContent).toBe('Show me how');
+    expect(how.getAttribute('href')).toBe('/how-it-works');
+    const no = card.querySelector<HTMLButtonElement>('button.ask-decline')!;
+    expect(no.textContent).toBe('No thanks');
+    expect(card.textContent).not.toMatch(/!/);
+  });
+
+  it('"Show me how" opens the explainer in place; "No thanks" declines', () => {
+    const h = handlers();
+    const card = renderAskCard('first', h)!;
+    const how = card.querySelector<HTMLAnchorElement>('a.ask-how')!;
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
+    how.dispatchEvent(click);
+    expect(click.defaultPrevented).toBe(true);
+    expect(h.onOpenHow).toHaveBeenCalledTimes(1);
+    expect(h.onChoice).not.toHaveBeenCalled();
+    card.querySelector<HTMLButtonElement>('button.ask-decline')!.click();
+    expect(h.onChoice).toHaveBeenCalledWith('declined');
+  });
+
+  it('"Show me how" with a modifier is left to the browser', () => {
+    const h = handlers();
+    const how = renderAskCard('again', h)!.querySelector<HTMLAnchorElement>('a.ask-how')!;
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0, metaKey: true });
+    how.dispatchEvent(click);
+    expect(click.defaultPrevented).toBe(false);
+    expect(h.onOpenHow).not.toHaveBeenCalled();
   });
 
   // The old ticket strip under the panels is gone: its job is the header badge.
   it.each(['ready', 'invite', 'off'] as const)('%s: no strip under the cards', (kind) => {
-    expect(renderAskCard(kind, noop)).toBeNull();
+    expect(renderAskCard(kind, handlers())).toBeNull();
   });
 });

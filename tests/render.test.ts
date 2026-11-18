@@ -78,6 +78,7 @@ const opts = {
   onTap: noop,
   onHelpChoice: noop,
   onOpenTicket: noop,
+  onOpenHow: noop,
 };
 
 describe('render — freight', () => {
@@ -94,20 +95,26 @@ describe('render — freight', () => {
     expect(root.querySelector('.freight-tag')).toBeNull();
   });
 
-  it('freight hero: exactly one .freight-tag with text FREIGHT', () => {
+  it('freight hero: exactly one .freight-tag reading "Freight train" (board 10)', () => {
     render(root, vm({ north: event(freightArrival(), 60) }), opts);
     const tags = root.querySelectorAll('.freight-tag');
     expect(tags).toHaveLength(1);
-    expect(tags[0].textContent?.trim()).toBe('FREIGHT');
+    expect(tags[0].textContent?.trim()).toBe('Freight train');
+    expect(tags[0].closest('.card-dest')).not.toBeNull();
   });
 
-  it('freight hero with origin + destination: renders .freight-journey', () => {
+  it('freight hero with origin + destination: "Coming from X, off to Y." under the countdown', () => {
     render(root, vm({ north: event(freightArrival(), 60) }), opts);
     const journeys = root.querySelectorAll('.freight-journey');
     expect(journeys).toHaveLength(1);
-    expect(journeys[0].textContent).toContain('Tilbury Riverside Yard');
-    expect(journeys[0].textContent).toContain('Willesden Euroterminal');
-    expect(journeys[0].textContent).toContain('→');
+    const text = journeys[0].textContent!;
+    expect(text.startsWith('Coming from Tilbury Riverside Yard')).toBe(true);
+    expect(text).toContain(', off to Willesden Euroterminal');
+    expect(text.endsWith('.')).toBe(true);
+    expect(text).not.toContain('→');
+    const card = journeys[0].closest('.direction-card')!;
+    expect(Array.from(card.children).map((c) => c.className.split(' ')[0]))
+      .toEqual(['card-top', 'value', 'freight-journey', 'strip']);
   });
 
   it('freight hero missing origin: no .freight-journey (avoid half-rendered arrow)', () => {
@@ -219,12 +226,12 @@ describe('render — direction cards and the timing slot', () => {
     entry: { tapMs: 1_000, predictedMs: 3_000, tapsBefore }, offline,
   });
 
-  it('one card per direction, nothing else between the header and the footer', () => {
+  it('the cards come straight after the header; the walking time and map link after the cards', () => {
     render(root, withRows(), opts);
     expect(classes()).toEqual([
-      'spot-header', 'map-link', 'walking-time',
+      'spot-header',
       'direction-card', 'direction-card',
-      'footer', 'doc-links',
+      'spot-tools', 'footer', 'doc-links',
     ]);
     for (const card of cards()) {
       expect(kids(card)).toEqual(['card-top', 'value', 'strip']);
@@ -383,7 +390,7 @@ describe('render — direction cards and the timing slot', () => {
     const order = classes();
     const ask = order.indexOf('ask-card');
     expect(ask).toBe(order.lastIndexOf('direction-card') + 1);
-    expect(order[ask + 1]).toBe('footer');
+    expect(order[ask + 1]).toBe('spot-tools');
   });
 
   it('answering the ask hands focus to the ticket badge', () => {
@@ -402,8 +409,7 @@ describe('render — direction cards and the timing slot', () => {
   it('ask card choices reach onHelpChoice', () => {
     const onHelpChoice = vi.fn();
     render(root, withRows({ ...NEUTRAL_TAP, ask: 'first' }), { ...opts, onHelpChoice });
-    const buttons = root.querySelectorAll<HTMLButtonElement>('.ask-card button');
-    buttons[1].click();
+    root.querySelector<HTMLButtonElement>('.ask-card .ask-decline')!.click();
     expect(onHelpChoice).toHaveBeenCalledWith('declined');
   });
 
@@ -490,9 +496,9 @@ describe('render — direction cards and the timing slot', () => {
     render(root, withRows(tap, EA), opts);
     render(root, withRows(tap, EA), opts);
     expect(classes()).toEqual([
-      'spot-header', 'map-link', 'walking-time',
+      'spot-header',
       'direction-card', 'direction-card',
-      'ask-card', 'footer', 'doc-links',
+      'ask-card', 'spot-tools', 'footer', 'doc-links',
     ]);
   });
 });
@@ -536,5 +542,151 @@ describe('render — header', () => {
     render(root, vm(), opts);
     expect(root.querySelector('.home-header')).toBeNull();
     expect(root.querySelector('.home-others')).toBeNull();
+  });
+});
+
+describe('render — the rest of the spot screen', () => {
+  let root: HTMLElement;
+  beforeEach(() => {
+    document.body.innerHTML = '<div id="app"></div>';
+    root = document.getElementById('app')!;
+  });
+
+  const TFL_STATUS = 'https://tfl.gov.uk/tube-dlr-overground/status/';
+  const both = (overrides: Partial<ViewModel> = {}) => vm({
+    north: event(passengerArrival(), 240),
+    south: event(passengerArrival({ id: 'p2', destinationName: 'Gospel Oak' }), 540, 'south'),
+    ...overrides,
+  });
+  const classes = () => Array.from(root.children).map((c) => c.className.split(' ')[0]);
+
+  it('the invitation comes after the last direction card, in DOM order', () => {
+    render(root, both({ viewpoint: EA, tap: { ...NEUTRAL_TAP, ask: 'first' } }), opts);
+    const cards = root.querySelectorAll('.direction-card');
+    const invite = root.querySelector('.ask-card')!;
+    expect(cards).toHaveLength(2);
+    expect(cards[1].compareDocumentPosition(invite) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(invite.textContent).toContain('Fancy timing a train?');
+  });
+
+  it('"Show me how" calls onOpenHow; "No thanks" declines', () => {
+    const onOpenHow = vi.fn();
+    const onHelpChoice = vi.fn();
+    render(root, both({ viewpoint: EA, tap: { ...NEUTRAL_TAP, ask: 'again' } }), { ...opts, onOpenHow, onHelpChoice });
+    root.querySelector<HTMLAnchorElement>('.ask-card a.ask-how')!.click();
+    expect(onOpenHow).toHaveBeenCalledTimes(1);
+    root.querySelector<HTMLButtonElement>('.ask-card .ask-decline')!.click();
+    expect(onHelpChoice).toHaveBeenCalledWith('declined');
+  });
+
+  it('no trains either way: the board 11 card with the TfL status link', () => {
+    render(root, vm(), opts);
+    const quiet = root.querySelector('.quiet-card')!;
+    expect(quiet.querySelector('h2')!.textContent).toBe('No trains for a while');
+    expect(quiet.textContent).toContain("The line's having a rest. Check back soon.");
+    const link = quiet.querySelector<HTMLAnchorElement>('a')!;
+    expect(link.getAttribute('href')).toBe(TFL_STATUS);
+    expect(link.textContent).toBe('See what TfL says');
+    expect(root.querySelector('.direction-card')).toBeNull();
+    expect(classes()[1]).toBe('quiet-card');
+  });
+
+  it('connecting: the same card style, plain words', () => {
+    render(root, vm({ freshness: { state: 'no-data' } }), opts);
+    const card = root.querySelector('.quiet-card')!;
+    expect(card.classList.contains('connecting')).toBe(true);
+    expect(card.querySelector('h2')!.textContent).toBe('Getting the live times');
+    expect(root.textContent).not.toMatch(/TfL…|connecting…/);
+    expect(root.querySelector('.direction-card')).toBeNull();
+  });
+
+  it('an error before any data: the same card style, no technical detail', () => {
+    render(root, vm({ freshness: { state: 'no-data' }, error: 'TfL arrivals HTTP 503' }), opts);
+    const card = root.querySelector('.quiet-card')!;
+    expect(card.classList.contains('error')).toBe(true);
+    expect(card.querySelector('h2')!.textContent).toBe("Can't get the live times");
+    expect(root.textContent).not.toContain('HTTP');
+    expect(root.textContent).not.toContain('503');
+    expect(card.querySelector<HTMLAnchorElement>('a')!.getAttribute('href')).toBe(TFL_STATUS);
+  });
+
+  it('live times lost: the paused notice and cards with a dash (board 12)', () => {
+    render(root, both({ freshness: { state: 'stale', ageMs: 180_000 } }), opts);
+    const notice = root.querySelector('.lost-notice')!;
+    expect(notice.getAttribute('role')).toBe('status');
+    expect(notice.textContent).toContain('Live times paused');
+    expect(notice.textContent).toContain("Lost the signal. We'll keep trying.");
+    expect(classes().slice(0, 4)).toEqual(['spot-header', 'lost-notice', 'direction-card', 'direction-card']);
+    for (const card of Array.from(root.querySelectorAll('.direction-card'))) {
+      expect(card.classList.contains('lost')).toBe(true);
+      expect(card.querySelector('.card-dest')).not.toBeNull();
+      expect(card.querySelector('.value')!.textContent).toBe('–');
+      expect(card.textContent).toContain('Back when the live times are');
+      expect(card.querySelector('.strip, .tap-slot, .card-then')).toBeNull();
+    }
+    expect(root.querySelector('.footer')!.textContent).toBe('Last live times 3 minutes ago');
+  });
+
+  it('back from lost: the same cards fill in again', () => {
+    render(root, both({ freshness: { state: 'stale', ageMs: 180_000 } }), opts);
+    const card = root.querySelector('.direction-card')!;
+    render(root, both(), opts);
+    expect(root.querySelector('.lost-notice')).toBeNull();
+    expect(root.querySelector('.direction-card')).toBe(card);
+    expect(card.classList.contains('lost')).toBe(false);
+    expect(card.querySelector('.strip')).not.toBeNull();
+  });
+
+  it('fresh: the data age in plain words', () => {
+    render(root, both(), opts);
+    expect(root.querySelector('.footer')!.textContent).toBe('Live times · updated 5 seconds ago');
+  });
+
+  it('the fact sits above the data age and a tap advances it', () => {
+    const onAdvanceFact = vi.fn();
+    render(root, both({ fact: { text: 'The Chingford branch opened in 1870.', category: 'line' } }), { ...opts, onAdvanceFact });
+    const order = classes();
+    expect(order.indexOf('fact-line')).toBe(order.indexOf('footer') - 1);
+    root.querySelector<HTMLButtonElement>('.fact-line')!.click();
+    expect(onAdvanceFact).toHaveBeenCalledTimes(1);
+  });
+
+  it('walking time, its off control and "Verify on map" sit together after the cards', () => {
+    const onEnableWalkingTime = vi.fn();
+    const onDisableWalkingTime = vi.fn();
+    const handlers = { ...opts, onEnableWalkingTime, onDisableWalkingTime };
+    render(root, both(), handlers);
+    const tools = root.querySelector('.spot-tools')!;
+    const map = tools.querySelector<HTMLAnchorElement>('a.map-link')!;
+    expect(map.textContent).toBe('Verify on map');
+    expect(map.href).toBe(`https://www.google.com/maps/search/?api=1&query=${QR.coords.lat},${QR.coords.lng}`);
+    tools.querySelector<HTMLElement>('.walking-time-enable')!.click();
+    expect(onEnableWalkingTime).toHaveBeenCalledTimes(1);
+    render(root, both({ walkingLabel: '4 min walk · 300 m' }), handlers);
+    const walking = root.querySelector('.spot-tools .walking-time')!;
+    expect(walking.textContent).toContain('4 min walk · 300 m');
+    walking.querySelector<HTMLButtonElement>('.walking-time-off')!.click();
+    expect(onDisableWalkingTime).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['with trains', () => both()],
+    ['with no trains', () => vm()],
+    ['while connecting', () => vm({ freshness: { state: 'no-data' } })],
+    ['after an error', () => vm({ freshness: { state: 'no-data' }, error: 'x' })],
+    ['with live times lost', () => both({ freshness: { state: 'stale', ageMs: 90_000 } })],
+  ])('keeps About, Privacy, Terms and the map link %s', (_name, model) => {
+    render(root, model(), opts);
+    const hrefs = Array.from(root.querySelectorAll<HTMLAnchorElement>('.doc-links a')).map((a) => a.getAttribute('href'));
+    expect(hrefs).toEqual(['/about.html', '/privacy.html', '/terms.html']);
+    expect(root.querySelector('a.map-link')).not.toBeNull();
+  });
+
+  it('no exclamation marks anywhere on the spot screen', () => {
+    for (const model of [both({ tap: { ...NEUTRAL_TAP, ask: 'first' } }), vm(), vm({ freshness: { state: 'no-data' } }),
+      both({ freshness: { state: 'stale', ageMs: 90_000 } })]) {
+      render(root, model, opts);
+      expect(root.textContent).not.toContain('!');
+    }
   });
 });
