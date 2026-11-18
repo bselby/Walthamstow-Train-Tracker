@@ -207,7 +207,7 @@ const QUIET_COPY: Record<QuietKind, { heading: string; body: string; tfl: boolea
   // Board 11.
   none: { heading: 'No trains for a while', body: "The line's having a rest. Check back soon.", tfl: true },
   connecting: { heading: 'Getting the live times', body: "Won't be a moment.", tfl: false },
-  error: { heading: "Can't get the live times", body: "Check your signal. We'll keep trying.", tfl: true },
+  error: { heading: "Can't get the live times", body: "We'll keep trying.", tfl: true },
 };
 
 // Board 11's sleeping train: the passenger drawing with its eye shut and its
@@ -275,7 +275,7 @@ function lostNotice(root: HTMLElement): HTMLElement {
   title.textContent = 'Live times paused';
   const line = document.createElement('p');
   line.className = 'lost-line';
-  line.textContent = "Lost the signal. We'll keep trying.";
+  line.textContent = "Can't reach the live times right now. We'll keep trying.";
   notice.append(title, line);
   return notice;
 }
@@ -506,10 +506,19 @@ function renderJourney(origin: string, destination: string): HTMLElement {
   return journey;
 }
 
+function hiddenText(text: string): HTMLElement {
+  const span = document.createElement('span');
+  span.className = 'visually-hidden';
+  span.textContent = text;
+  return span;
+}
+
 function regionChip(region: Region): HTMLElement {
   const chip = document.createElement('span');
   chip.className = 'region-chip';
-  chip.textContent = region;
+  // Brackets only for screen readers, so the region is not read as part of
+  // the place name.
+  chip.append(hiddenText(' ('), region, hiddenText(')'));
   if (isNewRegionThisSession(region)) {
     chip.classList.add('new-this-session');
     // Strip the class once the shimmer completes so a re-render of the same
@@ -562,20 +571,49 @@ function renderCard(existing: HTMLElement | null, vm: ViewModel, dir: Direction)
 
   if (lost) {
     // Board 12: a dash where the countdown was, until the live times return.
+    // The timing slot below stays exactly as it is: a pass can still be
+    // timed, and its thank-you still shows.
     const dash = document.createElement('div');
     dash.className = 'value lost';
     dash.textContent = '–';
     dash.setAttribute('aria-hidden', 'true');
     const note = document.createElement('p');
     note.className = 'card-lost-note';
-    note.textContent = 'Back when the live times are';
+    note.textContent = 'Back when the live times return';
     nodes.push(dash, note);
     card.classList.remove('card-imminent');
     previousValueText[dir] = '–';
-    place(card, nodes);
-    return card;
+  } else {
+    renderLiveParts(card, vm, dir, event, isFreight, nodes);
   }
 
+  const slot = renderTapSlot(
+    card.querySelector<HTMLElement>(':scope > .tap-slot'),
+    vm.tap[dir],
+    {
+      onTap: (pressedAtMs) => currentOptions?.onTap(dir, pressedAtMs),
+      onOpenTicket: () => currentOptions?.onOpenTicket(),
+    },
+  );
+  if (slot) {
+    slot.dataset.direction = dir;
+    nodes.push(slot);
+  }
+
+  place(card, nodes);
+  return card;
+}
+
+/** The countdown, the freight journey and the line diagram of a card with
+ *  live times. */
+function renderLiveParts(
+  card: HTMLElement,
+  vm: ViewModel,
+  dir: Direction,
+  event: BridgeEvent | undefined,
+  isFreight: boolean,
+  nodes: HTMLElement[],
+): void {
   const valueEl = document.createElement('div');
   valueEl.className = 'value';
   let currentText: string;
@@ -623,22 +661,6 @@ function renderCard(existing: HTMLElement | null, vm: ViewModel, dir: Direction)
     lineNameForAria: `${vm.viewpoint.lineName} line`,
     isFreight,
   }));
-
-  const slot = renderTapSlot(
-    card.querySelector<HTMLElement>(':scope > .tap-slot'),
-    vm.tap[dir],
-    {
-      onTap: (pressedAtMs) => currentOptions?.onTap(dir, pressedAtMs),
-      onOpenTicket: () => currentOptions?.onOpenTicket(),
-    },
-  );
-  if (slot) {
-    slot.dataset.direction = dir;
-    nodes.push(slot);
-  }
-
-  place(card, nodes);
-  return card;
 }
 
 /** The destination as the boards write it: the label without its arrow
