@@ -95,9 +95,14 @@ describe('tapDirectionView', () => {
       .toEqual({ ...NONE, state: 'placeholder', msUntilButton: 300_000 });
   });
 
-  it('no placeholder for someone who has not said yes, or said no', () => {
-    expect(view({ tapState: state({ choice: 'unset' }), msUntilButton: 300_000 }).state).toBe('reserved');
+  it('placeholder too for someone who has not answered the invitation yet', () => {
+    expect(view({ tapState: state({ choice: 'unset' }), msUntilButton: 300_000 }))
+      .toEqual({ ...NONE, state: 'placeholder', msUntilButton: 300_000 });
+  });
+
+  it('no placeholder for someone who said no, or at a spot with no button', () => {
     expect(view({ tapState: state({ choice: 'declined' }), msUntilButton: 300_000 }).state).toBe('none');
+    expect(view({ tapState: state({ choice: 'unset' }), canTune: false, msUntilButton: 300_000 }).state).toBe('none');
   });
 
   it('no placeholder without a time to count down to', () => {
