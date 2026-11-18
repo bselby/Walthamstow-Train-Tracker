@@ -25,6 +25,7 @@ function state(overrides: Partial<TapState> = {}): TapState {
     asksShown: 0,
     taps: 0,
     tappedPassKeys: [],
+    spotsTimed: [],
     deviceId: 'abcdefgh-1234',
     lastTap: null,
     ...overrides,

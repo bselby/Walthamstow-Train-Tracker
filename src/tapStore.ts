@@ -13,6 +13,8 @@ export interface TapState {
   asksShown: number;
   taps: number;
   tappedPassKeys: string[];
+  /** Spot ids the child's parent has timed here, oldest first, no duplicates. */
+  spotsTimed: string[];
   deviceId: string;
   /** The most recent tap, so the register entry can be shown for a minute. */
   lastTap: { passKey: string; tapMs: number; predictedMs: number; tapsBefore: number } | null;
@@ -30,10 +32,14 @@ function freshState(newId: () => string): TapState {
     asksShown: 0,
     taps: 0,
     tappedPassKeys: [],
+    spotsTimed: [],
     deviceId: newId(),
     lastTap: null,
   };
 }
+
+const spotOf = (passKey: string): string => passKey.split('|')[0];
+const unique = (xs: string[]): string[] => [...new Set(xs)];
 
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
@@ -66,14 +72,18 @@ export function loadTapState(read: (key: string) => string | null, newId: () => 
   }
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return fresh;
   const p = parsed as Record<string, unknown>;
+  const tappedPassKeys = Array.isArray(p.tappedPassKeys)
+    ? p.tappedPassKeys.filter((k): k is string => typeof k === 'string')
+    : [];
   return {
     choice: p.choice === 'helping' || p.choice === 'declined' ? p.choice : 'unset',
     declinedAtMs: isNum(p.declinedAtMs) ? p.declinedAtMs : null,
     asksShown: isNum(p.asksShown) ? p.asksShown : 0,
     taps: isNum(p.taps) ? p.taps : 0,
-    tappedPassKeys: Array.isArray(p.tappedPassKeys)
-      ? p.tappedPassKeys.filter((k): k is string => typeof k === 'string')
-      : [],
+    tappedPassKeys,
+    spotsTimed: Array.isArray(p.spotsTimed)
+      ? unique(p.spotsTimed.filter((k): k is string => typeof k === 'string' && k !== ''))
+      : unique(tappedPassKeys.map(spotOf).filter(Boolean)),
     deviceId: typeof p.deviceId === 'string' && p.deviceId ? p.deviceId : fresh.deviceId,
     lastTap: parseLastTap(p.lastTap),
   };
@@ -122,6 +132,9 @@ export function recordTap(state: TapState, key: string, tapMs: number, predicted
     choice: 'helping',
     taps: state.taps + 1,
     tappedPassKeys: [...state.tappedPassKeys, key].slice(-MAX_PASS_KEYS),
+    spotsTimed: state.spotsTimed.includes(spotOf(key))
+      ? state.spotsTimed
+      : [...state.spotsTimed, spotOf(key)],
     lastTap: { passKey: key, tapMs, predictedMs, tapsBefore: state.taps },
   };
 }
