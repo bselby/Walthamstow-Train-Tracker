@@ -71,6 +71,14 @@ describe('renderTicketPage', () => {
     expect(root.querySelectorAll('.ladder li')).toHaveLength(5);
   });
 
+  it('says "1 train" (singular) on the Spotter row', () => {
+    renderTicketPage(root, model({ taps: 0 }), handlers());
+    const spotter = root.querySelectorAll('.ladder li')[0];
+    expect(spotter.querySelector('.ladder-note')!.textContent).toBe('1 train · 1 to go');
+    renderTicketPage(root, model({ taps: 7 }), handlers());
+    expect(root.querySelectorAll('.ladder li')[0].querySelector('.ladder-note')!.textContent).toBe('1 train');
+  });
+
   it('keeps focus on the checkbox across a re-render', () => {
     renderTicketPage(root, model(), handlers());
     root.querySelector<HTMLInputElement>('input[type=checkbox]')!.focus();

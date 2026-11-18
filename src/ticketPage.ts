@@ -78,12 +78,13 @@ export function renderTicketPage(root: HTMLElement, model: TicketModel, handlers
   LEVELS.forEach((l) => {
     const current = taps > 0 && l.name === level.name;
     const li = el('li', current ? 'ladder-row current' : 'ladder-row');
+    const count = l.taps === 1 ? '1 train' : `${l.taps} trains`;
     let note: string;
     if (current) note = 'Your rank';
     else if (level.next && l.name === level.next.name) {
       const toGo = l.taps - taps;
-      note = `${l.taps} trains · ${toGo} to go`;
-    } else note = `${l.taps} trains`;
+      note = `${count} · ${toGo} to go`;
+    } else note = count;
     li.append(el('span', 'ladder-name', l.name), el('span', 'ladder-note', note));
     ladder.append(li);
   });
