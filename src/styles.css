@@ -1196,6 +1196,8 @@ html, body {
   border-radius: var(--radius-card);
 }
 
+.home-ticket { align-self: flex-end; }
+
 .home-train {
   display: block;
   width: 140px;

@@ -623,6 +623,8 @@ function rerender(): void {
         onToggleFavourite: toggleFavouriteViewpoint,
         onUseLocation: enableLocation,
         onLocationOff: disableLocation,
+        taps: tapState.taps,
+        onOpenTicket: openTicket,
       },
     );
     return;
