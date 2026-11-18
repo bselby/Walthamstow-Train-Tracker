@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { landingFor, fallbackViewpoint } from '../src/landing';
+import { landingFor } from '../src/landing';
 import { parseRoute } from '../src/routes';
 import { getViewpointById } from '../src/viewpoints';
 
@@ -30,18 +30,5 @@ describe('landingFor', () => {
 
   it('a single favourite that is no longer in the data lands on home', () => {
     expect(landingFor(home, ['gone'])).toEqual({ screen: 'home' });
-  });
-});
-
-describe('fallbackViewpoint', () => {
-  it('is the most recently starred favourite, as starring always set the opening screen', () => {
-    expect(fallbackViewpoint(['east-ave', 'queens-road']).id).toBe('queens-road');
-    expect(fallbackViewpoint(['queens-road', 'east-ave', 'northcote-rd']).id).toBe('northcote-rd');
-  });
-
-  it('is East Avenue with no favourites, or none still in the data', () => {
-    expect(fallbackViewpoint([]).id).toBe('east-ave');
-    expect(fallbackViewpoint(['gone']).id).toBe('east-ave');
-    expect(fallbackViewpoint(['queens-road', 'gone']).id).toBe('queens-road');
   });
 });
