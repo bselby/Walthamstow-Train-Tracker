@@ -27,13 +27,13 @@ describe('renderDirectionStrip freight branch', () => {
   it('passenger: renders the Aventra svg and no .freight class', () => {
     const el = renderDirectionStrip(null, model({ isFreight: false }));
     expect(el.querySelector('.strip-train-svg')).not.toBeNull();
-    expect(el.querySelector('.strip-freight-svg')).toBeNull();
+    expect(el.querySelector('.train-freight')).toBeNull();
     expect(el.querySelector('.strip-train')?.classList.contains('freight')).toBe(false);
   });
 
   it('freight: renders the Class 66 svg and .freight class', () => {
     const el = renderDirectionStrip(null, model({ isFreight: true }));
-    expect(el.querySelector('.strip-freight-svg')).not.toBeNull();
+    expect(el.querySelector('.train-freight')).not.toBeNull();
     expect(el.querySelector('.strip-train-svg')).toBeNull();
     expect(el.querySelector('.strip-train')?.classList.contains('freight')).toBe(true);
   });
@@ -48,7 +48,7 @@ describe('renderDirectionStrip freight branch', () => {
     expect(el2).toBe(el1);
     expect(el2.querySelector('.strip-line')).toBe(line);
     pips.forEach((p, i) => expect(el2.querySelectorAll('.strip-pip')[i]).toBe(p));
-    expect(el2.querySelector('.strip-freight-svg')).not.toBeNull();
+    expect(el2.querySelector('.train-freight')).not.toBeNull();
     expect(el2.querySelector('.strip-train-svg')).toBeNull();
   });
 });
