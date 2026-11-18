@@ -42,3 +42,18 @@ describe('picture book tokens', () => {
     expect(css).toMatch(/@media \(prefers-color-scheme: dark\)[^}]*\{[^}]*\.train-freight[^{]*\{[^}]*(drop-shadow|stroke)/);
   });
 });
+
+describe('timing slot', () => {
+  it('keeps the button height in every state, so nothing below jumps', () => {
+    const slot = css.match(/\.tap-slot\s*\{([^}]*)\}/);
+    expect(slot).not.toBeNull();
+    const button = css.match(/\.tap-button\s*\{([^}]*)\}/)!;
+    const slotMin = slot![1].match(/min-height:\s*([^;]+);/)![1].trim();
+    const buttonMin = button[1].match(/min-height:\s*([^;]+);/)![1].trim();
+    expect(slotMin).toBe(buttonMin);
+  });
+
+  it('has no rules for the old ticket strip or register', () => {
+    expect(css).not.toMatch(/\.ask-strip|\.tap-register|\.ticket-hole|\.tap-notice/);
+  });
+});

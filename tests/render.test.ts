@@ -5,10 +5,14 @@ import type { Arrival } from '../src/tfl';
 import { getViewpointById } from '../src/viewpoints';
 import { __resetRegionMemoForTests } from '../src/freightRegions';
 import type { TapDirectionView, TapView } from '../src/tapUi';
+import { NO_SIGNAL_LINE } from '../src/tapCopy';
 
 const QR = getViewpointById('queens-road')!;
+const EA = getViewpointById('east-ave')!;
 
-const NO_TAP: TapDirectionView = { state: 'none', passKey: null, destination: null, entry: null };
+const NO_TAP: TapDirectionView = {
+  state: 'none', passKey: null, destination: null, entry: null, msUntilButton: null, offline: false,
+};
 const NEUTRAL_TAP: TapView = { ask: null, taps: 0, north: NO_TAP, south: NO_TAP };
 
 function passengerArrival(overrides: Partial<Arrival> = {}): Arrival {
@@ -73,6 +77,7 @@ const opts = {
   onToggleFavourite: noop,
   onTap: noop,
   onHelpChoice: noop,
+  onOpenTicket: noop,
 };
 
 describe('render — freight', () => {
@@ -176,70 +181,195 @@ describe('render — freight', () => {
   });
 });
 
-describe('render — train\'s here tap', () => {
+describe('render — direction cards and the timing slot', () => {
   let root: HTMLElement;
   beforeEach(() => {
     document.body.innerHTML = '<div id="app"></div>';
     root = document.getElementById('app')!;
   });
 
-  const withRows = (tap: TapView = NEUTRAL_TAP) => vm({
+  const withRows = (tap: TapView = NEUTRAL_TAP, viewpoint = QR) => vm({
+    viewpoint,
     north: event(passengerArrival(), 20),
     south: event(passengerArrival({ id: 'p2', destinationName: 'Gospel Oak' }), 300, 'south'),
-    northTicker: [event(passengerArrival({ id: 'p3' }), 600)],
+    northTicker: [event(passengerArrival({ id: 'p3' }), 600), event(passengerArrival({ id: 'p5' }), 900)],
     southTicker: [event(passengerArrival({ id: 'p4' }), 900, 'south')],
     tap,
   });
 
   const classes = () => Array.from(root.children).map((c) => c.className.split(' ')[0]);
+  const kids = (el: Element) => Array.from(el.children).map((c) => c.className.split(' ')[0]);
+  const cards = () => Array.from(root.querySelectorAll<HTMLElement>('.direction-card'));
 
-  it('with no ask and no buttons the page is unchanged: no extra nodes', () => {
+  const button = (passKey = 'ea|north|1'): TapDirectionView =>
+    ({ ...NO_TAP, state: 'button', passKey, destination: 'Chingford' });
+  const thanks = (tapsBefore: number, offline = false): TapDirectionView => ({
+    ...NO_TAP, state: 'thanks', passKey: 'ea|north|1', destination: 'Chingford',
+    entry: { tapMs: 1_000, predictedMs: 3_000, tapsBefore }, offline,
+  });
+
+  it('one card per direction, nothing else between the header and the footer', () => {
     render(root, withRows(), opts);
     expect(classes()).toEqual([
       'spot-header', 'map-link', 'walking-time',
-      'row', 'strip', 'ticker',
-      'row', 'strip', 'ticker',
+      'direction-card', 'direction-card',
       'footer', 'doc-links',
     ]);
-    root.querySelectorAll('.row').forEach((row) => {
-      expect(Array.from(row.children).map((c) => c.className.split(' ')[0])).toEqual(['label', 'value']);
-    });
+    for (const card of cards()) {
+      expect(kids(card)).toEqual(['card-top', 'value', 'strip']);
+    }
     expect(root.querySelector('.tap-slot')).toBeNull();
     expect(root.querySelector('.ask-card')).toBeNull();
   });
 
-  it('the ask card sits after both rows and tickers and before the footer', () => {
+  it('the card top names the destination and the trains after', () => {
+    render(root, withRows(), opts);
+    const [north, south] = cards();
+    expect(north.querySelector('.card-dest')!.textContent).toBe('To Barking Riverside');
+    expect(north.querySelector('.card-then')!.textContent).toBe('then 10 and 15 min');
+    expect(south.querySelector('.card-dest')!.textContent).toBe('To Gospel Oak');
+    expect(south.querySelector('.card-then')!.textContent).toBe('then 15 min');
+  });
+
+  it('no "then" line when there is no train after', () => {
+    render(root, vm({ north: event(passengerArrival(), 300) }), opts);
+    expect(root.querySelector('.card-then')).toBeNull();
+  });
+
+  it('the countdown keeps its wording, split into number and unit', () => {
+    render(root, withRows(), opts);
+    const value = cards()[1].querySelector('.value')!;
+    expect(value.textContent).toBe('5 min');
+    expect(value.querySelector('.value-num')!.textContent).toBe('5');
+    expect(value.querySelector('.value-unit')!.textContent).toBe('min');
+    expect(value.classList.contains('minutes')).toBe(true);
+  });
+
+  it('NOW and just crossed stay single words', () => {
+    render(root, vm({
+      north: event(passengerArrival(), 5),
+      south: event(passengerArrival({ id: 'p2' }), -10, 'south'),
+    }), opts);
+    const [north, south] = cards();
+    expect(north.querySelector('.value')!.textContent).toBe('NOW');
+    expect(south.querySelector('.value')!.textContent).toBe('just crossed');
+  });
+
+  it('the line diagram sits inside each card under the countdown', () => {
+    render(root, withRows(), opts);
+    for (const card of cards()) {
+      expect(card.querySelector('.strip .line-diagram')).not.toBeNull();
+      expect(card.querySelector('.line-ends')).not.toBeNull();
+    }
+    expect(root.querySelector(':scope > .strip')).toBeNull();
+    expect(root.querySelector(':scope > .ticker')).toBeNull();
+  });
+
+  it('Queens Road: no placeholder, no button, and the header has the ticket badge', () => {
+    render(root, withRows(NEUTRAL_TAP, QR), opts);
+    expect(root.querySelector('.tap-placeholder')).toBeNull();
+    expect(root.querySelector('.tap-button')).toBeNull();
+    expect(root.querySelector('.spot-header .ticket-badge')).not.toBeNull();
+  });
+
+  it('East Avenue, helping, button not due: the placeholder in the card', () => {
+    const tap: TapView = { ...NEUTRAL_TAP, south: { ...NO_TAP, state: 'placeholder', msUntilButton: 300_000 } };
+    render(root, withRows(tap, EA), opts);
+    const [north, south] = cards();
+    expect(north.querySelector('.tap-slot')).toBeNull();
+    expect(kids(south)).toEqual(['card-top', 'value', 'strip', 'tap-slot']);
+    expect(south.querySelector('.tap-placeholder')!.textContent).toBe('Yellow button pops up here in 5 min');
+  });
+
+  it('a pass due for someone who has not answered: the yellow button in the card', () => {
+    const tap: TapView = { ...NEUTRAL_TAP, ask: 'first', north: button() };
+    render(root, withRows(tap, EA), opts);
+    const b = cards()[0].querySelector('.tap-slot .tap-button')!;
+    expect(b.textContent).toContain('Tap as the train passes');
+  });
+
+  it('thanks offline: the no-signal line and the clip', () => {
+    const tap: TapView = { ...NEUTRAL_TAP, taps: 3, north: thanks(2, true) };
+    render(root, withRows(tap, EA), opts);
+    const text = cards()[0].textContent ?? '';
+    expect(text).toContain(NO_SIGNAL_LINE);
+    expect(text).toContain('Ticket clipped');
+  });
+
+  it('thanks crossing 5 taps: promoted, with "See my ticket" that opens the ticket', () => {
+    const onOpenTicket = vi.fn();
+    const tap: TapView = { ...NEUTRAL_TAP, taps: 5, north: thanks(4) };
+    render(root, withRows(tap, EA), { ...opts, onOpenTicket });
+    const card = cards()[0];
+    expect(card.textContent).toContain('Promoted to Guard.');
+    const see = Array.from(card.querySelectorAll('button')).find((b) => b.textContent === 'See my ticket')!;
+    see.click();
+    expect(onOpenTicket).toHaveBeenCalledTimes(1);
+    expect(root.textContent).not.toContain('Undo');
+  });
+
+  it('the old ticket strip and register are gone', () => {
+    for (const ask of ['ready', 'invite', 'off'] as const) {
+      render(root, withRows({ ...NEUTRAL_TAP, ask, taps: 3, north: thanks(2) }, EA), opts);
+      for (const old of ['.ask-strip', '.ask-strip-summary', '.ticket', '.tap-register', 'details']) {
+        expect(root.querySelector(old)).toBeNull();
+      }
+      expect(root.querySelector('.ask-card')).toBeNull();
+    }
+  });
+
+  it('the header badge shows the rank and count, and opens the ticket', () => {
+    const onOpenTicket = vi.fn();
+    render(root, withRows({ ...NEUTRAL_TAP, taps: 4 }), { ...opts, onOpenTicket });
+    const badge = root.querySelector<HTMLButtonElement>('.ticket-badge')!;
+    expect(badge.textContent).toContain('Spotter · 4 trains');
+    badge.click();
+    expect(onOpenTicket).toHaveBeenCalledTimes(1);
+  });
+
+  it('the badge is there while connecting and with no trains', () => {
+    render(root, vm({ freshness: { state: 'no-data' } }), opts);
+    expect(root.querySelector('.ticket-badge')).not.toBeNull();
+    render(root, vm(), opts);
+    expect(root.querySelector('.ticket-badge')).not.toBeNull();
+  });
+
+  it('the ask card sits after both cards and before the footer', () => {
     render(root, withRows({ ...NEUTRAL_TAP, ask: 'first' }), opts);
     const order = classes();
     const ask = order.indexOf('ask-card');
-    expect(ask).toBeGreaterThan(order.lastIndexOf('ticker'));
-    expect(ask).toBeGreaterThan(order.lastIndexOf('row'));
+    expect(ask).toBe(order.lastIndexOf('direction-card') + 1);
     expect(order[ask + 1]).toBe('footer');
   });
 
-  it('the tap button goes inside its direction row, after the value', () => {
-    const tap: TapView = {
-      ...NEUTRAL_TAP,
-      north: { state: 'button', passKey: 'qr|north|1', destination: 'Barking Riverside', entry: null },
-    };
-    render(root, withRows(tap), opts);
-    const rows = root.querySelectorAll('.row');
-    const kids = Array.from(rows[0].children);
-    expect(kids[1].classList.contains('value')).toBe(true);
-    expect(kids[2].textContent).toBe('Barking Riverside train is passing');
-    expect(rows[1].querySelector('.tap-slot')).toBeNull();
+  it('answering the ask hands focus to the ticket badge', () => {
+    render(root, withRows({ ...NEUTRAL_TAP, ask: 'first' }), opts);
+    root.querySelector<HTMLButtonElement>('.ask-card button')!.focus();
+    render(root, withRows({ ...NEUTRAL_TAP, ask: 'ready' }), opts);
+    expect(root.querySelector('.ask-card')).toBeNull();
+    expect(document.activeElement).toBe(root.querySelector('.ticket-badge'));
+  });
+
+  it('a card drawn on page load takes no focus', () => {
+    render(root, withRows({ ...NEUTRAL_TAP, ask: 'ready' }), opts);
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('ask card choices reach onHelpChoice', () => {
+    const onHelpChoice = vi.fn();
+    render(root, withRows({ ...NEUTRAL_TAP, ask: 'first' }), { ...opts, onHelpChoice });
+    const buttons = root.querySelectorAll<HTMLButtonElement>('.ask-card button');
+    buttons[1].click();
+    expect(onHelpChoice).toHaveBeenCalledWith('declined');
   });
 
   it('keeps the same tap button across redraws and routes the press to its direction', () => {
     const onTap = vi.fn();
-    const tap: TapView = {
-      ...NEUTRAL_TAP,
-      south: { state: 'button', passKey: 'qr|south|1', destination: 'Gospel Oak', entry: null },
-    };
-    render(root, withRows(tap), { ...opts, onTap });
-    const first = root.querySelector('.tap-slot');
-    render(root, withRows(tap), { ...opts, onTap });
-    const second = root.querySelector('.tap-slot');
+    const tap: TapView = { ...NEUTRAL_TAP, south: button('ea|south|1') };
+    render(root, withRows(tap, EA), { ...opts, onTap });
+    const first = root.querySelector('.tap-button');
+    render(root, withRows(tap, EA), { ...opts, onTap });
+    const second = root.querySelector('.tap-button');
     expect(second).toBe(first);
     second!.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, isPrimary: true }));
     second!.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, isPrimary: true }));
@@ -253,85 +383,19 @@ describe('render — train\'s here tap', () => {
       const pressMs = 1_800_000_000_000;
       vi.setSystemTime(pressMs);
       const onTap = vi.fn();
-      const tap: TapView = {
-        ...NEUTRAL_TAP,
-        north: { state: 'button', passKey: 'qr|north|1', destination: 'Chingford', entry: null },
-      };
-      render(root, withRows(tap), { ...opts, onTap });
-      root.querySelector('.tap-slot')!
+      const tap: TapView = { ...NEUTRAL_TAP, north: button() };
+      render(root, withRows(tap, EA), { ...opts, onTap });
+      root.querySelector('.tap-button')!
         .dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, isPrimary: true }));
       vi.setSystemTime(pressMs + 1200);
-      render(root, withRows(tap), { ...opts, onTap });
-      root.querySelector('.tap-slot')!
+      render(root, withRows(tap, EA), { ...opts, onTap });
+      root.querySelector('.tap-button')!
         .dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, isPrimary: true }));
       expect(onTap).toHaveBeenCalledTimes(1);
       expect(onTap).toHaveBeenCalledWith('north', pressMs);
     } finally {
       vi.useRealTimers();
     }
-  });
-
-  it.each([
-    ['connecting', vm({ freshness: { state: 'no-data' }, tap: { ...NEUTRAL_TAP, ask: 'invite', taps: 3 } })],
-    ['no trains', vm({ tap: { ...NEUTRAL_TAP, ask: 'invite', taps: 3 } })],
-  ] as const)('the ticket strip is there while %s', (_name, model) => {
-    render(root, model, opts);
-    expect(root.querySelector('.empty')).not.toBeNull();
-    expect(root.querySelector('.ask-card .ticket')).not.toBeNull();
-  });
-
-  it('a strip that was opened survives a spell with no trains', () => {
-    const tap: TapView = { ...NEUTRAL_TAP, ask: 'invite', taps: 3 };
-    render(root, withRows(tap), opts);
-    const card = root.querySelector<HTMLDetailsElement>('.ask-card')!;
-    card.open = true;
-    render(root, vm({ tap }), opts);
-    render(root, withRows(tap), opts);
-    expect(root.querySelector('.ask-card')).toBe(card);
-    expect(card.open).toBe(true);
-  });
-
-  it('answering the ask opens the strip that replaces it and moves focus to it', () => {
-    render(root, withRows({ ...NEUTRAL_TAP, ask: 'first' }), opts);
-    root.querySelector<HTMLButtonElement>('.ask-card button')!.focus();
-    render(root, withRows({ ...NEUTRAL_TAP, ask: 'ready' }), opts);
-    const strip = root.querySelector<HTMLDetailsElement>('.ask-card')!;
-    expect(strip.open).toBe(true);
-    expect(document.activeElement).toBe(strip.querySelector('summary'));
-  });
-
-  it('switching the buttons off keeps the strip open and focused, so the change is seen and heard', () => {
-    render(root, withRows({ ...NEUTRAL_TAP, ask: 'invite', taps: 3 }), opts);
-    const before = root.querySelector<HTMLDetailsElement>('.ask-card')!;
-    before.open = true;
-    before.querySelector<HTMLButtonElement>('button')!.focus();
-    render(root, withRows({ ...NEUTRAL_TAP, ask: 'off', taps: 3 }), opts);
-    const strip = root.querySelector<HTMLDetailsElement>('.ask-card')!;
-    expect(strip.open).toBe(true);
-    expect(document.activeElement).toBe(strip.querySelector('summary'));
-  });
-
-  it('a strip drawn fresh, on page load, starts closed and takes no focus', () => {
-    render(root, withRows({ ...NEUTRAL_TAP, ask: 'ready' }), opts);
-    const strip = root.querySelector<HTMLDetailsElement>('.ask-card')!;
-    expect(strip.open).toBe(false);
-    expect(document.activeElement).toBe(document.body);
-  });
-
-  it('a new clip on the ticket does not open the strip or take focus', () => {
-    render(root, withRows({ ...NEUTRAL_TAP, ask: 'invite', taps: 3 }), opts);
-    render(root, withRows({ ...NEUTRAL_TAP, ask: 'invite', taps: 4 }), opts);
-    const strip = root.querySelector<HTMLDetailsElement>('.ask-card')!;
-    expect(strip.open).toBe(false);
-    expect(document.activeElement).toBe(document.body);
-  });
-
-  it('ask card choices reach onHelpChoice', () => {
-    const onHelpChoice = vi.fn();
-    render(root, withRows({ ...NEUTRAL_TAP, ask: 'first' }), { ...opts, onHelpChoice });
-    const buttons = root.querySelectorAll<HTMLButtonElement>('.ask-card button');
-    buttons[1].click();
-    expect(onHelpChoice).toHaveBeenCalledWith('declined');
   });
 
   // Every node removed from the document during a call, including subtrees.
@@ -345,27 +409,37 @@ describe('render — train\'s here tap', () => {
   }
 
   it.each([
-    ['button', { state: 'button', passKey: 'qr|north|1', destination: 'Barking Riverside', entry: null }],
-    ['thanks', { state: 'thanks', passKey: 'qr|north|1', destination: 'Barking Riverside',
+    ['placeholder', { ...NO_TAP, state: 'placeholder', msUntilButton: 300_000 }],
+    ['button', { ...NO_TAP, state: 'button', passKey: 'ea|north|1', destination: 'Chingford' }],
+    ['thanks', { ...NO_TAP, state: 'thanks', passKey: 'ea|north|1', destination: 'Chingford',
       entry: { tapMs: 1_000, predictedMs: 3_000, tapsBefore: 1 } }],
-  ] as const)('the %s slot stays in the document across redraws', (_name, north) => {
+  ] as const)('the %s slot, its card and its line diagram stay in the document across redraws', (_name, north) => {
     const tap: TapView = { ...NEUTRAL_TAP, taps: 2, north: north as TapDirectionView };
-    render(root, withRows(tap), opts);
+    render(root, withRows(tap, EA), opts);
     const slot = root.querySelector('.tap-slot')!;
-    const rowBefore = slot.parentElement!;
+    const card = slot.parentElement!;
+    const strip = card.querySelector('.strip')!;
     const removed = removedDuring(() => {
-      render(root, withRows(tap), opts);
-      render(root, withRows(tap), opts);
+      render(root, withRows(tap, EA), opts);
+      render(root, withRows(tap, EA), opts);
     });
     expect(root.querySelector('.tap-slot')).toBe(slot);
-    expect(slot.isConnected).toBe(true);
-    // Neither the slot nor the row holding it was taken out of the document.
-    expect(removed.includes(slot)).toBe(false);
-    expect(removed.includes(rowBefore)).toBe(false);
-    // The row around it is still redrawn with the current countdown.
-    const row = slot.parentElement!;
-    expect(row).toBe(rowBefore);
-    expect(Array.from(row.children).map((c) => c.className.split(' ')[0])).toEqual(['label', 'value', 'tap-slot']);
+    for (const kept of [slot, card, strip]) {
+      expect(removed.includes(kept)).toBe(false);
+    }
+    expect(slot.parentElement).toBe(card);
+    expect(kids(card)).toEqual(['card-top', 'value', 'strip', 'tap-slot']);
+  });
+
+  it('the card is still redrawn with the current countdown', () => {
+    render(root, withRows(), opts);
+    const card = cards()[1];
+    render(root, vm({
+      north: event(passengerArrival(), 20),
+      south: event(passengerArrival({ id: 'p2' }), 120, 'south'),
+    }), opts);
+    expect(cards()[1]).toBe(card);
+    expect(card.querySelector('.value')!.textContent).toBe('2 min');
   });
 
   it('a kept ask card stays in the document across redraws', () => {
@@ -377,18 +451,13 @@ describe('render — train\'s here tap', () => {
     expect(removed.includes(card)).toBe(false);
   });
 
-  it('page order is unchanged when a row is kept', () => {
-    const tap: TapView = {
-      ...NEUTRAL_TAP,
-      ask: 'first',
-      north: { state: 'button', passKey: 'qr|north|1', destination: 'Barking Riverside', entry: null },
-    };
-    render(root, withRows(tap), opts);
-    render(root, withRows(tap), opts);
+  it('page order is unchanged when a card is kept', () => {
+    const tap: TapView = { ...NEUTRAL_TAP, ask: 'first', north: button() };
+    render(root, withRows(tap, EA), opts);
+    render(root, withRows(tap, EA), opts);
     expect(classes()).toEqual([
       'spot-header', 'map-link', 'walking-time',
-      'row', 'strip', 'ticker',
-      'row', 'strip', 'ticker',
+      'direction-card', 'direction-card',
       'ask-card', 'footer', 'doc-links',
     ]);
   });

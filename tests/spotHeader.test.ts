@@ -11,6 +11,8 @@ function model(overrides: Partial<Parameters<typeof renderSpotHeader>[1]> = {}) 
     favourite: false,
     onHome: vi.fn<() => void>(),
     onToggleFavourite: vi.fn<(id: string) => void>(),
+    ticketLabel: 'Your ticket',
+    onOpenTicket: vi.fn<() => void>(),
     ...overrides,
   };
 }
@@ -19,8 +21,54 @@ describe('renderSpotHeader', () => {
   it('shows the line and the spot name', () => {
     const el = renderSpotHeader(null, model());
     expect(el.classList.contains('spot-header')).toBe(true);
-    expect(el.querySelector('.spot-header-line')!.textContent).toBe('Weaver');
+    expect(el.querySelector('.spot-header-line')!.textContent).toBe('Weaver line');
     expect(el.querySelector('h1.spot-header-name')!.textContent).toBe('East Avenue Bridge');
+  });
+
+  it('lays out like the boards: back link, badge and star on top, then the name and line', () => {
+    const el = renderSpotHeader(null, model());
+    const bar = el.querySelector('.spot-header-bar')!;
+    expect(Array.from(bar.children).map((c) => c.className.split(' ')[0]))
+      .toEqual(['spot-header-home', 'ticket-badge', 'spot-header-star']);
+    const title = el.querySelector('.spot-header-title')!;
+    expect(Array.from(title.children).map((c) => c.className.split(' ')[0]))
+      .toEqual(['spot-header-name', 'spot-header-line']);
+    expect(el.firstElementChild).toBe(bar);
+  });
+
+  it('the ticket badge shows the label and opens the ticket', () => {
+    const m = model({ ticketLabel: 'Spotter · 4 trains' });
+    const el = renderSpotHeader(null, m);
+    const badge = el.querySelector<HTMLButtonElement>('button.ticket-badge')!;
+    expect(badge.textContent).toContain('Spotter · 4 trains');
+    expect(badge.getAttribute('aria-label')).toBe('Your ticket: Spotter, 4 trains');
+    badge.click();
+    expect(m.onOpenTicket).toHaveBeenCalledTimes(1);
+    expect(m.onHome).not.toHaveBeenCalled();
+  });
+
+  it('with no taps the badge reads "Your ticket"', () => {
+    const badge = renderSpotHeader(null, model()).querySelector('.ticket-badge')!;
+    expect(badge.textContent).toContain('Your ticket');
+    expect(badge.getAttribute('aria-label')).toBe('Your ticket');
+  });
+
+  it('the badge is shown at Queens Road too', () => {
+    const el = renderSpotHeader(null, model({ viewpoint: QR }));
+    expect(el.querySelector('.ticket-badge')).not.toBeNull();
+  });
+
+  it('the badge updates in place and calls the latest handler', () => {
+    const first = model();
+    const el = renderSpotHeader(null, first);
+    const badge = el.querySelector('.ticket-badge');
+    const second = model({ ticketLabel: 'Spotter · 1 train' });
+    renderSpotHeader(el, second);
+    expect(el.querySelector('.ticket-badge')).toBe(badge);
+    expect(badge!.textContent).toContain('Spotter · 1 train');
+    (badge as HTMLElement).click();
+    expect(second.onOpenTicket).toHaveBeenCalledTimes(1);
+    expect(first.onOpenTicket).not.toHaveBeenCalled();
   });
 
   it('links back to all spots without a page load', () => {
@@ -72,7 +120,7 @@ describe('renderSpotHeader', () => {
     const again = renderSpotHeader(el, second);
     expect(again).toBe(el);
     expect(el.querySelector('.spot-header-star')).toBe(starBefore);
-    expect(el.querySelector('.spot-header-line')!.textContent).toBe('Suffragette');
+    expect(el.querySelector('.spot-header-line')!.textContent).toBe('Suffragette line');
     expect(el.querySelector('.spot-header-name')!.textContent).toBe('Queens Road Station');
     el.querySelector<HTMLElement>('.spot-header-star')!.click();
     expect(second.onToggleFavourite).toHaveBeenCalledWith('queens-road');
