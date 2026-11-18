@@ -3,7 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#f6efdf" />
+    <meta name="theme-color" content="#DCEEF5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#121829" media="(prefers-color-scheme: dark)" />
     <title>Privacy · E17 Trains</title>
     <link rel="canonical" href="https://e17trains.uk/privacy.html" />
     <meta name="description" content="Privacy policy for E17 Trains." />
@@ -11,205 +12,243 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@900&family=Big+Shoulders+Text:wght@500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/docs.css" />
   </head>
   <body>
     <main>
-      <a class="back" href="/">Back to trains</a>
+      <a class="back" href="/"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 3 L5 9 L11 15"/></svg>Back to trains</a>
       <h1>Privacy</h1>
-      <p>
-        This app is a handful of static files served from a CDN, plus two
-        small functions. One, used only on the Suffragette viewpoint, is
-        stateless and proxies freight-data requests to
-        <a href="https://www.realtimetrains.co.uk/about/" target="_blank" rel="noopener">Realtime Trains</a>
-        so that their API credentials stay server-side. The other stores the
-        "train is passing" taps described below. Both log requests as part of
-        normal Netlify operation; neither sees your coordinates or who you are.
-        Plus a privacy-friendly pageview count via Cloudflare Web Analytics
-        (details below). Apart from a tap on a "train is passing" button,
-        and which viewpoint's page you open (part of the pageview count),
-        nothing you do <em>inside</em> the app — tapping the fact line,
-        turning on location, starring a viewpoint, watching the countdown —
-        is tracked or reported back to me.
-      </p>
 
-      <h2>What's stored on your device</h2>
-      <ul>
-        <li>
-          A single <code>localStorage</code> flag
-          (<code>wtt_walking_enabled</code>) that remembers whether you've
-          turned location on (for sorting spots by distance and showing
-          walking times).
-        </li>
-        <li>
-          A <code>wtt_favourites</code> list of your starred viewpoints, in
-          the order they were starred. It is saved the first time the app
-          opens, even if empty. If you used the app before stars became a
-          list, it starts with the viewpoint you had starred, or East Avenue
-          if you had none, and the older
-          <code>wtt_favourite_viewpoint</code> flag is removed.
-        </li>
-        <li>
-          A <code>wtt_fact_index</code> number, so the fact line doesn't start
-          on the same fact every time.
-        </li>
-        <li>
-          A <code>wtt_tap_state</code> record for the "train is passing"
-          button: whether the buttons are on or off (with when you last
-          switched them off or said "Not now", and how many times you've
-          answered or changed it), how many trains
-          you've booked, a short key for each of the last 20 trains you booked
-          (viewpoint, direction and predicted time, so the same train isn't
-          counted twice), the times of your latest tap so its register entry
-          can be shown, and a random id made on your device (see below).
-        </li>
-        <li>
-          A <code>wtt_seen_freight_regions</code> list in
-          <code>sessionStorage</code> (cleared when the tab closes), noting
-          which freight regions have already been shown so a new one can be
-          highlighted once.
-        </li>
-        <li>
-          The PWA's service worker caches the app shell (HTML, CSS, JS, icons)
-          so the app works offline. None of this is shared with me.
-        </li>
-      </ul>
+      <div class="card">
+        <h2>The short version</h2>
+        <ul class="small">
+          <li>No account, no ads, no cookies.</li>
+          <li>Your location never leaves your phone.</li>
+          <li>Favourites and your ticket are saved on your phone.</li>
+          <li>Tapping the yellow button sends a small record so we can improve the times. It's kept for 12 months.</li>
+          <li>We count visits to each page, without cookies.</li>
+        </ul>
+      </div>
 
-      <h2>"Train is passing" taps</h2>
-      <p>
-        At some viewpoints a button appears as a train is due. If you tap it,
-        your browser sends one small record to this site's own function, which
-        stores it so the bridge timings can be tuned. A tap sends exactly
-        these fields:
-      </p>
-      <ul>
-        <li><code>viewpointId</code> and <code>direction</code> — which spot and which way the train was going.</li>
-        <li><code>msSinceTap</code> — how long ago you tapped when the record was sent, in milliseconds, so the server can work out the tap time.</li>
-        <li><code>predictedAtShowMs</code> and <code>predictedAtTapMs</code> — when the app predicted the train when the button appeared and when you tapped.</li>
-        <li><code>source</code> — whether that prediction came from signalling data (<code>berth</code>) or TfL (<code>tfl</code>).</li>
-        <li><code>berthStepMs</code> — when the signalling step behind the prediction fired, if there was one.</li>
-        <li><code>tflExpectedArrivalMs</code> — TfL's expected arrival time for that train, if known.</li>
-        <li><code>vehicleId</code> and <code>berthTrainId</code> — TfL's and the signalling system's ids for the train, if known.</li>
-        <li><code>atViewpoint</code> — just <code>yes</code>, <code>no</code> or <code>unknown</code>: whether you were within about 150 metres of the viewpoint. It is <code>unknown</code> unless location is on and your phone has found its location.</li>
-        <li><code>deviceId</code> — a random id made on your device and kept in <code>wtt_tap_state</code>, so repeat taps from one phone can be told apart. It isn't linked to you.</li>
-      </ul>
-      <p>
-        No coordinates are sent, and there is no account. The server adds the
-        time it received the tap and the tap time worked out from it. Taps are kept for 12 months and then
-        deleted. If you choose "Not now", or switch the buttons off from the
-        ticket under the train times, no buttons appear and nothing is sent.
-      </p>
+      <p class="note small">The full detail is below.</p>
 
-      <h2>Geolocation</h2>
-      <p>
-        If you tap <strong>Use my location</strong> on the home screen or
-        <strong>Enable walking time</strong> on a spot, your browser hands
-        your latitude/longitude to this app's JavaScript code. Those
-        coordinates are used on your device only — to work out how far you
-        are from each spot, so the list can be sorted nearest first and
-        walking times shown — and are <strong>never transmitted
-        anywhere</strong>. They are not stored, logged, or sent. A tap sends
-        only whether you were near the viewpoint (<code>yes</code> or
-        <code>no</code>), never the coordinates.
-      </p>
-      <p>
-        You can turn this off at any time using the small
-        <strong>off</strong> link next to "Using your location" on the home
-        screen or next to the walking label on a spot. That stops the
-        location watch and removes the localStorage flag. The app never asks
-        for your location until you tap one of those two buttons.
-      </p>
+      <div class="accordion">
+        <details>
+          <summary>What's saved on your phone</summary>
+          <div class="body">
+            <ul>
+              <li>
+                A single <code>localStorage</code> flag
+                (<code>wtt_walking_enabled</code>) that remembers whether you've
+                turned location on (for sorting spots by distance and showing
+                walking times).
+              </li>
+              <li>
+                A <code>wtt_favourites</code> list of your starred spots, in
+                the order they were starred. It is saved the first time the app
+                opens, even if empty. If you used the app before stars became a
+                list, it starts with the spot you had starred, or East Avenue
+                if you had none, and the older
+                <code>wtt_favourite_viewpoint</code> flag is removed.
+              </li>
+              <li>
+                A <code>wtt_fact_index</code> number, so the fact line doesn't start
+                on the same fact every time.
+              </li>
+              <li>
+                A <code>wtt_tap_state</code> record for the yellow "train is passing"
+                button: whether the buttons are on or off (with when you last
+                switched them off or said "Not now", and how many times you've
+                answered or changed it), how many trains
+                you've booked, a short key for each of the last 20 trains you booked
+                (spot, direction and predicted time, so the same train isn't
+                counted twice), the times of your latest tap so its register entry
+                can be shown, and a random id made on your device (see below).
+              </li>
+              <li>
+                A <code>wtt_seen_freight_regions</code> list in
+                <code>sessionStorage</code> (cleared when the tab closes), noting
+                which freight regions have already been shown so a new one can be
+                highlighted once.
+              </li>
+              <li>
+                The PWA's service worker caches the app shell (HTML, CSS, JS, icons)
+                so the app works offline. None of this is shared with me.
+              </li>
+            </ul>
+          </div>
+        </details>
 
-      <h2>Third parties your browser talks to</h2>
-      <p>
-        Because the app runs entirely in your browser, a few network requests
-        go to third parties. I don't see any of these, but they may log your
-        IP and user agent on their own servers:
-      </p>
-      <ul>
-        <li>
-          <strong>TfL Unified API</strong> (<code>api.tfl.gov.uk</code>) — for
-          live train arrivals. TfL's own
-          <a href="https://tfl.gov.uk/corporate/privacy-and-cookies" target="_blank" rel="noopener">privacy policy</a>
-          covers what they do with their logs. The home screen asks TfL for
-          arrivals at the stations behind the spots listed, about every 30
-          seconds while it is open.
-        </li>
-        <li>
-          <strong>Realtime Trains</strong> (via
-          <code>/.netlify/functions/freight</code>) — only while a Suffragette-line spot's countdown is open (Queens Road
-          Station or Northcote Road Bridge), never from the home screen. Their
-          <a href="https://www.realtimetrains.co.uk/about/privacy/" target="_blank" rel="noopener">privacy policy</a>
-          covers what they log. My proxy forwards your browser's freight
-          request to their API and returns their response unchanged; no
-          user-identifying data is added.
-        </li>
-        <li>
-          <strong>Live signalling feed</strong>
-          (<code>e17trains-td-proxy.fly.dev</code>, a small service I run on
-          <a href="https://fly.io/legal/privacy-policy/" target="_blank" rel="noopener">Fly.io</a>)
-          — only while a spot's countdown is open, never from the home
-          screen. Your browser holds a connection open to it and receives
-          train movements from Network Rail's signalling data, which sharpen
-          the countdown. Your browser sends it nothing beyond the connection
-          itself. The service records only that a connection opened or
-          closed; Fly.io, which hosts it, may log your IP address.
-        </li>
-        <li>
-          <strong>Google Fonts</strong> (<code>fonts.googleapis.com</code> and
-          <code>fonts.gstatic.com</code>) — to load the Big Shoulders
-          typeface.
-        </li>
-        <li>
-          <strong>Netlify</strong> — the CDN that serves this site. Netlify
-          logs requests as part of hosting the site, and stores the
-          "train is passing" taps (via <code>/.netlify/functions/tap</code>).
-        </li>
-        <li>
-          <strong>Cloudflare</strong> — provides DNS for this domain and
-          also runs the pageview analytics (see next section).
-        </li>
-      </ul>
+        <details open>
+          <summary>Timing taps</summary>
+          <div class="body">
+            <p>
+              At some spots a yellow button appears as a train is due. If you tap it,
+              your phone sends one small record to this site's own function, which
+              stores it so the bridge timings can be tuned. A tap sends exactly
+              these fields:
+            </p>
+            <ul>
+              <li><code>viewpointId</code> and <code>direction</code> — which spot and which way the train was going.</li>
+              <li><code>msSinceTap</code> — how long ago you tapped when the record was sent, in milliseconds, so the server can work out the tap time.</li>
+              <li><code>predictedAtShowMs</code> and <code>predictedAtTapMs</code> — when the app predicted the train when the button appeared and when you tapped.</li>
+              <li><code>source</code> — whether that prediction came from signalling data (<code>berth</code>) or TfL (<code>tfl</code>).</li>
+              <li><code>berthStepMs</code> — when the signalling step behind the prediction fired, if there was one.</li>
+              <li><code>tflExpectedArrivalMs</code> — TfL's expected arrival time for that train, if known.</li>
+              <li><code>vehicleId</code> and <code>berthTrainId</code> — TfL's and the signalling system's ids for the train, if known.</li>
+              <li><code>atViewpoint</code> — just <code>yes</code>, <code>no</code> or <code>unknown</code>: whether you were within about 150 metres of the spot. It is <code>unknown</code> unless location is on and your phone has found its location.</li>
+              <li><code>deviceId</code> — a random code made on your device and kept in <code>wtt_tap_state</code>, so repeat taps from one phone can be told apart. It isn't linked to you.</li>
+            </ul>
+            <p>
+              No coordinates are sent, and there is no account. The server adds the
+              time it received the tap and the tap time worked out from it. Taps are
+              kept for 12 months and then deleted. If you choose "Not now" or "No thanks", or
+              switch the buttons off from the ticket under the train times, no
+              buttons appear and nothing is sent.
+            </p>
+          </div>
+        </details>
 
-      <h2>Analytics</h2>
-      <p>
-        This site uses
-        <a href="https://www.cloudflare.com/web-analytics/" target="_blank" rel="noopener">Cloudflare Web Analytics</a>
-        to count how many people visit. It's designed around not identifying
-        individual visitors:
-      </p>
-      <ul>
-        <li><strong>No cookies.</strong> Nothing is stored in your browser by the analytics beacon.</li>
-        <li><strong>No fingerprinting.</strong> No device, canvas, or font fingerprinting.</li>
-        <li><strong>No cross-site tracking.</strong> Cloudflare doesn't build a profile of you across the web.</li>
-        <li><strong>What it does see:</strong> the page URL, referrer (if any), user agent, and a coarse country estimate from your IP. Each viewpoint has its own URL (for example <code>/walthamstow/east-avenue-bridge</code>), so the count shows which viewpoints are opened.</li>
-        <li><strong>What it doesn't see:</strong> anything else you do <em>inside</em> the app — whether location is on, the facts you tap, the viewpoints you star, the buttons you press.</li>
-      </ul>
-      <p>
-        Cloudflare publish their own
-        <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">privacy policy</a>
-        covering what they keep and for how long.
-      </p>
+        <details>
+          <summary>Your location</summary>
+          <div class="body">
+            <p>
+              If you tap <strong>Use my location</strong> on the home screen or
+              <strong>Enable walking time</strong> on a spot, your browser hands
+              your latitude and longitude to this app's JavaScript code. Those
+              coordinates are used on your device only, to work out how far you
+              are from each spot, so the list can be sorted nearest first and
+              walking times shown. They are <strong>never transmitted
+              anywhere</strong>. They are not stored, logged, or sent. A tap sends
+              only whether you were near the spot (<code>yes</code> or
+              <code>no</code>), never the coordinates.
+            </p>
+            <p>
+              You can turn this off at any time using the small
+              <strong>off</strong> link next to "Using your location" on the home
+              screen or next to the walking label on a spot. That stops the
+              location watch and removes the localStorage flag. The app never asks
+              for your location until you tap one of those two buttons.
+            </p>
+          </div>
+        </details>
 
-      <h2>What I don't do</h2>
-      <ul>
-        <li>No advertising or ad-network code.</li>
-        <li>No account, login, or sign-up.</li>
-        <li>No cookies set by this site itself.</li>
-        <li>No third-party scripts beyond the Cloudflare pageview beacon and the Google Fonts loader.</li>
-      </ul>
+        <details>
+          <summary>Services your phone talks to</summary>
+          <div class="body">
+            <p>
+              This app is a handful of static files served from a CDN, plus two
+              small functions. One, used only on the Suffragette-line spots, is
+              stateless and proxies freight-data requests to
+              <a href="https://www.realtimetrains.co.uk/about/" target="_blank" rel="noopener">Realtime Trains</a>
+              so that their API credentials stay server-side. The other stores the
+              "train is passing" taps described above. Both log requests as part of
+              normal Netlify operation; neither sees your coordinates or who you are.
+            </p>
+            <p>
+              Because the app runs entirely in your browser, a few network requests
+              go to third parties. I don't see any of these, but they may log your
+              IP and user agent on their own servers:
+            </p>
+            <ul>
+              <li>
+                <strong>TfL Unified API</strong> (<code>api.tfl.gov.uk</code>) — for
+                live train arrivals. TfL's own
+                <a href="https://tfl.gov.uk/corporate/privacy-and-cookies" target="_blank" rel="noopener">privacy policy</a>
+                covers what they do with their logs. The home screen asks TfL for
+                arrivals at the stations behind the spots listed, about every 30
+                seconds while it is open.
+              </li>
+              <li>
+                <strong>Realtime Trains</strong> (via
+                <code>/.netlify/functions/freight</code>) — only while a Suffragette-line spot's countdown is open (Queens Road
+                Station or Northcote Road Bridge), never from the home screen. Their
+                <a href="https://www.realtimetrains.co.uk/about/privacy/" target="_blank" rel="noopener">privacy policy</a>
+                covers what they log. My proxy forwards your browser's freight
+                request to their API and returns their response unchanged; no
+                user-identifying data is added.
+              </li>
+              <li>
+                <strong>Live signalling feed</strong>
+                (<code>e17trains-td-proxy.fly.dev</code>, a small service I run on
+                <a href="https://fly.io/legal/privacy-policy/" target="_blank" rel="noopener">Fly.io</a>)
+                — only while a spot's countdown is open, never from the home
+                screen. Your browser holds a connection open to it and receives
+                train movements from Network Rail's signalling data, which sharpen
+                the countdown. Your browser sends it nothing beyond the connection
+                itself. The service records only that a connection opened or
+                closed; Fly.io, which hosts it, may log your IP address.
+              </li>
+              <li>
+                <strong>Google Fonts</strong> (<code>fonts.googleapis.com</code> and
+                <code>fonts.gstatic.com</code>) — to load the Baloo 2 and Nunito
+                typefaces.
+              </li>
+              <li>
+                <strong>Netlify</strong> — the CDN that serves this site. Netlify
+                logs requests as part of hosting the site, and stores the
+                "train is passing" taps (via <code>/.netlify/functions/tap</code>).
+              </li>
+              <li>
+                <strong>Cloudflare</strong> — provides DNS for this domain and
+                also runs the pageview analytics (see next section).
+              </li>
+            </ul>
+          </div>
+        </details>
 
-      <h2>Contact</h2>
-      <p>
-        Questions or corrections? Open an issue at
-        <a href="https://github.com/bselby/Walthamstow-Train-Tracker/issues" target="_blank" rel="noopener">github.com/bselby/Walthamstow-Train-Tracker/issues</a>.
+        <details>
+          <summary>Counting visits</summary>
+          <div class="body">
+            <p>
+              This site uses
+              <a href="https://www.cloudflare.com/web-analytics/" target="_blank" rel="noopener">Cloudflare Web Analytics</a>,
+              a privacy-friendly pageview count, to count how many people visit. It's designed around not identifying
+              individual visitors:
+            </p>
+            <ul>
+              <li><strong>No cookies.</strong> Nothing is stored in your browser by the analytics beacon.</li>
+              <li><strong>No fingerprinting.</strong> No device, canvas, or font fingerprinting.</li>
+              <li><strong>No cross-site tracking.</strong> Cloudflare doesn't build a profile of you across the web.</li>
+              <li><strong>What it does see:</strong> the page URL, referrer (if any), user agent, and a coarse country estimate from your IP. Each spot has its own URL (for example <code>/walthamstow/east-avenue-bridge</code>), so the count shows which spots are opened.</li>
+              <li><strong>What it doesn't see:</strong> anything else you do <em>inside</em> the app — whether location is on, the facts you tap, the spots you star, the buttons you press.</li>
+            </ul>
+            <p>
+              Apart from a tap on the yellow button, and which spot's page you
+              open (part of the pageview count), nothing you do inside the app —
+              tapping the fact line, turning on location, starring a spot,
+              watching the countdown — is tracked or reported back to me.
+            </p>
+            <p>
+              Cloudflare publish their own
+              <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">privacy policy</a>
+              covering what they keep and for how long.
+            </p>
+          </div>
+        </details>
+
+        <details>
+          <summary>What we never do</summary>
+          <div class="body">
+            <ul>
+              <li>No advertising or ad-network code.</li>
+              <li>No account, login, or sign-up.</li>
+              <li>No cookies set by this site itself.</li>
+              <li>No third-party scripts beyond the Cloudflare pageview beacon and the Google Fonts loader.</li>
+            </ul>
+          </div>
+        </details>
+      </div>
+
+      <p class="small">
+        Questions or corrections?
+        <a href="https://github.com/bselby/Walthamstow-Train-Tracker/issues" target="_blank" rel="noopener">Open an issue on GitHub</a>.
       </p>
-
       <p class="meta">Last updated 18 November 2026</p>
     </main>
     <!-- Cloudflare Web Analytics — pageview count only, no cookies, no personal data.
-         See the Analytics section above for the full story. -->
+         See the Counting visits section above for the full story. -->
     <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "f28e4933fd98408da3b08b2b59807a0e"}'></script>
   </body>
 </html>
