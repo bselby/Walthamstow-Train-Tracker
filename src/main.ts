@@ -27,6 +27,7 @@ import { loadFavourites, saveFavourites, toggleFavourite } from './favourites';
 import { landingFor } from './landing';
 import { renderHome } from './home';
 import { renderTicketPage } from './ticketPage';
+import { renderHowItWorks } from './howItWorks';
 import { buildHomeModel, homeRowOrder } from './homeModel';
 import { pollHome, HOME_POLL_INTERVAL_MS, HOME_STALE_MS, type HomeSnapshots } from './homeArrivals';
 
@@ -346,22 +347,6 @@ function openInfo(which: 'ticket' | 'how'): void {
 export function openTicket(): void { openInfo('ticket'); }
 export function openHow(): void { openInfo('how'); }
 
-/** Stand-in for the ticket and explainer screens until Tasks 9 and 10 land:
- *  swap the body for renderTicketPage / renderHowItWorks. Painted once per
- *  visit, since the one-second loop calls rerender. */
-function renderInfoPlaceholder(which: 'how'): void {
-  if (root.dataset.info === which) return;
-  root.dataset.info = which;
-  root.innerHTML = '';
-  const h1 = document.createElement('h1');
-  h1.textContent = 'How it works';
-  const back = document.createElement('button');
-  back.type = 'button';
-  back.textContent = 'Back';
-  back.addEventListener('click', backFromInfo);
-  root.append(h1, back);
-}
-
 // Back and forward: show whatever the address bar now names.
 window.addEventListener('popstate', () => {
   const route = parseRoute(window.location.pathname);
@@ -609,7 +594,15 @@ function rerender(): void {
     return;
   }
   if (screen === 'how') {
-    renderInfoPlaceholder('how');
+    // Painted once per visit: the page inside it is the screen's own state.
+    if (root.dataset.info !== 'how') {
+      root.dataset.info = 'how';
+      renderHowItWorks(root, {
+        onCountMeIn: () => { onHelpChoice('helping'); backFromInfo(); },
+        onNotNow: () => { onHelpChoice('declined'); backFromInfo(); },
+        onBack: backFromInfo,
+      });
+    }
     return;
   }
   delete root.dataset.info;

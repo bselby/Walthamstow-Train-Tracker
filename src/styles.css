@@ -1538,3 +1538,88 @@ html, body {
   color: var(--ink); font: 800 0.9375rem var(--font-body); text-decoration: underline;
 }
 .ticket-foot { margin: auto 0 0; font-size: 0.8125rem; font-weight: 600; line-height: 1.4; color: var(--dim); }
+
+/* ---- How it works ---- */
+#app:has(> .how-sheet) { justify-content: flex-start; }
+.how-sheet {
+  display: flex; flex-direction: column; gap: 16px; flex: 1;
+  padding: 12px 20px 22px; background: var(--card); color: var(--ink);
+  border-radius: 28px 28px 0 0;
+}
+.how-bar { display: flex; align-items: center; justify-content: space-between; }
+.how-count { font-size: 0.875rem; font-weight: 700; color: var(--dim); margin: 0 auto 0 0; }
+.how-back + .how-count { margin: 0 auto; }
+.how-back {
+  display: flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 8px 0 0;
+  background: none; border: 0; cursor: pointer;
+  color: var(--ink); font: 700 0.9375rem var(--font-body);
+}
+.how-close {
+  display: flex; align-items: center; justify-content: center; width: 44px; height: 44px;
+  background: none; border: 0; cursor: pointer; color: var(--ink);
+}
+.how-head { display: flex; flex-direction: column; gap: 8px; }
+.how-new {
+  align-self: flex-start; padding: 3px 10px; background: var(--yellow); color: var(--badge-ink);
+  border-radius: 12px; font-size: 0.8125rem; font-weight: 800;
+}
+.how-title { margin: 0; font: 800 1.875rem/1.05 var(--font-display); }
+.how-title:focus { outline: none; }
+.how-lede { margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.45; }
+.how-steps { display: flex; flex-direction: column; gap: 14px; padding: 16px; background: var(--bg); border-radius: 20px; }
+.how-step { display: flex; gap: 14px; align-items: flex-start; }
+.how-step-num {
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--ink); color: var(--card); font: 800 1.1875rem var(--font-display);
+}
+.how-step-body { display: flex; flex-direction: column; gap: 6px; }
+.how-step-title { font-size: 1rem; font-weight: 800; }
+.how-step-text { font-size: 0.9375rem; font-weight: 600; line-height: 1.4; color: var(--dim); }
+.how-demo {
+  align-self: flex-start; padding: 8px 14px; border: 2px solid var(--card-edge); border-radius: 20px;
+  background: var(--yellow); color: var(--badge-ink); font: 800 0.9375rem var(--font-display);
+}
+.how-art { max-width: 100%; height: auto; }
+.how-art .how-track { fill: var(--track); }
+.how-art .how-train-body { fill: var(--card); stroke: var(--ink); }
+.how-art .how-train-ink { fill: var(--ink); }
+.how-art .how-train-line { fill: var(--weaver); stroke: var(--ink); }
+.how-art .how-train-stripe { fill: var(--weaver); }
+.how-art .how-train-lamp { fill: var(--yellow); }
+.how-art .how-train-pan { stroke: var(--ink); }
+.how-art .how-pin { fill: var(--pin); stroke: var(--pin-outline); }
+.how-art .how-pin-dot { fill: var(--card); }
+.how-art .how-pin-label { fill: var(--ink); font-family: var(--font-body); }
+.how-spacer { flex-grow: 1; }
+.how-primary {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 60px; border: 3px solid var(--card-edge); border-radius: 30px; cursor: pointer;
+  background: var(--yellow); color: var(--badge-ink); font: 800 1.3125rem var(--font-display);
+}
+.how-secondary {
+  display: flex; align-items: center; justify-content: center; min-height: 44px;
+  background: none; border: 0; cursor: pointer; color: var(--ink); font: 700 1rem var(--font-body);
+}
+.how-ticket {
+  display: flex; flex-direction: column; gap: 10px; padding: 16px 18px;
+  background: var(--ticket); color: var(--badge-ink);
+  border: 2px solid var(--badge-edge); border-radius: 14px;
+}
+.how-ticket-kicker { font-size: 0.75rem; font-weight: 800; letter-spacing: 0.12em; }
+.how-ticket-rank { font: 800 1.75rem/1 var(--font-display); }
+.how-ticket-dots { display: flex; gap: 8px; }
+.how-dot { width: 18px; height: 18px; box-sizing: border-box; border-radius: 50%; border: 2px dashed var(--badge-ink); }
+.how-dot.filled { background: var(--card); border-style: solid; }
+.how-ticket-line { font-size: 0.875rem; font-weight: 700; }
+.how-ranks-wrap { display: flex; flex-direction: column; }
+.how-ranks-title { font-size: 1rem; font-weight: 800; padding-bottom: 6px; }
+.how-ranks { list-style: none; margin: 0; padding: 0; }
+.how-rank {
+  display: flex; justify-content: space-between; padding: 8px 0;
+  border-bottom: 1px solid var(--border); font-size: 1rem;
+}
+.how-rank:last-child { border-bottom: 0; }
+.how-rank-name { font-weight: 800; }
+.how-rank-note { font-weight: 600; color: var(--dim); }
+.how-foot { margin: 0; font-size: 0.875rem; font-weight: 600; line-height: 1.45; color: var(--dim); }
