@@ -46,3 +46,6 @@ export function placeholderLine(msUntilButton: number): string {
   }
   return 'Yellow button pops up here in a minute';
 }
+
+/** The ticket page's progress line before the first train is timed. */
+export const NO_TRAINS_LINE = 'No trains timed yet. Time one to become a Spotter.';

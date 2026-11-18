@@ -26,6 +26,7 @@ import { parseRoute, viewpointPath, HOME_PATH, TICKET_PATH, HOW_PATH } from './r
 import { loadFavourites, saveFavourites, toggleFavourite } from './favourites';
 import { landingFor } from './landing';
 import { renderHome } from './home';
+import { renderTicketPage } from './ticketPage';
 import { buildHomeModel, homeRowOrder } from './homeModel';
 import { pollHome, HOME_POLL_INTERVAL_MS, HOME_STALE_MS, type HomeSnapshots } from './homeArrivals';
 
@@ -308,8 +309,8 @@ function goHome(): void {
   window.scrollTo(0, 0);
 }
 
-const TICKET_TITLE = 'Your ticket · E17 Trains';
-const HOW_TITLE = 'How it works · E17 Trains';
+const TICKET_TITLE = 'E17 Trains — Your ticket';
+const HOW_TITLE = 'E17 Trains — How it works';
 
 /** Show the ticket or the explainer. Neither polls, so both pollers stop;
  *  going back starts whichever the destination needs, from clean. */
@@ -348,12 +349,12 @@ export function openHow(): void { openInfo('how'); }
 /** Stand-in for the ticket and explainer screens until Tasks 9 and 10 land:
  *  swap the body for renderTicketPage / renderHowItWorks. Painted once per
  *  visit, since the one-second loop calls rerender. */
-function renderInfoPlaceholder(which: 'ticket' | 'how'): void {
+function renderInfoPlaceholder(which: 'how'): void {
   if (root.dataset.info === which) return;
   root.dataset.info = which;
   root.innerHTML = '';
   const h1 = document.createElement('h1');
-  h1.textContent = which === 'ticket' ? 'Your ticket' : 'How it works';
+  h1.textContent = 'How it works';
   const back = document.createElement('button');
   back.type = 'button';
   back.textContent = 'Back';
@@ -586,8 +587,29 @@ function onHelpChoice(choice: 'helping' | 'declined'): void {
 }
 
 function rerender(): void {
-  if (screen === 'ticket' || screen === 'how') {
-    renderInfoPlaceholder(screen);
+  if (screen === 'ticket') {
+    // Painted again only when something it shows has changed, since the
+    // one-second loop calls rerender.
+    const names = tapState.spotsTimed
+      .map((id) => getViewpointById(id)?.name)
+      .filter((n): n is string => !!n);
+    const key = `ticket|${tapState.taps}|${tapState.choice}|${names.join(',')}`;
+    if (root.dataset.info !== key) {
+      root.dataset.info = key;
+      renderTicketPage(
+        root,
+        { taps: tapState.taps, choice: tapState.choice, spotNames: names },
+        {
+          onBack: backFromInfo,
+          onToggleButton: (on) => onHelpChoice(on ? 'helping' : 'declined'),
+          onOpenHow: openHow,
+        },
+      );
+    }
+    return;
+  }
+  if (screen === 'how') {
+    renderInfoPlaceholder('how');
     return;
   }
   delete root.dataset.info;

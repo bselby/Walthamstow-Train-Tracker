@@ -85,3 +85,10 @@ describe('NO_SIGNAL_LINE', () => {
     expect(NO_SIGNAL_LINE).toBe("No signal, so that one didn't send. It still counts on your ticket.");
   });
 });
+
+describe('NO_TRAINS_LINE', () => {
+  it('invites the first timing', async () => {
+    const { NO_TRAINS_LINE } = await import('../src/tapCopy');
+    expect(NO_TRAINS_LINE).toBe('No trains timed yet. Time one to become a Spotter.');
+  });
+});
