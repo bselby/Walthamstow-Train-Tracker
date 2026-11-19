@@ -253,16 +253,16 @@ describe('settleHelpBoxes', () => {
     state: 'none', passKey: null, destination: null, entry: null, msUntilButton: null, offline: false,
   };
   const waiting = (ms: number): TapDirectionView => ({ ...blank, state: 'placeholder', msUntilButton: ms });
+  const reserved: TapDirectionView = { ...blank, state: 'reserved' };
+  const button: TapDirectionView = { ...blank, state: 'button', passKey: 'k', destination: 'Chingford' };
 
-  it('for a newcomer, keeps the full box only in the card whose button comes first', () => {
+  it('for a newcomer, keeps the full box only in the card whose button comes first; the other slot stays, empty', () => {
     const out = settleHelpBoxes({ north: waiting(200_000), south: waiting(60_000) }, true);
     expect(out.south.state).toBe('placeholder');
-    expect(out.north.state).toBe('cue');
-    expect(out.north.msUntilButton).toBe(200_000);
+    expect(out.north.state).toBe('reserved');
   });
 
   it('for a newcomer with one train waiting, keeps its full box', () => {
-    const button: TapDirectionView = { ...blank, state: 'button', passKey: 'k', destination: 'Chingford' };
     const out = settleHelpBoxes({ north: button, south: waiting(90_000) }, true);
     expect(out.south.state).toBe('placeholder');
     expect(out.north).toBe(button);
@@ -271,19 +271,26 @@ describe('settleHelpBoxes', () => {
   it('keeps the north box on a tie', () => {
     const out = settleHelpBoxes({ north: waiting(60_000), south: waiting(60_000) }, true);
     expect(out.north.state).toBe('placeholder');
-    expect(out.south.state).toBe('cue');
+    expect(out.south.state).toBe('reserved');
   });
 
-  it('for a regular, shows only the short line in both cards', () => {
-    const out = settleHelpBoxes({ north: waiting(200_000), south: waiting(60_000) }, false);
-    expect(out.north.state).toBe('cue');
-    expect(out.south.state).toBe('cue');
-  });
-
-  it('leaves the other states alone', () => {
-    const reserved: TapDirectionView = { ...blank, state: 'reserved' };
-    const out = settleHelpBoxes({ north: reserved, south: blank }, false);
+  it('for a newcomer, keeps empty slots so nothing moves', () => {
+    const out = settleHelpBoxes({ north: reserved, south: reserved }, true);
     expect(out.north).toBe(reserved);
-    expect(out.south).toBe(blank);
+    expect(out.south).toBe(reserved);
+  });
+
+  it('for a regular, draws no slot while waiting: the space closes up', () => {
+    const out = settleHelpBoxes({ north: waiting(200_000), south: reserved }, false);
+    expect(out.north.state).toBe('none');
+    expect(out.south.state).toBe('none');
+  });
+
+  it('for a regular, keeps the button and the thank-you', () => {
+    const thanks: TapDirectionView = { ...blank, state: 'thanks', passKey: 'k',
+      entry: { tapMs: 1, predictedMs: 2, tapsBefore: 0 } };
+    const out = settleHelpBoxes({ north: button, south: thanks }, false);
+    expect(out.north).toBe(button);
+    expect(out.south).toBe(thanks);
   });
 });

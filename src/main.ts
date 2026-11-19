@@ -564,8 +564,9 @@ function buildTapView(heroes: Partial<Record<Direction, BridgeEvent>>, now: numb
   return {
     ask: tapAsk({ tapState, nowMs: now, offerable: canTune, views: [views.north, views.south] }),
     taps: tapState.taps,
-    // The full-height slot is for the newcomer visits, whose full help box
-    // needs it; decided once per visit, so nothing moves while it is open.
+    // The full-height, always-there slot is for the newcomer visits, whose
+    // full help box needs it. After that the slot shows only for the button
+    // and thank-you, at a shorter height. Decided once per visit.
     short: !fullBoxThisVisit,
     north: views.north,
     south: views.south,

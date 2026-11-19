@@ -5,18 +5,18 @@
 import type { AskKind } from './tapStore';
 import { promotionFor } from './tap';
 import { HOW_PATH, TICKET_PATH } from './routes';
-import { HELP_CUE, NO_SIGNAL_LINE, PLACEHOLDER, progressLine, rankUpLines } from './tapCopy';
+import { NO_SIGNAL_LINE, PLACEHOLDER, progressLine, rankUpLines } from './tapCopy';
 
 export interface TapDirectionView {
   /** `reserved`: timing is on at this spot but nothing is due, so the slot
-   *  holds its height, empty. `placeholder` is the full help box, `cue` the
-   *  short line that stands in for it (settleHelpBoxes). */
-  state: 'none' | 'reserved' | 'placeholder' | 'cue' | 'button' | 'thanks';
+   *  holds its height, empty. `placeholder` is the full help box, for
+   *  newcomers only (settleHelpBoxes). */
+  state: 'none' | 'reserved' | 'placeholder' | 'button' | 'thanks';
   passKey: string | null;
   destination: string | null;
   /** Set in the 'thanks' state. */
   entry: { tapMs: number; predictedMs: number; tapsBefore: number } | null;
-  /** Set in the 'placeholder' and 'cue' states: how long until the button opens
+  /** Set in the 'placeholder' state: how long until the button opens
    *  (not shown; the box explains the button instead). */
   msUntilButton: number | null;
   /** In the 'thanks' state: the tap could not be sent. */
@@ -26,8 +26,9 @@ export interface TapDirectionView {
 export interface TapView {
   ask: AskKind;
   taps: number;
-  /** After someone's newcomer visits the slots are shorter (styles.css), and
-   *  the thank-you and rank-up drop a line to fit. Fixed for the visit. */
+  /** After someone's newcomer visits there is no slot while waiting, and the
+   *  button and thank-you get a shorter one (styles.css); the thank-you and
+   *  rank-up drop a line to fit. Fixed for the visit. */
   short?: boolean;
   north: TapDirectionView;
   south: TapDirectionView;
@@ -82,8 +83,6 @@ export function renderTapSlot(
     if (!same) slot.replaceChildren();
   } else if (view.state === 'placeholder') {
     if (!same) slot.replaceChildren(renderPlaceholder(handlers));
-  } else if (view.state === 'cue') {
-    if (!same) slot.replaceChildren(renderCue(handlers));
   } else if (view.state === 'button') {
     if (!same) slot.replaceChildren(renderTapButton(handlers));
   } else if (same) {
@@ -110,15 +109,6 @@ function renderPlaceholder(handlers: TapSlotHandlers): HTMLElement {
   box.appendChild(el('span', 'tap-placeholder-cue', PLACEHOLDER.cue));
   box.addEventListener('click', () => handlers.onOpenHow());
   return box;
-}
-
-/** The short line in place of the full box: where the button will appear.
- *  Like the box, it opens How it works. */
-function renderCue(handlers: TapSlotHandlers): HTMLElement {
-  const cue = el('button', 'tap-cue', HELP_CUE);
-  cue.type = 'button';
-  cue.addEventListener('click', () => handlers.onOpenHow());
-  return cue;
 }
 
 function renderTapButton(handlers: TapSlotHandlers): HTMLElement {
