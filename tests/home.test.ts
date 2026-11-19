@@ -280,6 +280,15 @@ describe('renderHome', () => {
     const last = root.lastElementChild!;
     expect(last.classList.contains('doc-links')).toBe(true);
     expect(Array.from(last.querySelectorAll('a')).map((a) => a.getAttribute('href')))
-      .toEqual(['/about.html', '/privacy.html', '/terms.html']);
+      .toEqual(['/about.html', '/feedback.html', '/privacy.html', '/terms.html']);
+  });
+
+  it('asks for new spots after the list, just before the site links', () => {
+    renderHome(root, model({ others: [row('queens-road')] }), opts);
+    const suggest = root.lastElementChild!.previousElementSibling!;
+    expect(suggest.classList.contains('home-suggest')).toBe(true);
+    const link = suggest.querySelector('a')!;
+    expect(link.getAttribute('href')).toBe('/feedback.html?about=spot');
+    expect(link.textContent).toBe('Suggest a spot');
   });
 });

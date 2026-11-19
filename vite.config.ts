@@ -9,7 +9,7 @@ export default defineConfig({
       manifest: {
         name: 'E17 Trains',
         short_name: 'E17 Trains',
-        description: 'Live train times from popular E17 toddler viewpoints',
+        description: 'Live train times from popular E17 toddler trainspotting spots',
         theme_color: '#DCEEF5',
         background_color: '#DCEEF5',
         // standalone (not fullscreen) so Android keeps the status bar visible
