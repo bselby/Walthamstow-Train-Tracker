@@ -138,6 +138,11 @@
               <code>no</code>), never the coordinates.
             </p>
             <p>
+              On the map page you can also tap a location button to show your
+              position as a dot. The dot is drawn on your phone, and your
+              position is never sent anywhere, including to the map provider.
+            </p>
+            <p>
               You can turn this off at any time using the small
               <strong>Turn off</strong> button next to "Nearest first" on the home
               screen or next to the walking time on a spot. That stops the
@@ -197,6 +202,16 @@
                 <strong>Google Fonts</strong> (<code>fonts.googleapis.com</code> and
                 <code>fonts.gstatic.com</code>) — to load the Baloo 2 and Nunito
                 typefaces.
+              </li>
+              <li>
+                <strong>OpenFreeMap</strong> (<code>tiles.openfreemap.org</code>) —
+                draws the map, and only when you open the map page. It sees your
+                IP address and which part of the map you're looking at, and may
+                be delivered through Cloudflare. Your location is never sent to
+                it: the pins and your dot are drawn on your phone. See
+                <a href="https://openfreemap.org/privacy/" target="_blank" rel="noopener">its privacy policy</a>.
+                Map data &copy;
+                <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>.
               </li>
               <li>
                 <strong>Netlify</strong> — the CDN that serves this site. Netlify
