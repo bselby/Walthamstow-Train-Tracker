@@ -119,12 +119,24 @@ describe('updatePass', () => {
     expect(updatePass(first, { ...input(hero(10, {}, 'south')), direction: 'south' })).toBeNull();
   });
 
-  it('holds the pass while another vehicle leads, until 45 s after the prediction', () => {
+  it('holds the pass while another vehicle leads, until the predicted time', () => {
     const first = updatePass(null, input(hero(10)))!;
     const other = hero(120, { vehicleId: 'v2' });
-    const edge = first.latestPredictedMs + 45_000;
+    const edge = first.latestPredictedMs;
     expect(updatePass(first, input(other, edge))).toEqual(first);
     expect(updatePass(first, input(other, edge + 1))).toBeNull();
+  });
+
+  it('drops the button once the card shows the next train, even inside the 45 s linger', () => {
+    const first = updatePass(null, input(hero(10)))!;
+    const next = hero(7 * 60, { vehicleId: 'v2' });
+    expect(updatePass(first, input(next, first.latestPredictedMs + 40_000))).toBeNull();
+  });
+
+  it('still lingers 45 s after the prediction when no train is showing', () => {
+    const first = updatePass(null, input(hero(10)))!;
+    expect(updatePass(first, input(undefined, first.latestPredictedMs + 45_000))).toEqual(first);
+    expect(updatePass(first, input(undefined, first.latestPredictedMs + 45_001))).toBeNull();
   });
 
   it('returns null for a current pass belonging to another viewpoint', () => {

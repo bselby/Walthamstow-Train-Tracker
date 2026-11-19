@@ -44,6 +44,25 @@ describe('startPoller', () => {
     expect(tick).toHaveBeenCalledTimes(2); // immediate tick on resume
   });
 
+  it('ticks at once when the phone comes back online', async () => {
+    const tick = vi.fn().mockResolvedValue(undefined);
+    startPoller(tick, 20_000);
+    await vi.advanceTimersByTimeAsync(0); // the first tick finishes
+    window.dispatchEvent(new Event('online'));
+    expect(tick).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not start a tick while the last one is still waiting', async () => {
+    let finish: () => void = () => {};
+    const tick = vi.fn(() => new Promise<void>((r) => { finish = r; }));
+    startPoller(tick, 20_000);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(tick).toHaveBeenCalledTimes(1);
+    finish();
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(tick).toHaveBeenCalledTimes(2);
+  });
+
   it('stop() cancels further ticks', async () => {
     const tick = vi.fn().mockResolvedValue(undefined);
     const stop = startPoller(tick, 20_000);

@@ -42,13 +42,23 @@ export interface Arrival {
   origin?: string;
 }
 
+/** A request TfL has not answered by now is given up, so the screen can say
+ *  it cannot get the times instead of waiting for ever. */
+const TFL_TIMEOUT_MS = 10_000;
+
 /** Every prediction at a stop, whatever the line. */
 export async function fetchStopArrivals(stopPointId: string): Promise<Arrival[]> {
-  const response = await fetch(TFL_ARRIVALS_URL(stopPointId));
-  if (!response.ok) {
-    throw new Error(`TfL API error: ${response.status}`);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TFL_TIMEOUT_MS);
+  try {
+    const response = await fetch(TFL_ARRIVALS_URL(stopPointId), { signal: controller.signal });
+    if (!response.ok) {
+      throw new Error(`TfL API error: ${response.status}`);
+    }
+    return (await response.json()) as Arrival[];
+  } finally {
+    clearTimeout(timer);
   }
-  return (await response.json()) as Arrival[];
 }
 
 export async function fetchArrivals(stopPointId: string, lineId: string): Promise<Arrival[]> {

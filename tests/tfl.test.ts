@@ -36,7 +36,8 @@ describe('fetchArrivals', () => {
     expect(result[0].destinationName).toBe('Chingford');
     expect(result[0].timeToStation).toBe(120);
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      'https://api.tfl.gov.uk/StopPoint/STOPID/Arrivals'
+      'https://api.tfl.gov.uk/StopPoint/STOPID/Arrivals',
+      expect.objectContaining({ signal: expect.anything() }),
     );
   });
 
@@ -97,7 +98,10 @@ describe('fetchStopArrivals', () => {
     const result = await fetchStopArrivals('STOPID');
     expect(result.map((a) => a.lineId)).toEqual(['weaver', 'victoria']);
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
-    expect(globalThis.fetch).toHaveBeenCalledWith('https://api.tfl.gov.uk/StopPoint/STOPID/Arrivals');
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      'https://api.tfl.gov.uk/StopPoint/STOPID/Arrivals',
+      expect.objectContaining({ signal: expect.anything() }),
+    );
   });
 
   it('fetchArrivals still keeps only the asked-for line', async () => {
@@ -108,5 +112,26 @@ describe('fetchStopArrivals', () => {
   it('rejects on a TfL error', async () => {
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: false, status: 500 });
     await expect(fetchStopArrivals('STOPID')).rejects.toThrow('TfL API error: 500');
+  });
+});
+
+describe('fetchStopArrivals when TfL never answers', () => {
+  const originalFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    vi.useRealTimers();
+  });
+
+  it('gives up after 10 s, so the app can say it cannot get the times', async () => {
+    vi.useFakeTimers();
+    globalThis.fetch = vi.fn((_url: string, init?: RequestInit) =>
+      new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+      }),
+    ) as unknown as typeof fetch;
+    const result = fetchStopArrivals('STOPID').then(() => 'answered', () => 'gave up');
+    await vi.advanceTimersByTimeAsync(9_999);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(await result).toBe('gave up');
   });
 });

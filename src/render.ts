@@ -338,6 +338,12 @@ function renderThen(events: BridgeEvent[]): HTMLElement | null {
     const mins = Math.max(0, Math.floor(ev.bridgeTimeSeconds / 60));
     val.textContent = i === events.length - 1 ? `${mins} min` : `${mins}`;
     then.appendChild(val);
+    if (ev.arrival.category === 'freight') {
+      const word = document.createElement('span');
+      word.className = 'ticker-freight-word';
+      word.textContent = ' (freight)';
+      then.appendChild(word);
+    }
   });
   return then;
 }
@@ -567,7 +573,7 @@ function renderCard(existing: HTMLElement | null, vm: ViewModel, dir: Direction)
   if (isFreight) {
     const tag = document.createElement('span');
     tag.className = 'freight-tag';
-    tag.textContent = 'Freight train';
+    tag.textContent = 'Freight';
     dest.appendChild(document.createTextNode(' '));
     dest.appendChild(tag);
   }

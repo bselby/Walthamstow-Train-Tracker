@@ -398,7 +398,7 @@ html, body {
   top: 0;
   left: calc((12 + var(--x) * 302) / 326 * 100%);
   transform: translateX(-50%);
-  max-width: 25%;
+  max-width: 23%;
   text-align: center;
   font-size: 0.6875rem;
   font-weight: 700;
@@ -521,17 +521,10 @@ html, body {
 
 /* ───── "then" times ───── */
 
-/* Ticker freight marker — superscript 'fr' rendered via ::after so the DOM
-   text stays clean for screen readers (the freight tag itself sets an
-   aria-label on the parent ticker entry). */
-.ticker-value-freight::after {
-  content: 'fr';
-  font-size: 0.65em;
-  font-weight: 800;
-  color: var(--freight);
-  margin-left: 0.15em;
-  vertical-align: 0.5em;
-  letter-spacing: 0.05em;
+/* A freight train among the "then" times, said in words. */
+.ticker-freight-word {
+  color: var(--freight-tag-ink);
+  font-weight: 700;
 }
 
 /* ───── Freight journey (board 10) ─────
@@ -1692,3 +1685,10 @@ html, body {
 .how-rank-name { font-weight: 800; }
 .how-rank-note { font-weight: 600; color: var(--dim); }
 .how-foot { margin: 0; font-size: 0.875rem; font-weight: 600; line-height: 1.45; color: var(--dim); }
+
+/* The narrowest phones: four station names share about 240px under the line,
+   so the middle two drop a size to keep clear of each other and the ends. */
+@media (max-width: 359px) {
+  .line-ends { font-size: 0.6875rem; }
+  .line-stop-label { font-size: 0.625rem; }
+}

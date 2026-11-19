@@ -5,7 +5,7 @@ import { classifyFreshness } from './freshness';
 import { startPoller, createRetry } from './poller';
 import { render, type ViewModel } from './render';
 import { formatCountdown } from './display';
-import { estimatePosition } from './trainPosition';
+import { positionAtCountdown } from './trainPosition';
 import { POLL_INTERVAL_MS, FREIGHT_POLL_INTERVAL_MS } from './constants';
 import { getViewpointById, DEFAULT_VIEWPOINT_ID, VIEWPOINTS } from './viewpoints';
 import type { Viewpoint } from './viewpoints';
@@ -33,7 +33,7 @@ import { pollHome, HOME_POLL_INTERVAL_MS, HOME_STALE_MS, type HomeSnapshots } fr
 
 // A small hello for anyone peeking at devtools. One console log, no overhead.
 console.log(
-  '%c🚂 E17 Trains\n%cLive train times from popular E17 toddler viewpoints.\nSource: github.com/bselby/Walthamstow-Train-Tracker',
+  '%c🚂 E17 Trains\n%cLive train times from popular E17 toddler trainspotting spots.\nSource: github.com/bselby/Walthamstow-Train-Tracker',
   'font: 700 16px system-ui; color: #EE7C0E;',
   'font: 500 12px system-ui; color: #1a2840; line-height: 1.6;'
 );
@@ -448,13 +448,14 @@ function buildViewModel(): ViewModel {
         ? { ...hero.event, bridgeTimeSeconds: (validEta - now) / 1000 }
         : hero.event;
 
-      // Position from the hero's source snapshot (uses its own snapshottedAtMs).
-      // For freight beyond the modelled-position window, clamp to null so the
-      // strip glyph hides while the countdown + ticker keep showing.
+      // The diagram follows the countdown itself, so the train reaches the
+      // You pin when the card says NOW. For freight beyond the modelled
+      // window, clamp to null so the strip glyph hides while the countdown
+      // and ticker keep showing.
       const ev = hero.snapshot.events[hero.indexInSnapshot];
       const elapsedSeconds = (now - hero.snapshot.snapshottedAtMs) / 1000;
       const currentTts = ev.arrival.timeToStation - elapsedSeconds;
-      const rawPos = estimatePosition(currentTts, ev.direction, activeViewpoint);
+      const rawPos = positionAtCountdown(heroes[dir]!.bridgeTimeSeconds, dir, activeViewpoint);
       positions[dir] = clampFreightPosition(rawPos, currentTts, hero.isFreight);
     }
 
