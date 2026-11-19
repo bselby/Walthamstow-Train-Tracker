@@ -1782,3 +1782,71 @@ html, body {
   .line-ends { font-size: 0.6875rem; }
   .line-stop-label { font-size: 0.625rem; }
 }
+
+/* ---- Map page ----
+   The map fills the height left under the header. Pins are the app's pin in
+   the spot's line colour; the parent's dot is the orange pin colour. A
+   picked spot's card sits along the bottom of the map. */
+.map-wrap {
+  position: relative; flex: 1 1 auto; min-height: 280px;
+  border-radius: var(--radius-card); overflow: hidden;
+  background: var(--card);
+}
+.map-canvas { position: absolute; inset: 0; }
+.map-canvas[hidden] { display: none; }
+.map-pin.line-weaver, .map-card.line-weaver { --map-line: var(--weaver-text); }
+.map-pin.line-suffragette, .map-card.line-suffragette { --map-line: var(--suffragette-text); }
+.map-pin {
+  display: flex; align-items: flex-end; justify-content: center;
+  width: 44px; height: 44px; padding: 0 0 2px; margin: 0;
+  background: none; border: 0; cursor: pointer;
+  color: var(--map-line, var(--weaver-text));
+}
+.map-pin:focus-visible { outline: 3px solid var(--ink); outline-offset: 0; border-radius: 8px; }
+.map-you {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--pin); border: 3px solid var(--card);
+  box-shadow: 0 0 0 2px var(--pin-outline);
+}
+.map-locate {
+  position: absolute; top: 10px; left: 10px; z-index: 2;
+  display: flex; align-items: center; min-height: 44px; padding: 0 16px;
+  background: var(--card); color: var(--ink);
+  border: 2px solid var(--card-edge); border-radius: 22px; cursor: pointer;
+  font: 800 0.875rem var(--font-body);
+}
+.map-card {
+  position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 3;
+  display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 16px;
+  background: var(--card); color: var(--ink);
+  border: 2px solid var(--card-edge); border-radius: var(--radius-card);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .map-card { animation: map-card-up 200ms ease-out; }
+}
+@keyframes map-card-up {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.map-card-close {
+  position: absolute; top: 4px; right: 4px;
+  display: flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; padding: 0;
+  background: none; border: 0; cursor: pointer; color: var(--ink);
+}
+.map-card-text { display: flex; flex-direction: column; gap: 2px; padding-right: 40px; }
+.map-card-name { margin: 0; font: 800 1.375rem/1.1 var(--font-display); overflow-wrap: anywhere; }
+.map-card-line { font-size: 0.9375rem; font-weight: 800; color: var(--map-line, var(--weaver-text)); }
+.map-card-walk { font-size: 0.9375rem; font-weight: 700; color: var(--dim); }
+.map-card-open {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; min-height: 48px; border: 0; border-radius: 24px; cursor: pointer;
+  background: var(--ink); color: var(--card); font: 800 1.125rem var(--font-display);
+}
+.map-fail {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  padding: 24px; text-align: center; color: var(--ink);
+}
+.map-fail p { margin: 0; font-size: 1rem; font-weight: 700; }
+.map-fail .info-link { align-self: center; }
