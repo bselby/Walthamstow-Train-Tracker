@@ -1792,8 +1792,10 @@ html, body {
   border-radius: var(--radius-card); overflow: hidden;
   background: var(--card);
 }
-.map-canvas { position: absolute; inset: 0; }
-.map-canvas[hidden] { display: none; }
+/* MapLibre adds .maplibregl-map (position: relative) to this box, and its
+   stylesheet loads after ours, so these selectors need to outrank it. */
+.map-wrap > .map-canvas { position: absolute; inset: 0; }
+.map-wrap > .map-canvas[hidden] { display: none; }
 .map-pin.line-weaver, .map-card.line-weaver { --map-line: var(--weaver-text); }
 .map-pin.line-suffragette, .map-card.line-suffragette { --map-line: var(--suffragette-text); }
 .map-pin {

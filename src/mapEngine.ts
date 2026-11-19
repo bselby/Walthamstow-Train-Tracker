@@ -52,7 +52,15 @@ export const createMapLibreEngine: CreateEngine = async (container, scheme, onFa
   map.addControl(new maplibregl.AttributionControl({ compact: true }));
 
   let loaded = false;
-  map.once('load', () => { loaded = true; });
+  map.once('load', () => {
+    loaded = true;
+    // If the box had no size when the map was made, the canvas is the wrong
+    // size; MapLibre's own resize tracking usually catches it, this makes sure.
+    const canvas = map.getCanvas();
+    if (canvas.clientWidth !== container.clientWidth || canvas.clientHeight !== container.clientHeight) {
+      map.resize();
+    }
+  });
   // Before the first load an error means the style or tiles didn't arrive
   // (offline, or OpenFreeMap down). After it, a stray tile error is ignored.
   map.on('error', () => {
