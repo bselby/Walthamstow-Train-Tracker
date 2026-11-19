@@ -75,6 +75,21 @@ async function boot(path: string): Promise<HTMLElement> {
   return document.getElementById('app')!;
 }
 
+/**
+ * Do something that moves through history (back, forward, a link that goes
+ * back) and wait for its popstate to land, then for the app to settle. jsdom
+ * fires popstate on a later task, so this waits for that event rather than
+ * polling the address bar.
+ */
+async function travel(go: () => void): Promise<void> {
+  const landed = new Promise<void>((resolve) => {
+    window.addEventListener('popstate', () => resolve(), { once: true });
+  });
+  go();
+  await landed;
+  await flush();
+}
+
 // A plain in-memory store: Node's own localStorage global shadows jsdom's.
 function memoryStorage(): Storage {
   const data = new Map<string, string>();
@@ -126,11 +141,7 @@ describe('back from the ticket to the same spot', () => {
     expect(root.querySelector('h1')!.textContent).toBe('Your ticket');
 
     // Back, as the browser does it.
-    window.history.back();
-    for (let i = 0; i < 20 && window.location.pathname === '/ticket'; i++) {
-      await new Promise((r) => setTimeout(r, 5));
-    }
-    await flush();
+    await travel(() => window.history.back());
 
     expect(window.location.pathname).toBe('/walthamstow/east-avenue-bridge');
     expect(root.querySelector('.quiet-card')).toBeNull();
@@ -155,15 +166,6 @@ describe('back from the ticket to the same spot', () => {
     expect(root.textContent).toContain('Getting the live times');
   });
 });
-
-/** Wait for the browser's back to land on `path`. */
-async function backTo(path: string): Promise<void> {
-  window.history.back();
-  for (let i = 0; i < 20 && window.location.pathname !== path; i++) {
-    await new Promise((r) => setTimeout(r, 5));
-  }
-  await flush();
-}
 
 describe('the map', () => {
   it('opening it from home pushes /map from home, and home stops polling', async () => {
@@ -209,11 +211,7 @@ describe('the map', () => {
     expect(root.querySelector('.spot-header-home-label')!.textContent).toBe('Map');
     expect(root.querySelector('.spot-header-home')!.getAttribute('href')).toBe('/map');
 
-    root.querySelector<HTMLAnchorElement>('.spot-header-home')!.click();
-    for (let i = 0; i < 20 && window.location.pathname !== '/map'; i++) {
-      await new Promise((r) => setTimeout(r, 5));
-    }
-    await flush();
+    await travel(() => root.querySelector<HTMLAnchorElement>('.spot-header-home')!.click());
 
     expect(window.location.pathname).toBe('/map');
     expect(engines()).toHaveLength(2);
@@ -228,16 +226,12 @@ describe('the map', () => {
     const camera = { lng: -0.01, lat: 51.59, zoom: 14 };
     engines()[0].move!(camera);
 
-    await backTo('/');
+    await travel(() => window.history.back());
     expect(window.location.pathname).toBe('/');
     expect(engines()[0].destroy).toHaveBeenCalled();
     expect(root.querySelector('.home-map')).not.toBeNull();
 
-    window.history.forward();
-    for (let i = 0; i < 20 && window.location.pathname !== '/map'; i++) {
-      await new Promise((r) => setTimeout(r, 5));
-    }
-    await flush();
+    await travel(() => window.history.forward());
     expect(window.location.pathname).toBe('/map');
     expect(engines()[1].setCamera).toHaveBeenCalledWith(camera);
   });
