@@ -548,7 +548,7 @@ function regionChip(region: Region): HTMLElement {
 function renderCard(existing: HTMLElement | null, vm: ViewModel, dir: Direction): HTMLElement {
   const event = dir === 'north' ? vm.north : vm.south;
   const ticker = dir === 'north' ? vm.northTicker : vm.southTicker;
-  const { label, terminusName } = vm.viewpoint.directions[dir];
+  const { terminusName } = vm.viewpoint.directions[dir];
   const card = existing ?? document.createElement('section');
   card.className = 'direction-card';
   card.dataset.direction = dir;
@@ -563,7 +563,7 @@ function renderCard(existing: HTMLElement | null, vm: ViewModel, dir: Direction)
   top.className = 'card-top';
   const dest = document.createElement('span');
   dest.className = 'card-dest';
-  dest.textContent = `To ${destinationOf(label, terminusName)}`;
+  dest.textContent = `To ${terminusName}`;
   if (isFreight) {
     const tag = document.createElement('span');
     tag.className = 'freight-tag';
@@ -680,11 +680,4 @@ function renderLiveParts(
     lineNameForAria: `${vm.viewpoint.lineName} line`,
     isFreight,
   }));
-}
-
-/** The destination as the boards write it: the label without its arrow
- *  ("← Walthamstow Central"), falling back to the terminus name. */
-function destinationOf(label: string, terminusName: string): string {
-  const name = label.replace(/^[^\p{L}\p{N}]+/u, '').trim();
-  return name || terminusName;
 }

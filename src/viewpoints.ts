@@ -109,7 +109,7 @@ const SUFFRAGETTE_STOPS: readonly Stop[] = [
   { index: 3, fullName: 'Harringay Green Lanes', abbrev: 'HGL' },
   { index: 4, fullName: 'South Tottenham', abbrev: 'STm' },
   { index: 5, fullName: 'Blackhorse Road', abbrev: 'BHR' },
-  { index: 6, fullName: 'Walthamstow Queens Road', abbrev: 'WQR' },
+  { index: 6, fullName: 'Walthamstow Queens Road', abbrev: 'WQR', shortName: 'Queens Road' },
   { index: 7, fullName: 'Leyton Midland Road', abbrev: 'LMR' },
   { index: 8, fullName: 'Leytonstone High Road', abbrev: 'LHR' },
   { index: 9, fullName: 'Wanstead Park', abbrev: 'WPk' },

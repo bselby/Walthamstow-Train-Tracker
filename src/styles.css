@@ -377,23 +377,39 @@ html, body {
 }
 
 .line-ends {
+  /* The end names sit at the edges; the stations before the spot are
+     placed centred under their dots (--x along the track, as for the train). */
+  position: relative;
   display: flex;
   justify-content: space-between;
-  gap: 0.75rem;
+  align-items: flex-start;
+  min-height: 2.4em;
   margin-top: -2px;
   font-family: var(--font-body);
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 800;
   line-height: 1.2;
   color: var(--ink);
 }
+.line-end-label { max-width: 22%; }
 .line-end-label:last-child { text-align: right; }
+.line-stop-label {
+  position: absolute;
+  top: 0;
+  left: calc((12 + var(--x) * 302) / 326 * 100%);
+  transform: translateX(-50%);
+  max-width: 25%;
+  text-align: center;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--dim);
+}
 
 /* The train: 0.36 of the passenger drawing (136 × 90 box), wheels on the
    track at y = 50. Left edge of the track is x = 12, track length 302. */
 .strip-train {
   position: absolute;
-  left: calc((12 + var(--pos) * 302 / (var(--stop-count, 9) - 1)) / 326 * 100%);
+  left: calc((12 + var(--x, 0) * 302) / 326 * 100%);
   top: calc(23 / 62 * 100%);
   width: calc(49 / 326 * 100%);
   height: calc(32.4 / 62 * 100%);
@@ -1521,6 +1537,7 @@ html, body {
   .tap-button-main { font-size: 1.25rem; }
   .tap-button-sub { font-size: 0.8125rem; }
   .tap-placeholder { padding: 0.25rem 0.75rem; gap: 1px; }
+  .line-ends { font-size: 0.6875rem; line-height: 1.1; min-height: 2.2em; }
   .tap-placeholder-title { font-size: 0.9375rem; }
   .tap-placeholder-body { font-size: 0.75rem; line-height: 1.2; }
   .tap-placeholder-cue { font-size: 0.75rem; }
