@@ -64,7 +64,7 @@ As before, everything is for the parent. The child stays screen-free.
 | | How | Trade-off |
 |---|---|---|
 | A | Leaflet with OpenStreetMap's own tiles | Smallest code (~40 KB). Volunteer-run servers whose policy limits heavy use and can block apps. Third party: the OpenStreetMap Foundation. |
-| **B (Ben's pick)** | **MapLibre GL JS with OpenFreeMap vector tiles** | Free, no key, no sign-up, no published limits; paid for by donations, with no guarantee. Can be recoloured for light and dark. ~220 KB of extra code, loaded only on `/map`. Third parties: OpenFreeMap, and Cloudflare, which it may use to deliver the map. |
+| **B (Ben's pick)** | **MapLibre GL JS with OpenFreeMap vector tiles** | Free, no key, no sign-up, no published limits; paid for by donations, with no guarantee. Can be recoloured for light and dark. About 1.1 MB of extra code (about 300 kB gzipped), plus a 0.5 MB worker (about 150 kB gzipped), loaded only on `/map` and not precached. Third parties: OpenFreeMap, and Cloudflare, which it may use to deliver the map. |
 | C | MapLibre with a self-hosted Protomaps London extract | No new third party, but adds a large file, self-hosted fonts, manual refreshes, and relies on Netlify range requests. |
 
 ### Home grouping
