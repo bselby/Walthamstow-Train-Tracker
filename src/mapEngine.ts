@@ -1,8 +1,8 @@
 /// <reference types="vite/client" />
 // The real map engine: MapLibre with OpenFreeMap tiles. MapLibre and its CSS
 // are loaded with import() so they land in their own chunk, fetched only
-// when the map page opens. No unit test: MapLibre needs WebGL, which jsdom
-// doesn't have, so mapPage's tests use a fake engine instead.
+// when the map page opens. Only watchFirstLoad has a unit test: MapLibre
+// needs WebGL, which jsdom doesn't have, so mapPage's tests use a fake engine.
 import { PIN_PATH } from './home';
 import type { CreateEngine, MapEngine } from './mapPage';
 
@@ -24,6 +24,42 @@ function pinSvg(): string {
 function fitPadding(container: HTMLElement): number {
   const short = Math.min(container.clientWidth, container.clientHeight);
   return Math.max(16, Math.min(56, Math.floor(short / 6)));
+}
+
+/** How long the style may take to arrive before the map counts as failed. */
+export const STYLE_TIMEOUT_MS = 15_000;
+
+/** The part of a MapLibre map that watchFirstLoad listens to. */
+export interface LoadEvents {
+  once(type: 'load' | 'style.load', fn: () => void): unknown;
+  on(type: 'error', fn: (e: { sourceId?: unknown; tile?: unknown }) => void): unknown;
+}
+
+/**
+ * Calls onFail (once) if the map can't load: a style-level error before the
+ * first load (offline, or OpenFreeMap down), or no style within the timeout.
+ * Errors for a single tile or source carry sourceId or tile and are ignored,
+ * as is every error after the first load. Returns a function that stops it.
+ */
+export function watchFirstLoad(map: LoadEvents, onFail: () => void, timeoutMs = STYLE_TIMEOUT_MS): () => void {
+  let done = false;
+  const stop = () => {
+    done = true;
+    clearTimeout(timer);
+  };
+  const fail = () => {
+    if (done) return;
+    stop();
+    onFail();
+  };
+  const timer = setTimeout(fail, timeoutMs);
+  map.once('style.load', () => clearTimeout(timer));
+  map.once('load', stop);
+  map.on('error', (e) => {
+    if (e.sourceId || e.tile) return;
+    fail();
+  });
+  return stop;
 }
 
 export const createMapLibreEngine: CreateEngine = async (container, scheme, onFail) => {
@@ -51,24 +87,8 @@ export const createMapLibreEngine: CreateEngine = async (container, scheme, onFa
   map.keyboard.disableRotation();
   map.addControl(new maplibregl.AttributionControl({ compact: true }));
 
-  let loaded = false;
-  // The box can have no size when the map is made, and MapLibre then keeps a
-  // stale size (no streets drawn) even after CSS has sized the canvas. So size
-  // it from the box on load and whenever the box changes.
-  const resize = () => {
-    if (container.clientWidth > 0 && container.clientHeight > 0) map.resize();
-  };
-  const boxObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(resize) : null;
-  boxObserver?.observe(container);
-  map.once('load', () => {
-    loaded = true;
-    resize();
-  });
-  // Before the first load an error means the style or tiles didn't arrive
-  // (offline, or OpenFreeMap down). After it, a stray tile error is ignored.
-  map.on('error', () => {
-    if (!loaded) onFail();
-  });
+  // MapLibre tracks the container's size itself (trackResize), so no resize code here.
+  const stopWatching = watchFirstLoad(map, onFail);
 
   let pinMarkers: InstanceType<typeof maplibregl.Marker>[] = [];
   let youMarker: InstanceType<typeof maplibregl.Marker> | null = null;
@@ -128,7 +148,7 @@ export const createMapLibreEngine: CreateEngine = async (container, scheme, onFa
     },
 
     destroy() {
-      boxObserver?.disconnect();
+      stopWatching();
       map.remove();
     },
   };
