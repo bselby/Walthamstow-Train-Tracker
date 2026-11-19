@@ -63,6 +63,28 @@ export function tapDirectionView(input: {
   return reserved;
 }
 
+/**
+ * Who sees the full help box. A newcomer sees it once, in the card whose
+ * button opens first, and the short line in the other; everyone else sees the
+ * short line in both. Other states pass through untouched. The box may move
+ * to the other card when the next train changes, but the slot keeps its
+ * height, so nothing on the page moves.
+ */
+export function settleHelpBoxes(
+  views: Record<Direction, TapDirectionView>,
+  fullBox: boolean,
+): Record<Direction, TapDirectionView> {
+  const toCue = (v: TapDirectionView): TapDirectionView =>
+    v.state === 'placeholder' ? { ...v, state: 'cue' } : v;
+  const { north, south } = views;
+  if (!fullBox) return { north: toCue(north), south: toCue(south) };
+  if (north.state === 'placeholder' && south.state === 'placeholder') {
+    const southFirst = (south.msUntilButton ?? Infinity) < (north.msUntilButton ?? Infinity);
+    return southFirst ? { north: toCue(north), south } : { north, south: toCue(south) };
+  }
+  return { north, south };
+}
+
 /** How long until this train's button opens, or null when it will get none
  *  (no train, freight, or a spot with nothing of ours to check). */
 export function msUntilButton(

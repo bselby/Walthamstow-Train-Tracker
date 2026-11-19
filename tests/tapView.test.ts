@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { BridgeEvent } from '../src/bridge';
 import type { TapPass } from '../src/tap';
 import type { TapState } from '../src/tapStore';
-import { msUntilButton, newDeviceId, tapAsk, tapDirectionView, tflExpectedArrivalMs } from '../src/tapView';
+import { msUntilButton, newDeviceId, settleHelpBoxes, tapAsk, tapDirectionView, tflExpectedArrivalMs } from '../src/tapView';
+import type { TapDirectionView } from '../src/tapUi';
 import { getViewpointById } from '../src/viewpoints';
 
 const NOW = 1_800_000_000_000;
@@ -244,5 +245,45 @@ describe('msUntilButton', () => {
     expect(msUntilButton(EA, 'north', undefined)).toBeNull();
     expect(msUntilButton(EA, 'north', hero(330, 'freight'))).toBeNull();
     expect(msUntilButton(QR, 'north', hero(330))).toBeNull();
+  });
+});
+
+describe('settleHelpBoxes', () => {
+  const blank: TapDirectionView = {
+    state: 'none', passKey: null, destination: null, entry: null, msUntilButton: null, offline: false,
+  };
+  const waiting = (ms: number): TapDirectionView => ({ ...blank, state: 'placeholder', msUntilButton: ms });
+
+  it('for a newcomer, keeps the full box only in the card whose button comes first', () => {
+    const out = settleHelpBoxes({ north: waiting(200_000), south: waiting(60_000) }, true);
+    expect(out.south.state).toBe('placeholder');
+    expect(out.north.state).toBe('cue');
+    expect(out.north.msUntilButton).toBe(200_000);
+  });
+
+  it('for a newcomer with one train waiting, keeps its full box', () => {
+    const button: TapDirectionView = { ...blank, state: 'button', passKey: 'k', destination: 'Chingford' };
+    const out = settleHelpBoxes({ north: button, south: waiting(90_000) }, true);
+    expect(out.south.state).toBe('placeholder');
+    expect(out.north).toBe(button);
+  });
+
+  it('keeps the north box on a tie', () => {
+    const out = settleHelpBoxes({ north: waiting(60_000), south: waiting(60_000) }, true);
+    expect(out.north.state).toBe('placeholder');
+    expect(out.south.state).toBe('cue');
+  });
+
+  it('for a regular, shows only the short line in both cards', () => {
+    const out = settleHelpBoxes({ north: waiting(200_000), south: waiting(60_000) }, false);
+    expect(out.north.state).toBe('cue');
+    expect(out.south.state).toBe('cue');
+  });
+
+  it('leaves the other states alone', () => {
+    const reserved: TapDirectionView = { ...blank, state: 'reserved' };
+    const out = settleHelpBoxes({ north: reserved, south: blank }, false);
+    expect(out.north).toBe(reserved);
+    expect(out.south).toBe(blank);
   });
 });

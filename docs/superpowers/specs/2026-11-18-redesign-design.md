@@ -159,9 +159,13 @@ Driver 30, Station Master 60) stay. New presentation:
   every spot, including Queens Road, for everyone. With taps it reads
   "Spotter · 4 trains"; with none it reads "Your ticket". It always opens the
   ticket page, so someone who said no can turn the button back on there.
-- Waiting state: a dashed placeholder in the card, "Yellow button pops up
-  here in N min" (board 4, second card), only for someone who said yes and
-  only at spots with a timing button.
+- Waiting state (changed 2026-11-19 after Ben found the spot screen too
+  busy): on someone's first two visits, until they time a train, the full
+  dashed box ("Help make this time spot-on", one sentence, "What's this?")
+  shows in one card only, the one whose button opens first. The other card,
+  and both cards after that, show one short line: "A yellow button shows
+  here before the train". Both open How it works. Shown to anyone who has
+  not said no, at spots with a timing button.
 - The button (board 4): big yellow "Tap as the train passes / when the front
   reaches you", inside the direction card, during today's window (30 s
   before to 45 s after).

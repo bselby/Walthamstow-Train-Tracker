@@ -987,6 +987,28 @@ html, body {
   text-underline-offset: 2px;
 }
 
+/* The short line in place of the full box: a quiet dashed pill at the top
+   of the slot, one line, 44 px to tap. */
+.tap-cue {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  width: 100%;
+  padding: 0.25rem 0.75rem;
+  border: 2px dashed var(--placeholder-edge);
+  border-radius: 22px;
+  background: transparent;
+  color: var(--dim);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+}
+.tap-cue:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+
 .tap-button {
   appearance: none;
   flex: 1;
@@ -1589,6 +1611,7 @@ html, body {
   .tap-placeholder-title { font-size: 0.9375rem; }
   .tap-placeholder-body { font-size: 0.75rem; line-height: 1.2; }
   .tap-placeholder-cue { font-size: 0.75rem; }
+  .tap-cue { font-size: 0.8125rem; }
   .tap-thanks { padding: 4px 10px; gap: 2px; }
   .tap-heading { font-size: 1.0625rem; }
   .tap-line { font-size: 0.8125rem; line-height: 1.2; }

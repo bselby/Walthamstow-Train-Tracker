@@ -18,7 +18,13 @@ export interface TapState {
   deviceId: string;
   /** The most recent tap, so the register entry can be shown for a minute. */
   lastTap: { passKey: string; tapMs: number; predictedMs: number; tapsBefore: number } | null;
+  /** Visits on which the full help box was shown. Optional: older saved
+   *  states have none, read as 0. */
+  boxVisits?: number;
 }
+
+/** Visits that get the full help box before it becomes the short line. */
+const FULL_BOX_VISITS = 2;
 
 /** What sits below the panels. `first` and `again` are the ask with its two
  *  choices; the rest are the permanent ticket strip: `ready` (said yes, nothing
@@ -35,6 +41,7 @@ function freshState(newId: () => string): TapState {
     spotsTimed: [],
     deviceId: newId(),
     lastTap: null,
+    boxVisits: 0,
   };
 }
 
@@ -86,7 +93,19 @@ export function loadTapState(read: (key: string) => string | null, newId: () => 
       : unique(tappedPassKeys.map(spotOf).filter(Boolean)),
     deviceId: typeof p.deviceId === 'string' && p.deviceId ? p.deviceId : fresh.deviceId,
     lastTap: parseLastTap(p.lastTap),
+    boxVisits: isNum(p.boxVisits) ? p.boxVisits : 0,
   };
+}
+
+/** The full help box is for newcomers: the first two visits, and only until
+ *  a train has been timed. After that each card has the short line. */
+export function showsFullBox(state: TapState): boolean {
+  return state.taps === 0 && (state.boxVisits ?? 0) < FULL_BOX_VISITS;
+}
+
+/** Count one more visit with the full box. */
+export function noteFullBoxShown(state: TapState): TapState {
+  return { ...state, boxVisits: (state.boxVisits ?? 0) + 1 };
 }
 
 export function saveTapState(write: (key: string, value: string) => void, state: TapState): void {

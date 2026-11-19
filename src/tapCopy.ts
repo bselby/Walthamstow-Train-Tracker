@@ -40,14 +40,17 @@ export function rankUpLines(taps: number): { title: string; body: string; next: 
   };
 }
 
-/** The waiting box in a direction card before the yellow button is due.
- *  It explains the button every time: most visitors have not read the
- *  explainer. Tapping it opens How it works. */
+/** The full waiting box before the yellow button is due. Newcomers see it in
+ *  one card, the one whose train comes first; everywhere else the short line
+ *  below stands in for it. Tapping either opens How it works. */
 export const PLACEHOLDER = {
   title: 'Help make this time spot-on',
   body: 'Just before the train comes, a yellow button appears here. Tap it as the train passes you.',
   cue: "What's this?",
 } as const;
+
+/** The short line in place of the full box. */
+export const HELP_CUE = 'A yellow button shows here before the train';
 
 /** The ticket page's progress line before the first train is timed. */
 export const NO_TRAINS_LINE = 'No trains timed yet. Time one to become a Spotter.';

@@ -6,6 +6,8 @@ import {
   chooseHelp,
   hasTapped,
   loadTapState,
+  noteFullBoxShown,
+  showsFullBox,
   recordTap,
   resetChoice,
   saveTapState,
@@ -216,5 +218,30 @@ describe('spotsTimed', () => {
     for (let i = 0; i < 30; i++) s = recordTap(s, `spot-${i}|north|${i}`, i, i);
     expect(s.spotsTimed).toHaveLength(30);
     expect(s.tappedPassKeys).toHaveLength(20);
+  });
+});
+
+describe('the full help box for newcomers', () => {
+  it('reads an older stored state as no box visits yet', () => {
+    const s = loadTapState(() => JSON.stringify({ choice: 'unset', deviceId: 'old' }), () => 'new');
+    expect(s.boxVisits).toBe(0);
+  });
+
+  it('keeps a stored count of box visits', () => {
+    const s = loadTapState(() => JSON.stringify({ deviceId: 'old', boxVisits: 1 }), () => 'new');
+    expect(s.boxVisits).toBe(1);
+  });
+
+  it('shows the full box on the first two visits, then not', () => {
+    const first = fresh();
+    expect(showsFullBox(first)).toBe(true);
+    const second = noteFullBoxShown(first);
+    expect(second.boxVisits).toBe(1);
+    expect(showsFullBox(second)).toBe(true);
+    expect(showsFullBox(noteFullBoxShown(second))).toBe(false);
+  });
+
+  it('never shows the full box once a train has been timed', () => {
+    expect(showsFullBox({ ...fresh(), taps: 1 })).toBe(false);
   });
 });
