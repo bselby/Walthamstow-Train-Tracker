@@ -151,6 +151,15 @@ export const LINES: Record<LineId, {
   suffragette: { name: 'Suffragette', color: SUFFRAGETTE_GREEN, stops: SUFFRAGETTE_STOPS, segments: SUFFRAGETTE_SEGMENTS },
 };
 
+/** Areas that spots are grouped under, keyed by a spot's `place`. */
+export const AREAS: Readonly<Record<string, { name: string }>> = {
+  walthamstow: { name: 'Walthamstow' },
+};
+
+export function areaName(place: string): string {
+  return AREAS[place]?.name ?? place;
+}
+
 /** What is written by hand for one viewpoint. Line name, colour, stops and
  *  inter-stop timings come from LINES. */
 export interface ViewpointRecord {
@@ -179,6 +188,9 @@ export function defineViewpoint(record: ViewpointRecord): Viewpoint {
   const anchorIndex = line.stops.findIndex((s) => s.fullName === anchorStop);
   if (anchorIndex === -1) {
     throw new Error(`Viewpoint ${record.id}: "${anchorStop}" is not a stop on the ${line.name} line`);
+  }
+  if (!(record.place in AREAS)) {
+    throw new Error(`Viewpoint ${record.id}: place "${record.place}" is not in AREAS`);
   }
   return {
     ...rest,
