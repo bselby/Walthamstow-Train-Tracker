@@ -1383,7 +1383,8 @@ html, body {
 }
 
 .home-locate,
-.home-location {
+.home-location,
+.home-ask {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1417,7 +1418,42 @@ html, body {
 }
 
 .home-pin { flex-shrink: 0; width: 16px; height: 20px; }
-.home-location-text { flex-grow: 1; }
+.home-location-text,
+.home-ask-text { flex-grow: 1; }
+
+/* First visit: "Show walking times to each spot?  Yes  Not now". */
+.home-ask { padding: 6px 8px 6px 16px; }
+.home-ask-yes,
+.home-ask-no {
+  appearance: none;
+  flex-shrink: 0;
+  min-height: 44px;
+  min-width: 44px;
+  margin: 0;
+  border: 0;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.home-ask-yes {
+  padding: 0 16px;
+  border-radius: 22px;
+  background: var(--ink);
+  color: var(--card);
+}
+.home-ask-no {
+  padding: 0 8px;
+  background: transparent;
+  color: var(--ink);
+  text-decoration: underline;
+  border-radius: 8px;
+}
+.home-ask-yes:focus-visible,
+.home-ask-no:focus-visible {
+  outline: 3px solid var(--line-color);
+  outline-offset: 2px;
+}
 
 .home-locate:focus-visible,
 .home-location-off:focus-visible {

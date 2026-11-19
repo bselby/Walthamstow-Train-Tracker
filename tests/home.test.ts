@@ -30,6 +30,7 @@ function options() {
     onToggleFavourite: vi.fn<(id: string) => void>(),
     onUseLocation: vi.fn<() => void>(),
     onLocationOff: vi.fn<() => void>(),
+    onLocationNotNow: vi.fn<() => void>(),
     taps: 0,
     onOpenTicket: vi.fn<() => void>(),
   } satisfies HomeOptions;
@@ -194,6 +195,35 @@ describe('renderHome', () => {
     expect(root.querySelector('.home-location-off')!.textContent).toBe('Turn off');
     root.querySelector<HTMLElement>('.home-location-off')!.click();
     expect(opts.onLocationOff).toHaveBeenCalledTimes(1);
+  });
+
+  it('on a first visit asks about walking times in the location button\'s place', () => {
+    renderHome(root, model({ favourites: [row('east-ave', { favourite: true })], others: [row('queens-road')], location: 'ask' }), opts);
+    expect(root.querySelector('.home-locate')).toBeNull();
+    const ask = root.querySelector('.home-ask')!;
+    expect(ask.querySelector('.home-ask-text')!.textContent).toBe('Show walking times to each spot?');
+    expect(Array.from(ask.querySelectorAll('button')).map((b) => b.textContent)).toEqual(['Yes', 'Not now']);
+    const order = Array.from(root.children).map((c) => c.className.split(' ')[0]);
+    expect(order.indexOf('home-favourites')).toBeLessThan(order.indexOf('home-ask'));
+    expect(order.indexOf('home-ask')).toBeLessThan(order.indexOf('home-others'));
+    expect(opts.onUseLocation).not.toHaveBeenCalled();
+  });
+
+  it('"Yes" asks the browser for location; "Not now" does not', () => {
+    renderHome(root, model({ others: [row('queens-road')], location: 'ask' }), opts);
+    const [yes, notNow] = Array.from(root.querySelectorAll<HTMLButtonElement>('.home-ask button'));
+    notNow.click();
+    expect(opts.onLocationNotNow).toHaveBeenCalledTimes(1);
+    expect(opts.onUseLocation).not.toHaveBeenCalled();
+    yes.click();
+    expect(opts.onUseLocation).toHaveBeenCalledTimes(1);
+  });
+
+  it('after "Not now" the usual button is there for a second go', () => {
+    renderHome(root, model({ others: [row('queens-road')], location: 'ask' }), opts);
+    renderHome(root, model({ others: [row('queens-road')], location: 'off' }), opts);
+    expect(root.querySelector('.home-ask')).toBeNull();
+    expect(root.querySelector('.home-locate')?.textContent).toBe('Use my location');
   });
 
   it('shows no location control where the browser has none', () => {

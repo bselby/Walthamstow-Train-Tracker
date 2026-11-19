@@ -46,6 +46,12 @@
                 walking times).
               </li>
               <li>
+                A <code>wtt_location_asked</code> flag, so the question about
+                walking times on your first visit is only asked once. Your
+                answer is all it records; "Use my location" is still there if
+                you said not now.
+              </li>
+              <li>
                 A <code>wtt_favourites</code> list of your starred spots, in
                 the order they were starred. It is saved the first time the app
                 opens, even if empty. If you used the app before stars became a
@@ -118,7 +124,9 @@
           <summary>Your location</summary>
           <div class="body">
             <p>
-              If you tap <strong>Use my location</strong> on the home screen or
+              On your first visit the home screen asks whether to show walking
+              times. If you tap <strong>Yes</strong>, or later
+              <strong>Use my location</strong> on the home screen or
               <strong>Enable walking time</strong> on a spot, your browser hands
               your latitude and longitude to this app's JavaScript code. Those
               coordinates are used on your device only, to work out how far you
@@ -133,7 +141,7 @@
               <strong>Turn off</strong> button next to "Nearest first" on the home
               screen or next to the walking time on a spot. That stops the
               location watch and removes the localStorage flag. The app never asks
-              for your location until you tap one of those two buttons.
+              your browser for your location until you tap one of those buttons.
             </p>
           </div>
         </details>

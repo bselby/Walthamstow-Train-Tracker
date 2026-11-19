@@ -13,6 +13,8 @@ export interface HomeOptions {
   /** The only thing on home that asks the browser for location. */
   onUseLocation: () => void;
   onLocationOff: () => void;
+  /** "Not now" to the first-visit question: it goes, and "Use my location" stays. */
+  onLocationNotNow: () => void;
   /** Trains timed so far: the ticket link's label. */
   taps: number;
   onOpenTicket: () => void;
@@ -161,6 +163,25 @@ function section(root: HTMLElement, className: string, title: string, rows: HTML
 
 function locationControl(root: HTMLElement, location: HomeModel['location']): HTMLElement | null {
   if (location === 'unavailable') return null;
+
+  if (location === 'ask') {
+    const existing = child(root, 'home-ask');
+    if (existing) return existing;
+    const ask = create('div', 'home-ask');
+    ask.insertAdjacentHTML('afterbegin', PIN);
+    const text = create('span', 'home-ask-text');
+    text.textContent = 'Show walking times to each spot?';
+    const yes = create('button', 'home-ask-yes');
+    yes.type = 'button';
+    yes.textContent = 'Yes';
+    yes.addEventListener('click', () => currentOptions?.onUseLocation());
+    const notNow = create('button', 'home-ask-no');
+    notNow.type = 'button';
+    notNow.textContent = 'Not now';
+    notNow.addEventListener('click', () => currentOptions?.onLocationNotNow());
+    ask.append(text, yes, notNow);
+    return ask;
+  }
 
   if (location === 'off') {
     const existing = child(root, 'home-locate');

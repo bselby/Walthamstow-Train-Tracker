@@ -86,6 +86,8 @@ const previousKind: Partial<Record<Direction, string>> = {};
 // walking-time label. The key keeps its original name so anyone who already
 // turned walking time on stays opted in.
 const LOCATION_STORAGE_KEY = 'wtt_walking_enabled';
+/** Set once the first-visit question about walking times is answered. */
+const LOCATION_ASKED_STORAGE_KEY = 'wtt_location_asked';
 
 // Safe wrappers around localStorage. In Safari private browsing `localStorage`
 // exists but `setItem` / `removeItem` throw; in other hardened browsers either
@@ -125,6 +127,7 @@ try {
   let changed = false;
   if (url.searchParams.get('reset') === 'walking') {
     safeLocalRemove(LOCATION_STORAGE_KEY);
+    safeLocalRemove(LOCATION_ASKED_STORAGE_KEY);
     url.searchParams.delete('reset');
     changed = true;
   }
@@ -134,6 +137,8 @@ try {
 }
 
 let locationEnabled = safeLocalRead(LOCATION_STORAGE_KEY) === '1';
+// No question where the browser has no location to give.
+let locationAsked = safeLocalRead(LOCATION_ASKED_STORAGE_KEY) === '1' || !('geolocation' in navigator);
 const celebrateSetAt: Partial<Record<Direction, number>> = {};
 
 // Starred viewpoints, oldest first. The first load after favourites became a
@@ -198,12 +203,25 @@ function advanceFact(): void {
   safeLocalWrite(FACT_STORAGE_KEY, String(factIndex));
 }
 
-/** Turn location on. Only ever called from a tap: "Use my location" on home
+/** Turn location on. Only ever called from a tap: "Yes" or "Use my location" on home
  *  or "Enable walking time" on a countdown. */
 export function enableLocation(): void {
   locationEnabled = true;
   safeLocalWrite(LOCATION_STORAGE_KEY, '1');
+  markLocationAsked();
   startLocation();
+}
+
+/** "Not now" to the first-visit question. The browser is never asked, so
+ *  "Use my location" still brings up its prompt later. */
+export function declineLocationAsk(): void {
+  markLocationAsked();
+  rerender();
+}
+
+function markLocationAsked(): void {
+  locationAsked = true;
+  safeLocalWrite(LOCATION_ASKED_STORAGE_KEY, '1');
 }
 
 export function disableLocation(): void {
@@ -628,6 +646,7 @@ function rerender(): void {
         viewpoints: VIEWPOINTS,
         favouriteIds,
         locationEnabled,
+        locationAsked,
         geo: getLocationState(),
         snapshots: homeSnapshots,
         lastPollFailed: lastHomePollFailed,
@@ -638,6 +657,7 @@ function rerender(): void {
         onToggleFavourite: toggleFavouriteViewpoint,
         onUseLocation: enableLocation,
         onLocationOff: disableLocation,
+        onLocationNotNow: declineLocationAsk,
         taps: tapState.taps,
         onOpenTicket: openTicket,
       },
