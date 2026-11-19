@@ -34,7 +34,7 @@ const PINS: MapPin[] = [
 interface FakeEngine extends MapEngine {
   calls: Array<[string, unknown]>;
   pick: (id: string) => void;
-  move: (c: { lng: number; lat: number; zoom: number }) => void;
+  move: (c: { lng: number; lat: number; zoom: number }, byUser?: boolean) => void;
 }
 
 function fakeEngine(): FakeEngine {
@@ -47,7 +47,7 @@ function fakeEngine(): FakeEngine {
     setYou(p) { calls.push(['setYou', p]); },
     fit(b) { calls.push(['fit', b]); },
     setCamera(c) { calls.push(['setCamera', c]); },
-    onMove(fn) { calls.push(['onMove', null]); e.move = fn; },
+    onMove(fn) { calls.push(['onMove', null]); e.move = (c, byUser = true) => fn(c, byUser); },
     setScheme(s) { calls.push(['setScheme', s]); },
     destroy() { calls.push(['destroy', null]); },
   };
@@ -189,6 +189,51 @@ describe('renderMapPage', () => {
     updateMapPage(root, model({ locationOff: false, you: { lat: 51.58, lng: -0.02 } }));
     expect(root.querySelector('.map-locate')).toBeNull();
     expect(engine.calls).toContainEqual(['setYou', { lat: 51.58, lng: -0.02 }]);
+  });
+
+  describe('after Use my location', () => {
+    const YOU = { lat: 51.6, lng: -0.01 };
+    const NEW_VIEW: MapPageModel['firstView'] = [[-0.02, 51.58], [-0.01, 51.6]];
+    const fits = () => engine.calls.filter(([n]) => n === 'fit');
+
+    it('fits to the parent and nearest spot on the first fix when the map has not been moved', async () => {
+      renderMapPage(root, model({ locationOff: true }), options());
+      await flush();
+      engine.move({ lng: 0, lat: 0, zoom: 13 }, false); // a resize, not the parent
+      root.querySelector<HTMLButtonElement>('.map-locate')!.click();
+      updateMapPage(root, model({ locationOff: false }));
+      expect(fits()).toHaveLength(1);
+      updateMapPage(root, model({ you: YOU, firstView: NEW_VIEW }));
+      expect(fits()).toHaveLength(2);
+      expect(fits()[1]).toEqual(['fit', NEW_VIEW]);
+      // Later fixes leave the map where it is.
+      updateMapPage(root, model({ you: { lat: 51.61, lng: -0.01 }, firstView: [[0, 0], [1, 1]] }));
+      expect(fits()).toHaveLength(2);
+    });
+
+    it('leaves the map alone if the parent has moved it', async () => {
+      renderMapPage(root, model({ locationOff: true }), options());
+      await flush();
+      engine.move({ lng: 0.1, lat: 51.5, zoom: 14 });
+      root.querySelector<HTMLButtonElement>('.map-locate')!.click();
+      updateMapPage(root, model({ you: YOU, firstView: NEW_VIEW }));
+      expect(fits()).toHaveLength(1);
+    });
+
+    it('leaves the map alone if it opened on a saved camera', async () => {
+      renderMapPage(root, model({ locationOff: true, camera: { lng: 0, lat: 51, zoom: 12 } }), options());
+      await flush();
+      root.querySelector<HTMLButtonElement>('.map-locate')!.click();
+      updateMapPage(root, model({ you: YOU, firstView: NEW_VIEW }));
+      expect(fits()).toHaveLength(0);
+    });
+
+    it('does not fit on a fix that arrives without the tap', async () => {
+      renderMapPage(root, model(), options());
+      await flush();
+      updateMapPage(root, model({ you: YOU, firstView: NEW_VIEW }));
+      expect(fits()).toHaveLength(1);
+    });
   });
 
   it('updateMapPage refreshes the open card walking time', async () => {

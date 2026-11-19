@@ -136,9 +136,10 @@ export const createMapLibreEngine: CreateEngine = async (container, scheme, onFa
     },
 
     onMove(fn) {
-      map.on('moveend', () => {
+      map.on('moveend', (e) => {
         const c = map.getCenter();
-        fn({ lng: c.lng, lat: c.lat, zoom: map.getZoom() });
+        // MapLibre sets originalEvent only when a gesture moved the map.
+        fn({ lng: c.lng, lat: c.lat, zoom: map.getZoom() }, Boolean(e.originalEvent));
       });
     },
 

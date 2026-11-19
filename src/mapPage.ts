@@ -10,7 +10,8 @@ export interface MapEngine {
   setYou(position: LatLng | null): void;
   fit(bounds: Bounds): void;
   setCamera(camera: Camera): void;
-  onMove(fn: (camera: Camera) => void): void;
+  /** byUser: the parent moved the map, rather than a fit or a resize. */
+  onMove(fn: (camera: Camera, byUser: boolean) => void): void;
   setScheme(scheme: 'light' | 'dark'): void;
   destroy(): void;
 }
@@ -54,6 +55,10 @@ interface PageState {
   /** Set by leaveMapPage, so an engine that arrives late is destroyed at once. */
   left: boolean;
   cleanups: Array<() => void>;
+  /** The map opened on a saved camera, or the parent has moved it since. */
+  moved: boolean;
+  /** The parent tapped Use my location and no fix has arrived yet. */
+  awaitingFix: boolean;
   /** Watches the open card's height, to keep the map credit above it. */
   cardObserver: ResizeObserver | null;
 }
@@ -154,7 +159,10 @@ function syncLocate(s: PageState, locationOff: boolean): void {
   if (existing) return;
   const button = el('button', 'map-locate', 'Use my location');
   button.type = 'button';
-  button.addEventListener('click', () => s.options.onUseLocation());
+  button.addEventListener('click', () => {
+    s.awaitingFix = true;
+    s.options.onUseLocation();
+  });
   s.wrap.append(button);
 }
 
@@ -204,6 +212,8 @@ export function renderMapPage(root: HTMLElement, model: MapPageModel, options: M
     engine: null,
     failed: false,
     left: false,
+    moved: model.camera !== null,
+    awaitingFix: false,
     cleanups: [],
     cardObserver: null,
   };
@@ -246,7 +256,10 @@ export function renderMapPage(root: HTMLElement, model: MapPageModel, options: M
       engine.setYou(s.you);
       if (model.camera) engine.setCamera(model.camera);
       else engine.fit(model.firstView);
-      engine.onMove((c) => options.onMove(c));
+      engine.onMove((c, byUser) => {
+        if (byUser) s.moved = true;
+        options.onMove(c);
+      });
     })
     .catch(() => showFail(s));
 }
@@ -258,6 +271,12 @@ export function updateMapPage(root: HTMLElement, model: MapPageModel): void {
   if (!sameSpot(s.you, model.you)) {
     s.you = model.you;
     s.engine?.setYou(model.you);
+    // The first fix after Use my location: show the parent where they are
+    // (with the nearest spot), unless they've already moved the map.
+    if (model.you && s.awaitingFix) {
+      s.awaitingFix = false;
+      if (!s.moved) s.engine?.fit(model.firstView);
+    }
   }
   syncLocate(s, model.locationOff);
   if (s.openId) {
