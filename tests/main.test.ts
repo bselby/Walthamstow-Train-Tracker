@@ -1,7 +1,7 @@
 // The app shell (main.ts) end to end in jsdom: TfL, freight and signalling
 // are stubbed; everything else is the real code. main.ts runs on import, so
 // each test loads a fresh copy.
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import type { Arrival } from '../src/tfl';
 
 const fetchArrivals = vi.fn<(stopPointId: string, lineId: string) => Promise<Arrival[]>>();
@@ -102,6 +102,17 @@ function memoryStorage(): Storage {
     setItem: (k, v) => { data.set(k, String(v)); },
   };
 }
+
+// The first boot loads (and transforms) main.ts and everything it imports,
+// which is slow on a busy machine. Do it once here, in a hook with its own
+// time limit, so no single test pays for it. Later boots reuse the transforms.
+beforeAll(async () => {
+  vi.stubGlobal('localStorage', memoryStorage());
+  fetchArrivals.mockImplementation(() => new Promise<Arrival[]>(() => {}));
+  fetchStopArrivals.mockImplementation(() => new Promise<Arrival[]>(() => {}));
+  await boot('/');
+  vi.unstubAllGlobals();
+});
 
 beforeEach(() => {
   vi.stubGlobal('localStorage', memoryStorage());
