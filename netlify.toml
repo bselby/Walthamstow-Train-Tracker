@@ -63,6 +63,20 @@
   status = 301
   force = true
 
+# The www. form of the old domain used to serve the whole app instead of
+# forwarding, so visits there were counted under the old name.
+[[redirects]]
+  from = "https://www.eastavetrains.co.uk/*"
+  to = "https://e17trains.uk/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://www.eastavetrains.co.uk/*"
+  to = "https://e17trains.uk/:splat"
+  status = 301
+  force = true
+
 # SPA catch-all — all unknown paths serve the app shell so the router (the
 # service worker, in our case) can handle them.
 [[redirects]]
