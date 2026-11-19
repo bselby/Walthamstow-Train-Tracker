@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderDirectionStrip, clearPreviousPositions, type StripModel } from '../src/strip';
 import { getViewpointById } from '../src/viewpoints';
+import { lineDiagramLayout, fracForPos } from '../src/lineDiagram';
 
 const QR = getViewpointById('queens-road')!;
 const EA = getViewpointById('east-ave')!;
@@ -31,6 +32,23 @@ describe('renderDirectionStrip line diagram', () => {
     expect(ends).toEqual(['Gospel Oak', 'Barking Riverside']);
   });
 
+  it('names the two stations before the spot, in line order', () => {
+    const el = renderDirectionStrip(null, model({
+      stops: EA.stops, pinPosition: EA.pinPosition, lineNameForAria: 'Weaver line', direction: 'south', pos: 7,
+    }));
+    const names = Array.from(el.querySelectorAll('.line-stop-label')).map((e) => e.textContent);
+    expect(names).toEqual(['Wood Street', 'Highams Park']);
+  });
+
+  it('uses the short name in the middle where one is set: Queens Road', () => {
+    const nc = getViewpointById('northcote-rd')!;
+    const el = renderDirectionStrip(null, model({
+      stops: nc.stops, pinPosition: nc.pinPosition, direction: 'south', pos: 8,
+    }));
+    const names = Array.from(el.querySelectorAll('.line-stop-label')).map((e) => e.textContent);
+    expect(names).toEqual(['Queens Road', 'Leyton Midland Road']);
+  });
+
   it('has no bridge drawing', () => {
     const el = renderDirectionStrip(null, model({ stops: EA.stops, pinPosition: EA.pinPosition }));
     expect(el.querySelector('.strip-bridge')).toBeNull();
@@ -43,9 +61,9 @@ describe('renderDirectionStrip line diagram', () => {
     expect(pins[0].textContent?.trim()).toBe('You');
   });
 
-  it('draws every station as a dot, the two ends larger', () => {
+  it('draws only the ends and the two stations before the spot, the ends larger', () => {
     const el = renderDirectionStrip(null, model());
-    expect(el.querySelectorAll('.line-station')).toHaveLength(13);
+    expect(el.querySelectorAll('.line-station')).toHaveLength(4);
     const ends = el.querySelectorAll('.line-station.end');
     expect(ends).toHaveLength(2);
     expect(Number(ends[0].getAttribute('r'))).toBeGreaterThan(
@@ -116,20 +134,22 @@ describe('renderDirectionStrip behaviour', () => {
   it('moves the train to pos and hides it when there is none', () => {
     const el = renderDirectionStrip(null, model({ direction: 'south', pos: 4.5 }));
     const train = el.querySelector<HTMLElement>('.strip-train')!;
-    expect(train.style.getPropertyValue('--pos')).toBe('4.5');
+    const l = lineDiagramLayout(QR.stops, QR.pinPosition, 'south');
+    expect(train.style.getPropertyValue('--x')).toBe(String(fracForPos(l, 4.5)));
     renderDirectionStrip(el, model({ direction: 'south', pos: null }));
     expect(train.classList.contains('hidden')).toBe(true);
   });
 
-  it('pulses the station dots the train passes', () => {
-    const el = renderDirectionStrip(null, model({ direction: 'north', pos: 2.5 }));
-    renderDirectionStrip(el, model({ direction: 'north', pos: 4.2 }));
-    const stations = el.querySelectorAll('.line-station');
-    expect(stations[3].classList.contains('pulsing')).toBe(true);
-    expect(stations[4].classList.contains('pulsing')).toBe(true);
-    expect(stations[2].classList.contains('pulsing')).toBe(false);
-    expect(stations[5].classList.contains('pulsing')).toBe(false);
-    renderDirectionStrip(el, model({ direction: 'north', pos: null }));
+  it('pulses a shown station as the train goes through it', () => {
+    const m = { stops: EA.stops, pinPosition: EA.pinPosition, lineNameForAria: 'Weaver line', direction: 'north' as const };
+    const el = renderDirectionStrip(null, model({ ...m, pos: 3.5 }));
+    renderDirectionStrip(el, model({ ...m, pos: 4.2 }));
+    const dot = (name: string) => el.querySelector(`.line-station[data-name="${name}"]`)!;
+    expect(dot('St James Street').classList.contains('pulsing')).toBe(true);
+    expect(dot('Walthamstow Central').classList.contains('pulsing')).toBe(false);
+    renderDirectionStrip(el, model({ ...m, pos: 5.1 }));
+    expect(dot('Walthamstow Central').classList.contains('pulsing')).toBe(true);
+    renderDirectionStrip(el, model({ ...m, pos: null }));
   });
 
   it('celebrates on the pin when the train passes', () => {

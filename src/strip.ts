@@ -3,7 +3,7 @@ import type { Direction } from './direction';
 import { currentTheme, type Theme } from './season';
 import { toot } from './toot';
 import { passengerTrainSvg, freightTrainSvg } from './trainArt';
-import { lineDiagramSvg, pinPlace } from './lineDiagram';
+import { fracForPos, lineDiagramLayout, lineDiagramSvg, pinPlace, type LineDiagramLayout } from './lineDiagram';
 import type { LineId } from './viewpoints';
 
 export interface StripModel {
@@ -29,13 +29,12 @@ function trainSvg(isFreight: boolean, theme: Theme): string {
 function createTrainElement(
   direction: Direction,
   theme: Theme,
-  lastIndex: number,
   isFreight: boolean,
 ): HTMLElement {
   const el = document.createElement('div');
   el.className = `strip-train strip-train-${direction}${isFreight ? ' freight' : ''}`;
-  // North trains start at position 0 (left), south at lastIndex (right).
-  el.style.setProperty('--pos', direction === 'north' ? '0' : String(lastIndex));
+  // North trains start at the left end, south at the right.
+  el.style.setProperty('--x', direction === 'north' ? '0' : '1');
   el.dataset.theme = theme ?? '';
   el.dataset.category = isFreight ? 'freight' : 'passenger';
 
@@ -70,6 +69,11 @@ const previousPos: Partial<Record<Direction, number>> = {};
 // Remember which viewpoint each direction's strip last rendered for, so we can
 // tear down and rebuild when it changes.
 const previousViewpointStops = new WeakMap<HTMLElement, readonly Stop[]>();
+const layouts = new WeakMap<HTMLElement, LineDiagramLayout>();
+
+function layoutFor(model: StripModel): LineDiagramLayout {
+  return lineDiagramLayout(model.stops, model.pinPosition, model.direction);
+}
 
 /** Called by render.ts on viewpoint switch to prevent the previous viewpoint's
  *  last-known position from triggering a stale station pulse on the first
@@ -96,8 +100,10 @@ export function renderDirectionStrip(
   if (prev !== undefined && model.pos !== null && prev !== model.pos) {
     const lo = Math.min(prev, model.pos);
     const hi = Math.max(prev, model.pos);
-    for (let i = Math.ceil(lo); i <= Math.floor(hi); i++) {
-      pulseStation(strip, i);
+    // Only the shown stations pulse: the train is going through that stop.
+    for (const dot of strip.querySelectorAll<SVGElement>('.line-station')) {
+      const index = Number(dot.dataset.index);
+      if (index >= lo && index <= hi) pulseStation(dot);
     }
   }
   if (model.pos !== null) previousPos[model.direction] = model.pos;
@@ -106,9 +112,7 @@ export function renderDirectionStrip(
   return strip;
 }
 
-function pulseStation(strip: HTMLElement, index: number): void {
-  const dot = strip.querySelectorAll<SVGElement>('.line-station')[index];
-  if (!dot) return;
+function pulseStation(dot: SVGElement): void {
   dot.classList.remove('pulsing');
   dot.getBoundingClientRect(); // restart the animation
   dot.classList.add('pulsing');
@@ -119,16 +123,19 @@ function diagramLabel(model: StripModel): string {
   const last = model.stops[model.stops.length - 1].fullName;
   const towards = model.direction === 'north' ? last : first;
   const place = pinPlace(model.stops, model.pinPosition);
+  const before = layoutFor(model).stations.filter((st) => !st.end).map((st) => st.name);
+  const ordered = model.direction === 'north' ? before : [...before].reverse();
   return `${model.lineNameForAria}, ${first} to ${last}. Trains towards ${towards}.`
-    + (place ? ` You are ${place}.` : '');
+    + (place ? ` You are ${place}.` : '')
+    + (ordered.length ? ` Trains pass ${ordered.join(' then ')} before reaching you.` : '');
 }
 
 function buildSkeleton(model: StripModel): HTMLElement {
   const container = document.createElement('section');
   container.className = `strip strip-${model.direction}`;
   if (model.lineId) container.dataset.line = model.lineId;
-  // Expose the stop count to CSS so --pos → left math scales.
-  container.style.setProperty('--stop-count', String(model.stops.length));
+  const layout = layoutFor(model);
+  layouts.set(container, layout);
 
   // The train drawings are aria-hidden, so the diagram as a whole carries
   // the screen-reader label.
@@ -136,21 +143,24 @@ function buildSkeleton(model: StripModel): HTMLElement {
   diagram.className = 'line-diagram';
   diagram.setAttribute('role', 'img');
   diagram.setAttribute('aria-label', diagramLabel(model));
-  diagram.innerHTML = lineDiagramSvg(model.stops, model.pinPosition);
+  diagram.innerHTML = lineDiagramSvg(layout);
 
   const theme = currentTheme(new Date());
   diagram.appendChild(
-    createTrainElement(model.direction, theme, model.stops.length - 1, model.isFreight),
+    createTrainElement(model.direction, theme, model.isFreight),
   );
   container.appendChild(diagram);
 
+  // Under the track: the two end names at the edges, and each station
+  // before the spot centred under its dot.
   const ends = document.createElement('div');
   ends.className = 'line-ends';
   ends.setAttribute('aria-hidden', 'true');
-  for (const stop of [model.stops[0], model.stops[model.stops.length - 1]]) {
+  for (const st of layout.stations) {
     const name = document.createElement('span');
-    name.className = 'line-end-label';
-    name.textContent = stop.fullName;
+    name.className = st.end ? 'line-end-label' : 'line-stop-label';
+    name.textContent = st.end ? st.name : (model.stops[st.index]?.shortName ?? st.name);
+    if (!st.end) name.style.setProperty('--x', String(st.frac));
     ends.appendChild(name);
   }
   container.appendChild(ends);
@@ -162,15 +172,15 @@ function updateDynamic(container: HTMLElement, model: StripModel): void {
   const train = container.querySelector<HTMLElement>('.strip-train')!;
   const pin = container.querySelector<SVGElement>('.line-pin');
 
-  setTrain(train, model.pos);
+  setTrain(train, model.pos === null ? null : fracForPos(layouts.get(container) ?? layoutFor(model), model.pos));
   if (pin) pin.classList.toggle('celebrating', model.celebrate);
 }
 
-function setTrain(el: HTMLElement, pos: number | null): void {
-  if (pos === null) {
+function setTrain(el: HTMLElement, frac: number | null): void {
+  if (frac === null) {
     el.classList.add('hidden');
   } else {
     el.classList.remove('hidden');
-    el.style.setProperty('--pos', String(pos));
+    el.style.setProperty('--x', String(frac));
   }
 }

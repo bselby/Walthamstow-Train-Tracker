@@ -288,6 +288,13 @@ describe('render — direction cards and the timing slot', () => {
     expect(south.querySelector('.card-then')!.textContent).toBe('then 15 min');
   });
 
+  it('names the line\'s end station, not the next stop: East Avenue south is To Liverpool Street', () => {
+    render(root, withRows(NEUTRAL_TAP, EA), opts);
+    const [north, south] = cards();
+    expect(north.querySelector('.card-dest')!.textContent).toBe('To Chingford');
+    expect(south.querySelector('.card-dest')!.textContent).toBe('To Liverpool Street');
+  });
+
   it('no "then" line when there is no train after', () => {
     render(root, vm({ north: event(passengerArrival(), 300) }), opts);
     expect(root.querySelector('.card-then')).toBeNull();

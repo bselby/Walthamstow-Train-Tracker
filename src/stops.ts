@@ -2,6 +2,9 @@ export interface Stop {
   index: number;
   fullName: string;
   abbrev: string;
+  /** A shorter name for the line diagram's middle labels, where a long name
+   *  would run into its neighbour. The ends always use the full name. */
+  shortName?: string;
 }
 
 export interface Segment {
