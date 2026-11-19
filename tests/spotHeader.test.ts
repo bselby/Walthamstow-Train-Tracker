@@ -9,6 +9,7 @@ function model(overrides: Partial<Parameters<typeof renderSpotHeader>[1]> = {}) 
   return {
     viewpoint: EA,
     favourite: false,
+    backTo: 'home' as 'home' | 'map',
     onHome: vi.fn<() => void>(),
     onToggleFavourite: vi.fn<(id: string) => void>(),
     ticketLabel: 'Your ticket',
@@ -18,6 +19,26 @@ function model(overrides: Partial<Parameters<typeof renderSpotHeader>[1]> = {}) 
 }
 
 describe('renderSpotHeader', () => {
+  it('backTo map reads Map and links /map', () => {
+    const back = renderSpotHeader(null, model({ backTo: 'map' })).querySelector('.spot-header-home')!;
+    expect(back.textContent).toBe('Map');
+    expect(back.getAttribute('href')).toBe('/map');
+  });
+
+  it('backTo home reads All spots and links /', () => {
+    const back = renderSpotHeader(null, model({ backTo: 'home' })).querySelector('.spot-header-home')!;
+    expect(back.textContent).toBe('All spots');
+    expect(back.getAttribute('href')).toBe('/');
+  });
+
+  it('the back label follows backTo across redraws and keeps the element', () => {
+    const el = renderSpotHeader(null, model({ backTo: 'home' }));
+    const back = el.querySelector('.spot-header-home');
+    renderSpotHeader(el, model({ backTo: 'map' }));
+    expect(el.querySelector('.spot-header-home')).toBe(back);
+    expect(back!.textContent).toBe('Map');
+  });
+
   it('shows the line and the spot name', () => {
     const el = renderSpotHeader(null, model());
     expect(el.classList.contains('spot-header')).toBe(true);

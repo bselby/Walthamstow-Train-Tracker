@@ -1,4 +1,5 @@
-// The home screen: "Your favourites", then every other spot. Redrawn every
+// The home screen: "Your favourites", then the other spots in groups (Near
+// you, or one section per area). Redrawn every
 // second, so it updates the elements it already has instead of rebuilding
 // them: a finger already down on a row or a star stays on the same element,
 // and a row only moves when its place in the list changes.
@@ -18,6 +19,8 @@ export interface HomeOptions {
   /** Trains timed so far: the ticket link's label. */
   taps: number;
   onOpenTicket: () => void;
+  /** "See them on a map" and the footer's Map link. */
+  onOpenMap: () => void;
 }
 
 // Listeners are attached once, when an element is made, and call through the
@@ -61,9 +64,11 @@ export function renderHome(root: HTMLElement, model: HomeModel, options: HomeOpt
   const location = locationControl(root, model.location);
   if (location) out.push(location);
 
-  if (model.others.length > 0) {
-    out.push(section(root, 'home-others', model.othersTitle, model.others.map(rowFor)));
+  for (const group of model.groups) {
+    out.push(section(root, `home-group-${group.key}`, group.title, group.rows.map(rowFor)));
   }
+
+  out.push(child(root, 'home-map') ?? createMapButton());
 
   if (model.notice !== null) {
     const notice = child(root, 'home-notice') ?? create('p', 'home-notice');
@@ -73,7 +78,7 @@ export function renderHome(root: HTMLElement, model: HomeModel, options: HomeOpt
   }
 
   out.push(child(root, 'home-suggest') ?? createSuggest());
-  out.push(child(root, 'doc-links') ?? createDocLinks());
+  out.push(child(root, 'doc-links') ?? createDocLinks(() => currentOptions?.onOpenMap()));
   place(root, out);
 }
 
@@ -135,10 +140,22 @@ function createSuggest(): HTMLElement {
   return suggest;
 }
 
-function createDocLinks(): HTMLElement {
+function createMapButton(): HTMLElement {
+  const button = create('button', 'home-map');
+  button.type = 'button';
+  button.textContent = 'See them on a map';
+  button.addEventListener('click', () => currentOptions?.onOpenMap());
+  return button;
+}
+
+/** The footer links, shared by home and the spot screen. `onOpenMap` is
+ *  called for a plain click on Map; a new tab or window is the browser's. */
+export function createDocLinks(onOpenMap: () => void): HTMLElement {
   const docs = create('nav', 'doc-links');
   docs.setAttribute('aria-label', 'Site information');
   docs.innerHTML =
+    '<a class="doc-map" href="/map">Map</a>' +
+    '<span aria-hidden="true">·</span>' +
     '<a href="/about.html">About</a>' +
     '<span aria-hidden="true">·</span>' +
     '<a href="/feedback.html">Feedback</a>' +
@@ -146,6 +163,12 @@ function createDocLinks(): HTMLElement {
     '<a href="/privacy.html">Privacy</a>' +
     '<span aria-hidden="true">·</span>' +
     '<a href="/terms.html">Terms</a>';
+  docs.querySelector('.doc-map')!.addEventListener('click', (e) => {
+    const click = e as MouseEvent;
+    if (click.button !== 0 || click.ctrlKey || click.metaKey || click.shiftKey || click.altKey) return;
+    click.preventDefault();
+    onOpenMap();
+  });
   return docs;
 }
 
@@ -254,9 +277,12 @@ function updateRow(li: HTMLElement, row: HomeRow): HTMLElement {
   setText(li.querySelector('.home-row-meta')!, row.walk === null ? `${row.lineName} line` : `${row.lineName} line · ${row.walk}`);
 
   const countdown = li.querySelector<HTMLElement>('.home-row-countdown')!;
-  const countdownClass = `home-row-countdown ${row.countdown.kind}`;
+  // A stop past the poll cap has no times to show: the slot stays empty.
+  const countdownClass = row.countdown === null ? 'home-row-countdown' : `home-row-countdown ${row.countdown.kind}`;
   if (countdown.className !== countdownClass) countdown.className = countdownClass;
-  const { num, unit, spoken } = countdownWords(row.countdown);
+  const { num, unit, spoken } = row.countdown === null
+    ? { num: '', unit: '', spoken: '' }
+    : countdownWords(row.countdown);
   setText(countdown.querySelector('.visually-hidden')!, spoken);
   setText(countdown.querySelector('.home-count-num')!, num);
   setText(countdown.querySelector('.home-count-unit')!, unit);
@@ -276,7 +302,7 @@ function updateRow(li: HTMLElement, row: HomeRow): HTMLElement {
 
 /** "2 min" becomes a big "2" over a small "minutes"; words that are not a
  *  count stay as they are. */
-function countdownWords(c: HomeRow['countdown']): { num: string; unit: string; spoken: string } {
+function countdownWords(c: NonNullable<HomeRow['countdown']>): { num: string; unit: string; spoken: string } {
   if (c.kind === 'minutes' || c.kind === 'seconds') {
     const n = parseInt(c.text, 10);
     const word = c.kind === 'minutes' ? 'minute' : 'second';

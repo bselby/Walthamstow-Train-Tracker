@@ -4,6 +4,7 @@ import type { Fact } from './facts';
 import type { Viewpoint } from './viewpoints';
 import { formatCountdown, formatAge, formatLastLive } from './display';
 import { renderDirectionStrip, clearPreviousPositions } from './strip';
+import { createDocLinks } from './home';
 import { renderSpotHeader } from './spotHeader';
 import { escapeHtml } from './escapeHtml';
 import { regionFor, isNewRegionThisSession, type Region } from './freightRegions';
@@ -25,6 +26,8 @@ export interface ViewModel {
   fact: Fact;
   viewpoint: Viewpoint;   // active viewpoint — drives strip, header, theming
   favouriteIds: readonly string[];   // every starred viewpoint, oldest first
+  /** Where the header's back link goes: all spots, or the map. */
+  backTo: 'home' | 'map';
   tap: TapView;   // timing slot per direction card + the ask card
 }
 
@@ -44,6 +47,8 @@ export interface RenderOptions {
   onOpenTicket: () => void;
   /** The invitation's "Show me how": the explainer. */
   onOpenHow: () => void;
+  /** The footer's Map link. */
+  onOpenMap: () => void;
 }
 
 // The options from the latest render. Kept cards, slots and the ask card outlive
@@ -110,6 +115,7 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
   out.push(renderSpotHeader(existingHeader, {
     viewpoint: vm.viewpoint,
     favourite: vm.favouriteIds.includes(vm.viewpoint.id),
+    backTo: vm.backTo,
     onHome: () => currentOptions?.onHome(),
     onToggleFavourite: (id) => currentOptions?.onToggleFavourite(id),
     ticketLabel: ticketBadgeLabel(vm.tap.taps),
@@ -165,17 +171,7 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
     out.push(footer);
   }
 
-  const docs = document.createElement('nav');
-  docs.className = 'doc-links';
-  docs.setAttribute('aria-label', 'Site information');
-  docs.innerHTML =
-    '<a href="/about.html">About</a>' +
-    '<span aria-hidden="true">·</span>' +
-    '<a href="/feedback.html">Feedback</a>' +
-    '<span aria-hidden="true">·</span>' +
-    '<a href="/privacy.html">Privacy</a>' +
-    '<span aria-hidden="true">·</span>' +
-    '<a href="/terms.html">Terms</a>';
+  const docs = createDocLinks(() => currentOptions?.onOpenMap());
   out.push(docs);
   place(root, out);
   takeFocus();

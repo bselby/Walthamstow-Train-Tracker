@@ -1,6 +1,10 @@
 // What the home screen shows: favourites first, in the order they were
-// starred, then every other spot, nearest first when a location is held and
-// by name when it is not. Pure.
+// starred, then the other spots in groups. With a location held, "Near you"
+// (spots within half an hour's walk, nearest first) leads, and spots beyond
+// walking range follow under one group per area, the nearest area first.
+// Without a location the groups are the areas by name. A single-area list
+// has one group: "Near you" or "All spots". Rows past the poll cap carry no
+// countdown. Pure.
 import { formatCountdown } from './display';
 import type { GeolocationState } from './geolocation';
 import { nextTrain, stopsToPoll, type HomeSnapshots } from './homeArrivals';
@@ -144,7 +148,7 @@ export function buildHomeModel(input: HomeInput): HomeModel {
   const location = locationState(locationEnabled, locationAsked, geo);
   const position = location === 'on' ? geo.position : null;
   const { favourites, groups } = arrange(viewpoints, favouriteIds, position, areas);
-  const polled = stopsToPoll(homeRowOrder(viewpoints, favouriteIds, position, areas));
+  const polled = stopsToPoll([...favourites, ...groups.flatMap((g) => g.spots)]);
 
   const row = (v: Viewpoint, favourite: boolean): HomeRow => ({
     id: v.id,

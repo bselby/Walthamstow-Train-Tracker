@@ -7,7 +7,7 @@ import { render, type ViewModel } from './render';
 import { formatCountdown } from './display';
 import { positionAtCountdown } from './trainPosition';
 import { POLL_INTERVAL_MS, FREIGHT_POLL_INTERVAL_MS } from './constants';
-import { getViewpointById, DEFAULT_VIEWPOINT_ID, VIEWPOINTS } from './viewpoints';
+import { getViewpointById, DEFAULT_VIEWPOINT_ID, VIEWPOINTS, AREAS } from './viewpoints';
 import type { Viewpoint } from './viewpoints';
 import type { Direction } from './direction';
 import { subscribe as subscribeLocation, start as startLocation, stop as stopLocation, getState as getLocationState } from './geolocation';
@@ -524,6 +524,7 @@ function buildViewModel(): ViewModel {
     fact: factAt(factIndex),
     viewpoint: activeViewpoint,
     favouriteIds,
+    backTo: 'home',
     tap: buildTapView(heroes, now),
   };
 }
@@ -661,6 +662,7 @@ function rerender(): void {
       root,
       buildHomeModel({
         viewpoints: VIEWPOINTS,
+        areas: AREAS,
         favouriteIds,
         locationEnabled,
         locationAsked,
@@ -677,6 +679,7 @@ function rerender(): void {
         onLocationNotNow: declineLocationAsk,
         taps: tapState.taps,
         onOpenTicket: openTicket,
+        onOpenMap: () => {},
       },
     );
     return;
@@ -697,6 +700,7 @@ function rerender(): void {
     onHelpChoice,
     onOpenTicket: openTicket,
     onOpenHow: openHow,
+    onOpenMap: () => {},
   });
 }
 
@@ -761,7 +765,7 @@ async function homeTick(): Promise<void> {
   const seq = ++homeTickSeq;
   const position = locationEnabled ? getLocationState().position : null;
   const result = await pollHome(
-    homeRowOrder(VIEWPOINTS, favouriteIds, position),
+    homeRowOrder(VIEWPOINTS, favouriteIds, position, AREAS),
     homeSnapshots,
     fetchStopArrivals,
     Date.now,
