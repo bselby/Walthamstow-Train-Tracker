@@ -171,6 +171,8 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
   docs.innerHTML =
     '<a href="/about.html">About</a>' +
     '<span aria-hidden="true">·</span>' +
+    '<a href="/feedback.html">Feedback</a>' +
+    '<span aria-hidden="true">·</span>' +
     '<a href="/privacy.html">Privacy</a>' +
     '<span aria-hidden="true">·</span>' +
     '<a href="/terms.html">Terms</a>';

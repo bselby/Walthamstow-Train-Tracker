@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#DCEEF5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#121829" media="(prefers-color-scheme: dark)" />
+    <title>Feedback · E17 Trains</title>
+    <link rel="canonical" href="https://e17trains.uk/feedback.html" />
+    <meta name="description" content="Tell us what you think of E17 Trains, or suggest a spot." />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/docs.css" />
+  </head>
+  <body>
+    <main>
+      <a class="back" href="/"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 3 L5 9 L11 15"/></svg>All spots</a>
+      <h1>Tell us what you think</h1>
+
+      <form class="card form" name="feedback" method="POST" action="/thanks.html" data-netlify="true" netlify-honeypot="company">
+        <input type="hidden" name="form-name" value="feedback" />
+        <p hidden><label>Leave this empty <input name="company" tabindex="-1" autocomplete="off" /></label></p>
+
+        <fieldset>
+          <legend>What's it about?</legend>
+          <label class="choice"><input type="radio" name="about" value="feedback" checked /> The app</label>
+          <label class="choice"><input type="radio" name="about" value="spot" /> A spot you'd like added</label>
+        </fieldset>
+
+        <div class="field">
+          <label for="message">Your message</label>
+          <p class="hint" id="message-hint">For a spot, say where it is and what you can see from it. We visit every spot before we add it.</p>
+          <textarea id="message" name="message" rows="6" required aria-describedby="message-hint"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="email">Your email, if you'd like a reply</label>
+          <input id="email" name="email" type="email" autocomplete="email" />
+        </div>
+
+        <button class="btn" type="submit">Send</button>
+      </form>
+
+      <p class="note small">What happens to your message is on the <a href="/privacy.html#feedback">privacy page</a>.</p>
+      <script>
+        // "Suggest a spot" links here with ?about=spot.
+        if (new URLSearchParams(location.search).get('about') === 'spot') {
+          document.querySelector('input[name="about"][value="spot"]').checked = true;
+        }
+      </script>
+    </main>
+    <!-- Cloudflare Web Analytics — pageview count only, no cookies, no personal data. -->
+    <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "f28e4933fd98408da3b08b2b59807a0e"}'></script>
+  </body>
+</html>

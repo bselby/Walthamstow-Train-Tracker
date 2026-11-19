@@ -206,3 +206,66 @@ summary:focus-visible {
   color: var(--dim);
   margin-top: 6px;
 }
+
+/* ───── Feedback form ───── */
+.form fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+}
+.form legend,
+.form .field > label {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  padding: 0;
+  margin-bottom: 4px;
+}
+.form .choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 16px;
+}
+.form .choice input {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--weaver);
+}
+.form .field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.form .hint {
+  font-size: 14px;
+  color: var(--dim);
+}
+.form textarea,
+.form input[type="email"] {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 2px solid var(--rule);
+  border-radius: 14px;
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px; /* 16px stops iOS zooming in on focus */
+}
+.form textarea { resize: vertical; }
+.form textarea:focus-visible,
+.form input:focus-visible,
+.form .btn:focus-visible {
+  outline: 3px solid var(--weaver);
+  outline-offset: 2px;
+}
+.form .btn {
+  width: 100%;
+  color: var(--ink);
+  cursor: pointer;
+}

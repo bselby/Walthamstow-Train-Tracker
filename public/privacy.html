@@ -28,6 +28,7 @@
           <li>Favourites and your ticket are saved on your phone.</li>
           <li>Tapping the yellow button sends a small record so we can improve the times. It's kept for 12 months.</li>
           <li>We count visits to each page, without cookies.</li>
+          <li>If you send feedback, we keep your message (and your email, if you give it) until it has been dealt with.</li>
         </ul>
       </div>
 
@@ -201,6 +202,22 @@
           </div>
         </details>
 
+        <details id="feedback">
+          <summary>Feedback and spot suggestions</summary>
+          <div class="body">
+            <p>
+              The <a href="/feedback.html">feedback form</a> sends what you type
+              to <a href="https://www.netlify.com/privacy/" target="_blank" rel="noopener">Netlify</a>,
+              which hosts this site. Only I can read the messages.
+            </p>
+            <ul>
+              <li><strong>What's sent:</strong> what it's about, your message, and your email only if you fill it in. Netlify also notes the time and your IP address, to block spam.</li>
+              <li><strong>What it's for:</strong> improving the app, checking suggested spots, and replying if you asked. Your email is never used for anything else or shared.</li>
+              <li><strong>How long:</strong> until your message has been dealt with, then deleted. Ask through the form and yours will be deleted sooner.</li>
+            </ul>
+          </div>
+        </details>
+
         <details>
           <summary>Counting visits</summary>
           <div class="body">
@@ -250,6 +267,11 @@
       </p>
       <p class="meta">Last updated 18 November 2026</p>
     </main>
+    <script>
+      // Open the section a link points at, e.g. /privacy.html#feedback.
+      const target = location.hash && document.getElementById(location.hash.slice(1));
+      if (target instanceof HTMLDetailsElement) target.open = true;
+    </script>
     <!-- Cloudflare Web Analytics — pageview count only, no cookies, no personal data.
          See the Counting visits section above for the full story. -->
     <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "f28e4933fd98408da3b08b2b59807a0e"}'></script>

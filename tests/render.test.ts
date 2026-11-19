@@ -763,10 +763,10 @@ describe('render — the rest of the spot screen', () => {
     ['while connecting', () => vm({ freshness: { state: 'no-data' } })],
     ['after an error', () => vm({ freshness: { state: 'no-data' }, error: 'x' })],
     ['with live times lost', () => both({ freshness: { state: 'stale', ageMs: 90_000 } })],
-  ])('keeps About, Privacy, Terms and the map link %s', (_name, model) => {
+  ])('keeps About, Feedback, Privacy, Terms and the map link %s', (_name, model) => {
     render(root, model(), opts);
     const hrefs = Array.from(root.querySelectorAll<HTMLAnchorElement>('.doc-links a')).map((a) => a.getAttribute('href'));
-    expect(hrefs).toEqual(['/about.html', '/privacy.html', '/terms.html']);
+    expect(hrefs).toEqual(['/about.html', '/feedback.html', '/privacy.html', '/terms.html']);
     expect(root.querySelector('a.map-link')).not.toBeNull();
   });
 

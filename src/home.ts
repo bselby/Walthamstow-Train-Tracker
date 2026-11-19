@@ -70,6 +70,7 @@ export function renderHome(root: HTMLElement, model: HomeModel, options: HomeOpt
     out.push(notice);
   }
 
+  out.push(child(root, 'home-suggest') ?? createSuggest());
   out.push(child(root, 'doc-links') ?? createDocLinks());
   place(root, out);
 }
@@ -126,11 +127,19 @@ function updateTicketLink(header: HTMLElement, taps: number): void {
   if (ticket.getAttribute('aria-label') !== spoken) ticket.setAttribute('aria-label', spoken);
 }
 
+function createSuggest(): HTMLElement {
+  const suggest = create('p', 'home-suggest');
+  suggest.innerHTML = 'Know a good place to watch trains? <a href="/feedback.html?about=spot">Suggest a spot</a>';
+  return suggest;
+}
+
 function createDocLinks(): HTMLElement {
   const docs = create('nav', 'doc-links');
   docs.setAttribute('aria-label', 'Site information');
   docs.innerHTML =
     '<a href="/about.html">About</a>' +
+    '<span aria-hidden="true">·</span>' +
+    '<a href="/feedback.html">Feedback</a>' +
     '<span aria-hidden="true">·</span>' +
     '<a href="/privacy.html">Privacy</a>' +
     '<span aria-hidden="true">·</span>' +
