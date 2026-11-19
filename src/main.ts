@@ -19,9 +19,9 @@ import { snapshotViewpoint, type DirectionSnapshot, type ViewpointSnapshots } fr
 import type { BerthEvent } from './tdProxy';
 import { fetchFreight, clampFreightPosition } from './freight';
 import { atViewpoint, canTuneViewpoint, passKey, updatePass, type TapPass } from './tap';
-import { chooseHelp, loadTapState, recordTap, saveTapState } from './tapStore';
+import { chooseHelp, loadTapState, noteFullBoxShown, recordTap, saveTapState, showsFullBox } from './tapStore';
 import { buildTapPayload, sendTap, shouldSendTaps } from './tapClient';
-import { msUntilButton, newDeviceId, tapAsk, tapDirectionView, tflExpectedArrivalMs } from './tapView';
+import { msUntilButton, newDeviceId, settleHelpBoxes, tapAsk, tapDirectionView, tflExpectedArrivalMs } from './tapView';
 import { parseRoute, viewpointPath, HOME_PATH, TICKET_PATH, HOW_PATH } from './routes';
 import { loadFavourites, saveFavourites, toggleFavourite } from './favourites';
 import { landingFor } from './landing';
@@ -118,6 +118,10 @@ function safeLocalRemove(key: string): void {
 }
 
 let tapState = loadTapState(safeLocalRead, () => newDeviceId());
+// Decided once per visit, so the full help box never turns into the short
+// line while someone is looking at it (only a tap ends it early).
+const fullBoxThisVisit = showsFullBox(tapState);
+let fullBoxCounted = false;
 
 // QA / debugging: visiting `?reset=walking` clears the locationEnabled flag so
 // the opt-in row reappears on next load. The param is stripped from the URL
@@ -547,6 +551,15 @@ function buildTapView(heroes: Partial<Record<Direction, BridgeEvent>>, now: numb
       msUntilButton: msUntilButton(activeViewpoint, dir, heroes[dir]),
       offline: tapOffline[dir] === true,
     });
+  }
+  const fullBox = fullBoxThisVisit && tapState.taps === 0;
+  const settled = settleHelpBoxes(views, fullBox);
+  views.north = settled.north;
+  views.south = settled.south;
+  if (fullBox && !fullBoxCounted && (views.north.state === 'placeholder' || views.south.state === 'placeholder')) {
+    fullBoxCounted = true;
+    tapState = noteFullBoxShown(tapState);
+    saveTapState(safeLocalWrite, tapState);
   }
   return {
     ask: tapAsk({ tapState, nowMs: now, offerable: canTune, views: [views.north, views.south] }),
