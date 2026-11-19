@@ -113,7 +113,7 @@ function createHeader(): HTMLElement {
   const title = document.createElement('h1');
   title.textContent = 'E17 Trains';
   const tagline = create('p', 'home-tagline');
-  tagline.textContent = 'When the next train passes, to the second.';
+  tagline.textContent = 'When the next train passes your spot.';
   header.append(ticket, train, title, tagline);
   return header;
 }

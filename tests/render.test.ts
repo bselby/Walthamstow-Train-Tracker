@@ -95,11 +95,11 @@ describe('render — freight', () => {
     expect(root.querySelector('.freight-tag')).toBeNull();
   });
 
-  it('freight hero: exactly one .freight-tag reading "Freight train" (board 10)', () => {
+  it('freight hero: exactly one .freight-tag reading "Freight" (board 10, shortened to keep the title on one line)', () => {
     render(root, vm({ north: event(freightArrival(), 60) }), opts);
     const tags = root.querySelectorAll('.freight-tag');
     expect(tags).toHaveLength(1);
-    expect(tags[0].textContent?.trim()).toBe('Freight train');
+    expect(tags[0].textContent?.trim()).toBe('Freight');
     expect(tags[0].closest('.card-dest')).not.toBeNull();
   });
 
@@ -167,6 +167,14 @@ describe('render — freight', () => {
       northTicker: [event(freightArrival({ id: 'f-ticker' }), 300)],
     }), opts);
     expect(root.querySelector('.ticker-value-freight')).not.toBeNull();
+  });
+
+  it('ticker freight entry says "freight" in words', () => {
+    render(root, vm({
+      north: event(passengerArrival(), 120),
+      northTicker: [event(freightArrival({ id: 'f1' }), 300), event(passengerArrival({ id: 'p1' }), 600)],
+    }), opts);
+    expect(root.querySelector('.card-then')!.textContent).toBe('then 5 (freight) and 10 min');
   });
 
   it('ticker passenger entry: no .ticker-value-freight', () => {

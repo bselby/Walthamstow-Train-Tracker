@@ -4,10 +4,18 @@ export function startPoller(tick: TickFn, intervalMs: number): () => void {
   let timer: ReturnType<typeof setInterval> | null = null;
   let stopped = false;
 
+  // One tick at a time: a slow answer is not piled on by the next interval.
+  let inFlight = false;
   const runTick = () => {
-    tick().catch(() => {
-      // swallow — the tick function is responsible for surfacing errors via state
-    });
+    if (inFlight) return;
+    inFlight = true;
+    tick()
+      .catch(() => {
+        // swallow — the tick function is responsible for surfacing errors via state
+      })
+      .finally(() => {
+        inFlight = false;
+      });
   };
 
   const start = () => {
@@ -31,7 +39,13 @@ export function startPoller(tick: TickFn, intervalMs: number): () => void {
     }
   };
 
+  // Back online: fetch now rather than at the next interval.
+  const onOnline = () => {
+    if (!stopped && timer !== null) runTick();
+  };
+
   document.addEventListener('visibilitychange', onVisibilityChange);
+  window.addEventListener('online', onOnline);
 
   if (document.visibilityState === 'visible') {
     start();
@@ -41,6 +55,7 @@ export function startPoller(tick: TickFn, intervalMs: number): () => void {
     stopped = true;
     pause();
     document.removeEventListener('visibilitychange', onVisibilityChange);
+    window.removeEventListener('online', onOnline);
   };
 }
 

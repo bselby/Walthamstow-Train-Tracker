@@ -2,107 +2,95 @@ import type { Direction } from './direction';
 import type { Viewpoint, PositionModel } from './viewpoints';
 
 const MAX_REASONABLE_SECONDS = 30 * 60;
-const POST_ARRIVAL_WINDOW_SECONDS = 30;
+/** How long the train stays on the diagram after it has passed the spot. */
+const AFTER_PASS_SECONDS = 30;
 
-// East-Ave-bridge-specific constants (three-phase northbound: dwell → cross → continue).
-const EAST_AVE_BRIDGE_POSITION = 5.5; // between WC (index 5) and Wood Street (index 6)
-const EAST_AVE_NB_DWELL_SECONDS = 30;
-const EAST_AVE_NB_WC_TO_BRIDGE_SECONDS = 60;
-const EAST_AVE_NB_BRIDGE_TO_WDS_SECONDS = 30;
-const EAST_AVE_NB_TOTAL_POST_WC_SECONDS =
-  EAST_AVE_NB_DWELL_SECONDS + EAST_AVE_NB_WC_TO_BRIDGE_SECONDS + EAST_AVE_NB_BRIDGE_TO_WDS_SECONDS; // = 120
+interface Knot {
+  /** Seconds until the train reaches the spot. */
+  t: number;
+  /** Position along the line, in stop indices. */
+  x: number;
+}
 
 /**
- * Estimate a train's position on a viewpoint's strip as a floating-point
- * index in [0, stops.length - 1], given its remaining timeToStation and
- * direction of travel.
+ * Where the train is on a spot's line diagram, in stop indices, given the
+ * countdown to the spot itself (the same figure the big number shows, berth
+ * steps included). Driving the diagram from the countdown means the train
+ * reaches the You pin exactly when the card says NOW, whatever the spot's
+ * offset from its TfL station.
  *
- * Returns null when the prediction falls outside the modelled window (either
- * too-far-future or past the post-arrival window).
+ * Returns null more than 30 minutes out, and once the train has moved on
+ * past the spot.
  */
-export function estimatePosition(
-  timeToStationSeconds: number,
+export function positionAtCountdown(
+  countdownSeconds: number,
   direction: Direction,
   viewpoint: Viewpoint,
 ): number | null {
-  if (timeToStationSeconds > MAX_REASONABLE_SECONDS) return null;
+  if (countdownSeconds > MAX_REASONABLE_SECONDS) return null;
+  if (countdownSeconds < 0) return afterPass(-countdownSeconds, direction, viewpoint);
 
-  // Post-arrival: train has reached (or passed) the anchor station.
-  if (timeToStationSeconds < 0) {
-    return postArrivalPosition(timeToStationSeconds, direction, viewpoint);
-  }
-
-  // Pre-arrival: interpolate along segments from the approaching side.
-  return preArrivalPosition(timeToStationSeconds, direction, viewpoint);
-}
-
-function preArrivalPosition(tts: number, direction: Direction, viewpoint: Viewpoint): number {
-  const { stops, segments, anchorIndex } = viewpoint;
-  const lastIndex = stops.length - 1;
-
-  // Northbound trains approach the anchor from lower indices (south-ish on strip).
-  // Southbound trains approach from higher indices.
-  // Build a list of segments to step through, starting at the anchor and walking
-  // AWAY from it in the approach direction.
-  const segmentsToWalk =
-    direction === 'north'
-      ? [...segments].reverse().filter((s) => s.farIndex <= anchorIndex)
-      : segments.filter((s) => s.nearIndex >= anchorIndex);
-
-  let accumulated = 0;
-  for (const seg of segmentsToWalk) {
-    // tts is TIME REMAINING to the anchor, so higher tts = further from anchor.
-    // At tts=accumulated the train has just crossed from this segment into the one
-    // closer to the anchor, so its position = `toward` (the anchor-side endpoint).
-    // At tts=accumulated+seg.seconds the train is about to enter this segment from
-    // the far side, so position = `away`.
-    const toward = direction === 'north' ? seg.farIndex : seg.nearIndex;
-    const away = direction === 'north' ? seg.nearIndex : seg.farIndex;
-
-    if (tts <= accumulated + seg.seconds) {
-      const progress = (tts - accumulated) / seg.seconds;
-      return toward + progress * (away - toward);
+  const knots = approachKnots(direction, viewpoint);
+  for (let i = 1; i < knots.length; i++) {
+    const near = knots[i - 1];
+    const far = knots[i];
+    if (countdownSeconds <= far.t) {
+      const progress = (countdownSeconds - near.t) / (far.t - near.t);
+      return near.x + progress * (far.x - near.x);
     }
-    accumulated += seg.seconds;
   }
-
-  // Beyond all modelled segments: clamp to the far terminus.
-  return direction === 'north' ? 0 : lastIndex;
+  return knots[knots.length - 1].x;
 }
 
-function postArrivalPosition(tts: number, direction: Direction, viewpoint: Viewpoint): number | null {
-  if (viewpoint.positionModel === 'east-ave-bridge') {
-    return eastAveBridgePostArrival(tts, direction, viewpoint);
-  }
-  // 'station' model: both directions park at the anchor for a short post-arrival window.
-  if (tts < -POST_ARRIVAL_WINDOW_SECONDS) return null;
-  return viewpoint.anchorIndex;
+/** Seconds between two stops next to each other. */
+function segmentSeconds(viewpoint: Viewpoint, a: number, b: number): number {
+  return viewpoint.segments[Math.min(a, b)].seconds;
 }
 
-function eastAveBridgePostArrival(tts: number, direction: Direction, viewpoint: Viewpoint): number | null {
-  if (direction === 'south') {
-    // Southbound has already crossed the bridge before reaching WC — park briefly at WC.
-    if (tts < -POST_ARRIVAL_WINDOW_SECONDS) return null;
-    return viewpoint.anchorIndex;
+/** The pin, then each station back along the line the train comes from, with
+ *  the time from there to the spot. Station times come from the spot's offset
+ *  from its anchor station plus the running times between stations. */
+function approachKnots(direction: Direction, viewpoint: Viewpoint): Knot[] {
+  const { anchorIndex: anchor, pinPosition: pin, stops } = viewpoint;
+  const offset = viewpoint.directions[direction].offsetSeconds;
+  const step = direction === 'north' ? -1 : 1; // walking back against travel
+  const first = direction === 'north' ? Math.ceil(pin) - 1 : Math.floor(pin) + 1;
+
+  const knots: Knot[] = [{ t: 0, x: pin }];
+  for (let i = first; i >= 0 && i < stops.length; i += step) {
+    // Seconds from station i to the anchor station (negative once i is past it).
+    let between = 0;
+    for (let j = Math.min(i, anchor); j < Math.max(i, anchor); j++) between += viewpoint.segments[j].seconds;
+    const toAnchor = isBefore(i, anchor, direction) ? between : -between;
+    const prev = knots[knots.length - 1].t;
+    // Keep time rising as the stations get further away, even if the hand
+    // tuned offset and the rough running times disagree.
+    knots.push({ t: Math.max(toAnchor + offset, prev + 1), x: i });
   }
-  // Northbound: three-phase model.
-  if (tts < -EAST_AVE_NB_TOTAL_POST_WC_SECONDS) return null;
-  const elapsed = -tts;
+  return knots;
+}
 
-  // Phase 1: dwelling at WC.
-  if (elapsed <= EAST_AVE_NB_DWELL_SECONDS) return viewpoint.anchorIndex;
+/** True when stop a comes before stop b in the direction of travel. */
+function isBefore(a: number, b: number, direction: Direction): boolean {
+  return direction === 'north' ? a < b : a > b;
+}
 
-  // Phase 2: moving from WC to the bridge.
-  const postDwell = elapsed - EAST_AVE_NB_DWELL_SECONDS;
-  if (postDwell <= EAST_AVE_NB_WC_TO_BRIDGE_SECONDS) {
-    const progress = postDwell / EAST_AVE_NB_WC_TO_BRIDGE_SECONDS;
-    return viewpoint.anchorIndex + progress * (EAST_AVE_BRIDGE_POSITION - viewpoint.anchorIndex);
-  }
+/** After the pass: at a station, the train waits at the platform; at a bridge,
+ *  it moves on towards the next station. Either way it goes after 30 s, or on
+ *  reaching that station if sooner. */
+function afterPass(secondsSince: number, direction: Direction, viewpoint: Viewpoint): number | null {
+  if (secondsSince > AFTER_PASS_SECONDS) return null;
+  const { anchorIndex: anchor, pinPosition: pin } = viewpoint;
+  if (Number.isInteger(pin)) return pin;
 
-  // Phase 3: past the bridge, continuing to Wood Street.
-  const postBridge = postDwell - EAST_AVE_NB_WC_TO_BRIDGE_SECONDS;
-  const progress = postBridge / EAST_AVE_NB_BRIDGE_TO_WDS_SECONDS;
-  return EAST_AVE_BRIDGE_POSITION + progress * (viewpoint.anchorIndex + 1 - EAST_AVE_BRIDGE_POSITION);
+  const next = direction === 'north' ? Math.ceil(pin) : Math.floor(pin);
+  const offset = viewpoint.directions[direction].offsetSeconds;
+  const toNext =
+    next === anchor
+      ? Math.abs(offset)
+      : segmentSeconds(viewpoint, Math.floor(pin), Math.ceil(pin)) * Math.abs(next - pin);
+  if (secondsSince > toNext) return null;
+  return pin + (next - pin) * (secondsSince / toNext);
 }
 
 // Export for tests / future use.

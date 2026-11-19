@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
-  <title>E17 Trains: when the next train passes, to the second.</title>
+  <title>E17 Trains: when the next train passes your spot.</title>
   <defs>
     <symbol id="icon" viewBox="0 0 100 100">
   <rect width="100" height="100" rx="22" fill="#BFE3F2"/>
@@ -19,8 +19,8 @@
     <use href="#icon" x="44" y="44" width="72" height="72"/>
     <text x="132" y="97" font-family="'Baloo 2', 'Arial Rounded MT Bold', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif" font-size="52" font-weight="800" fill="#1F2A44">E17 Trains</text>
     <text font-family="'Baloo 2', 'Arial Rounded MT Bold', 'Avenir Next', 'Helvetica Neue', Arial, sans-serif" font-size="34" font-weight="700" fill="#1F2A44">
-      <tspan x="44" y="178">When the next train passes,</tspan>
-      <tspan x="44" y="217">to the second.</tspan>
+      <tspan x="44" y="178">When the next train passes</tspan>
+      <tspan x="44" y="217">your spot.</tspan>
     </text>
     <g transform="translate(0 247)">
       <rect x="0" y="118" width="756" height="32" fill="#9CCBE0"/>

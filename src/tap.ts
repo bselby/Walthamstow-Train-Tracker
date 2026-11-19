@@ -72,7 +72,12 @@ export function updatePass(
     if (offerable && hero && sameTrain && hero.bridgeTimeSeconds >= -TAP_LINGER_SECONDS) {
       return { ...current, latestPredictedMs: nowMs + hero.bridgeTimeSeconds * 1000 };
     }
-    if (nowMs <= current.latestPredictedMs + TAP_LINGER_SECONDS * 1000) return current;
+    // Once the card is counting down a different, later train, a button left
+    // over from the last one reads as "tap for this one", so it goes at the
+    // predicted time instead of lingering.
+    const laterTrainShown = hero !== undefined && !sameTrain && hero.bridgeTimeSeconds > TAP_LEAD_SECONDS;
+    const holdUntilMs = current.latestPredictedMs + (laterTrainShown ? 0 : TAP_LINGER_SECONDS * 1000);
+    if (nowMs <= holdUntilMs) return current;
   }
 
   if (!offerable || !hero) return null;

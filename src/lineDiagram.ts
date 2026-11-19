@@ -16,7 +16,7 @@ const TRACK_Y = 50;
 /** Fixed places along the track (0 = left end, 1 = right end), so every spot
  *  looks the same. Spaced so each station's name, centred under its dot, has
  *  room between the two end names. [further, nearer] from the spot. */
-const MIDDLE_FRACS = { north: [0.34, 0.6], south: [0.66, 0.4] } as const;
+const MIDDLE_FRACS = { north: [0.33, 0.59], south: [0.67, 0.41] } as const;
 const PIN_FRAC = { north: 0.82, south: 0.18 } as const;
 
 export interface DiagramStation {

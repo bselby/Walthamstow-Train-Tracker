@@ -2,7 +2,7 @@ import type { Arrival } from './tfl';
 import type { Viewpoint } from './viewpoints';
 
 /** Live timeToStation threshold (seconds) beyond which we hide the freight
- *  strip glyph but keep the countdown + ticker. estimatePosition uses
+ *  strip glyph but keep the countdown + ticker. positionAtCountdown uses
  *  passenger-speed segment timings; freight runs at different speeds and may
  *  not even be on our modelled stops yet beyond ~5 min, so a best-effort
  *  position would be dishonest. */
