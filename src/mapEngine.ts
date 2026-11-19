@@ -27,10 +27,15 @@ function fitPadding(container: HTMLElement): number {
 }
 
 export const createMapLibreEngine: CreateEngine = async (container, scheme, onFail) => {
-  const [maplibregl] = await Promise.all([
+  // MapLibre looks for its worker beside its own module, where Vite doesn't
+  // put it. Importing the worker with ?url makes Vite emit it as a file (it
+  // has no imports of its own), and setWorkerUrl points MapLibre at it.
+  const [maplibregl, { default: workerUrl }] = await Promise.all([
     import('maplibre-gl'),
+    import('maplibre-gl/dist/maplibre-gl-worker.mjs?url'),
     import('maplibre-gl/dist/maplibre-gl.css'),
   ]);
+  maplibregl.setWorkerUrl(workerUrl);
 
   const map = new maplibregl.Map({
     container,
