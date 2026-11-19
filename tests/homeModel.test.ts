@@ -34,6 +34,7 @@ function build(overrides: Partial<Parameters<typeof buildHomeModel>[0]> = {}) {
     viewpoints: VIEWPOINTS,
     favouriteIds: [],
     locationEnabled: false,
+    locationAsked: true,
     geo: IDLE,
     snapshots: {},
     lastPollFailed: false,
@@ -43,6 +44,13 @@ function build(overrides: Partial<Parameters<typeof buildHomeModel>[0]> = {}) {
 }
 
 describe('buildHomeModel', () => {
+  it('asks about location on a first visit, until it has been answered', () => {
+    expect(build({ locationAsked: false }).location).toBe('ask');
+    expect(build({ locationAsked: true }).location).toBe('off');
+    // Once location is on, the question is moot.
+    expect(build({ locationAsked: false, locationEnabled: true, geo: { status: 'granted', position: HERE } }).location).toBe('on');
+  });
+
   it('no location: all spots by name, no walking labels', () => {
     const m = build();
     expect(m.othersTitle).toBe('All spots');

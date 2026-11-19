@@ -20,7 +20,8 @@ export interface HomeRow {
   favourite: boolean;
 }
 
-export type HomeLocation = 'off' | 'locating' | 'on' | 'denied' | 'no-signal' | 'unavailable';
+/** 'ask' = a first visit: the question about walking times, not yet answered. */
+export type HomeLocation = 'ask' | 'off' | 'locating' | 'on' | 'denied' | 'no-signal' | 'unavailable';
 
 export interface HomeModel {
   favourites: HomeRow[];
@@ -34,6 +35,8 @@ export interface HomeInput {
   viewpoints: readonly Viewpoint[];
   favouriteIds: readonly string[];
   locationEnabled: boolean;
+  /** The first-visit question has been answered, either way. */
+  locationAsked: boolean;
   geo: GeolocationState;
   snapshots: HomeSnapshots;
   /** The latest poll reached none of its stops. */
@@ -67,8 +70,8 @@ export function homeRowOrder(
   return [...favourites, ...others];
 }
 
-function locationState(enabled: boolean, geo: GeolocationState): HomeLocation {
-  if (!enabled) return 'off';
+function locationState(enabled: boolean, asked: boolean, geo: GeolocationState): HomeLocation {
+  if (!enabled) return asked ? 'off' : 'ask';
   if (geo.status === 'unavailable') return 'unavailable';
   // A fix from a moment ago is still good while the watch restarts.
   if (geo.position !== null) return 'on';
@@ -88,8 +91,8 @@ function countdownFor(entry: HomeSnapshots[string] | undefined, nowMs: number): 
 }
 
 export function buildHomeModel(input: HomeInput): HomeModel {
-  const { viewpoints, favouriteIds, locationEnabled, geo, snapshots, lastPollFailed, nowMs } = input;
-  const location = locationState(locationEnabled, geo);
+  const { viewpoints, favouriteIds, locationEnabled, locationAsked, geo, snapshots, lastPollFailed, nowMs } = input;
+  const location = locationState(locationEnabled, locationAsked, geo);
   const position = location === 'on' ? geo.position : null;
   const { favourites, others } = split(viewpoints, favouriteIds, position);
 
