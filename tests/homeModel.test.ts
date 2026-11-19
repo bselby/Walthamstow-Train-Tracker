@@ -170,7 +170,7 @@ describe('areas', () => {
 
   it('several areas, location on', () => {
     const m = build({ viewpoints: MULTI, areas: TEST_AREAS, ...LOC_ON });
-    expect(keys(m)).toEqual(['near', 'camden', 'hampstead']);
+    expect(keys(m)).toEqual(['near', 'area-camden', 'area-hampstead']);
     expect(m.groups[0].rows.map((r) => r.id)).toEqual(['queens-road', 'northcote-rd', 'east-ave']);
     expect(m.groups[1].title).toBe('Camden');
     expect(m.groups[1].rows.map((r) => r.id)).toEqual(['cam1', 'cam2']);
@@ -196,7 +196,7 @@ describe('areas', () => {
 
   it('an area with nothing left has no heading', () => {
     const m = build({ viewpoints: MULTI, areas: TEST_AREAS, favouriteIds: ['cam1', 'cam2'], ...LOC_ON });
-    expect(keys(m)).toEqual(['near', 'hampstead']);
+    expect(keys(m)).toEqual(['near', 'area-hampstead']);
   });
 
   it('empty Near you is left out', () => {
