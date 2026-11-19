@@ -21,7 +21,7 @@ import { fetchFreight, clampFreightPosition } from './freight';
 import { atViewpoint, canTuneViewpoint, passKey, updatePass, type TapPass } from './tap';
 import { chooseHelp, loadTapState, noteFullBoxShown, recordTap, saveTapState, showsFullBox } from './tapStore';
 import { buildTapPayload, sendTap, shouldSendTaps } from './tapClient';
-import { msUntilButton, newDeviceId, settleHelpBoxes, tapAsk, tapDirectionView, tflExpectedArrivalMs } from './tapView';
+import { locationNudge, msUntilButton, newDeviceId, settleHelpBoxes, tapAsk, tapDirectionView, tflExpectedArrivalMs } from './tapView';
 import { parseRoute, viewpointPath, HOME_PATH, TICKET_PATH, HOW_PATH } from './routes';
 import { loadFavourites, saveFavourites, toggleFavourite } from './favourites';
 import { landingFor } from './landing';
@@ -71,6 +71,9 @@ const THANKS_DURATION_MS = 60_000;
 const tapPasses: Record<Direction, TapPass | null> = { north: null, south: null };
 const thanksUntilMs: Partial<Record<Direction, number>> = {};
 const thanksPassKey: Partial<Record<Direction, string>> = {};
+// The pass whose yellow button was last drawn in each card, so it stays for
+// its train if the phone's location wobbles past 100 m.
+const buttonShownKey: Partial<Record<Direction, string>> = {};
 // The tap being thanked could not be sent: the thank-you says so.
 const tapOffline: Partial<Record<Direction, boolean>> = {};
 
@@ -532,6 +535,9 @@ function buildViewModel(): ViewModel {
 function buildTapView(heroes: Partial<Record<Direction, BridgeEvent>>, now: number): ViewModel['tap'] {
   const views = {} as Record<Direction, ViewModel['tap']['north']>;
   const canTune = canTuneViewpoint(activeViewpoint);
+  const locationState = getLocationState();
+  const here = locationEnabled
+    && atViewpoint(locationState.position, activeViewpoint.coords) === 'yes';
   for (const dir of DIRECTIONS) {
     const liveStep = liveBerthEta(berthEtas[dir], now) !== undefined ? berthSteps[dir] : undefined;
     tapPasses[dir] = updatePass(tapPasses[dir], {
@@ -550,7 +556,10 @@ function buildTapView(heroes: Partial<Record<Direction, BridgeEvent>>, now: numb
       canTune,
       msUntilButton: msUntilButton(activeViewpoint, dir, heroes[dir]),
       offline: tapOffline[dir] === true,
+      here,
+      buttonShownKey: buttonShownKey[dir],
     });
+    if (views[dir].state === 'button') buttonShownKey[dir] = views[dir].passKey ?? undefined;
   }
   const fullBox = fullBoxThisVisit && tapState.taps === 0;
   const settled = settleHelpBoxes(views, fullBox);
@@ -568,6 +577,13 @@ function buildTapView(heroes: Partial<Record<Direction, BridgeEvent>>, now: numb
     // full help box needs it. After that the slot shows only for the button
     // and thank-you, at a shorter height. Decided once per visit.
     short: !fullBoxThisVisit,
+    nudge: locationNudge({
+      canTune,
+      tapState,
+      locationEnabled,
+      geolocationSupported: 'geolocation' in navigator,
+      status: locationState.status,
+    }),
     north: views.north,
     south: views.south,
   };

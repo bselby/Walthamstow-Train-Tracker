@@ -30,6 +30,8 @@ export interface TapView {
    *  button and thank-you get a shorter one (styles.css); the thank-you and
    *  rank-up drop a line to fit. Fixed for the visit. */
   short?: boolean;
+  /** Show the line below the cards that turns location on (locationNudge). */
+  nudge?: boolean;
   north: TapDirectionView;
   south: TapDirectionView;
 }

@@ -7,6 +7,7 @@ import type { Direction } from './direction';
 import type { Viewpoint } from './viewpoints';
 import { askKind, buttonsEnabled, hasTapped, type AskKind, type TapState } from './tapStore';
 import type { TapDirectionView } from './tapUi';
+import type { GeolocationStatus } from './geolocation';
 
 /**
  * One direction's slot. `thanks` while the minute after the tap runs and the
@@ -28,6 +29,11 @@ export function tapDirectionView(input: {
   msUntilButton: number | null;
   /** The send of the tap being thanked failed. */
   offline: boolean;
+  /** The phone's location is on and within 100 m of the spot. */
+  here: boolean;
+  /** The pass whose button was last drawn in this card, so a button that is
+   *  showing stays for its train when the location wobbles past 100 m. */
+  buttonShownKey: string | undefined;
 }): TapDirectionView {
   const { pass, tapState, thanksUntilMs, thanksPassKey, nowMs } = input;
   const none: TapDirectionView = {
@@ -45,6 +51,11 @@ export function tapDirectionView(input: {
     };
   }
   if (!input.canTune || !buttonsEnabled(tapState)) return none;
+  // Only someone at the spot can time a train (Ben, 2026-11-19), so away from
+  // it there is no help box and no button, unless this train's button is
+  // already showing.
+  const shown = pass !== null && input.buttonShownKey === passKey(pass) && !hasTapped(tapState, passKey(pass));
+  if (!input.here && !shown) return none;
   // From here timing is on at this spot: the slot is always drawn, empty
   // ('reserved') when there is nothing to show, so the card never changes height.
   const reserved: TapDirectionView = { ...none, state: 'reserved' };
@@ -85,6 +96,22 @@ export function settleHelpBoxes(
     return southFirst ? { north: empty(north), south } : { north, south: empty(south) };
   }
   return { north, south };
+}
+
+/** The line below the cards that asks for location, which timing needs: at a
+ *  spot that can be timed, for anyone who has not said no, while location is
+ *  off. Not when the phone or browser cannot give a location, as the line
+ *  could then do nothing. */
+export function locationNudge(input: {
+  canTune: boolean;
+  tapState: TapState;
+  locationEnabled: boolean;
+  geolocationSupported: boolean;
+  status: GeolocationStatus;
+}): boolean {
+  if (!input.canTune || !buttonsEnabled(input.tapState)) return false;
+  if (!input.geolocationSupported || input.status === 'denied' || input.status === 'unavailable') return false;
+  return !input.locationEnabled;
 }
 
 /** How long until this train's button opens, or null when it will get none

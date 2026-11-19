@@ -606,6 +606,27 @@ html, body {
 }
 
 .map-link,
+/* "Turn on location to time trains here": one quiet line below the cards,
+   a 44 px target, like the walking-time control. */
+.location-nudge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  width: 100%;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+.location-nudge:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+
 .walking-time-enable {
   display: inline-flex;
   align-items: center;

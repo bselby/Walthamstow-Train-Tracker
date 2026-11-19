@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { BridgeEvent } from '../src/bridge';
 import type { TapPass } from '../src/tap';
 import type { TapState } from '../src/tapStore';
-import { msUntilButton, newDeviceId, settleHelpBoxes, tapAsk, tapDirectionView, tflExpectedArrivalMs } from '../src/tapView';
+import { locationNudge, msUntilButton, newDeviceId, settleHelpBoxes, tapAsk, tapDirectionView, tflExpectedArrivalMs } from '../src/tapView';
 import type { TapDirectionView } from '../src/tapUi';
 import { getViewpointById } from '../src/viewpoints';
 
@@ -52,6 +52,8 @@ function view(over: Partial<ViewInput> = {}) {
     canTune: true,
     msUntilButton: null,
     offline: false,
+    here: true,
+    buttonShownKey: undefined,
     ...over,
   });
 }
@@ -292,5 +294,58 @@ describe('settleHelpBoxes', () => {
     const out = settleHelpBoxes({ north: button, south: thanks }, false);
     expect(out.north).toBe(button);
     expect(out.south).toBe(thanks);
+  });
+});
+
+describe('only at the spot', () => {
+  it('away from the spot: no button for a due train', () => {
+    expect(view({ pass, here: false }).state).toBe('none');
+  });
+
+  it('away from the spot: no help box either', () => {
+    expect(view({ msUntilButton: 60_000, here: false }).state).toBe('none');
+  });
+
+  it('at the spot: the button as before', () => {
+    expect(view({ pass, here: true }).state).toBe('button');
+  });
+
+  it('keeps a button already shown for this train when the location wobbles away', () => {
+    expect(view({ pass, here: false, buttonShownKey: KEY }).state).toBe('button');
+  });
+
+  it('a button shown for another train does not count', () => {
+    expect(view({ pass, here: false, buttonShownKey: 'east-ave|north|1' }).state).toBe('none');
+  });
+
+  it('the thank-you still shows after walking away', () => {
+    const v = view({ tapState: tapped, thanksUntilMs: NOW + 30_000, thanksPassKey: KEY, here: false });
+    expect(v.state).toBe('thanks');
+  });
+});
+
+describe('locationNudge', () => {
+  const base = { canTune: true, tapState: state(), locationEnabled: false, geolocationSupported: true, status: 'idle' as const };
+
+  it('shows with location off at a spot that can be timed', () => {
+    expect(locationNudge(base)).toBe(true);
+  });
+
+  it('not once location is on', () => {
+    expect(locationNudge({ ...base, locationEnabled: true, status: 'granted' })).toBe(false);
+  });
+
+  it('not where timing is off, or for someone who said no', () => {
+    expect(locationNudge({ ...base, canTune: false })).toBe(false);
+    expect(locationNudge({ ...base, tapState: state({ choice: 'declined', asksShown: 1, declinedAtMs: NOW }) })).toBe(false);
+  });
+
+  it('not when the phone has no location to give', () => {
+    expect(locationNudge({ ...base, geolocationSupported: false })).toBe(false);
+  });
+
+  it('not when the browser has blocked location: the line could do nothing', () => {
+    expect(locationNudge({ ...base, locationEnabled: true, status: 'denied' })).toBe(false);
+    expect(locationNudge({ ...base, status: 'denied' })).toBe(false);
   });
 });

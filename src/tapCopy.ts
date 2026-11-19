@@ -13,6 +13,9 @@ function trains(n: number): string {
   return n === 1 ? '1 train' : `${n} trains`;
 }
 
+/** Below the cards while location is off: timing needs it. */
+export const LOCATION_NUDGE = 'Turn on location to time trains here';
+
 export const NO_SIGNAL_LINE = "No signal, so that one didn't send. It still counts on your ticket.";
 
 export function ticketBadgeLabel(taps: number): string {

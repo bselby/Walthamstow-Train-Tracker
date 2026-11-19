@@ -8,7 +8,10 @@ export const TAP_LEAD_SECONDS = 30;
 /** ...and stays tappable this many seconds after the predicted time. */
 export const TAP_LINGER_SECONDS = 45;
 
-const AT_VIEWPOINT_METRES = 150;
+/** Within this of the spot counts as there: the button only shows there, and
+ *  each tap says whether the phone was (Ben, 2026-11-19: 100 m, to allow for
+ *  a phone's location being a little off). */
+export const AT_VIEWPOINT_METRES = 100;
 
 export const LEVELS: readonly { name: string; taps: number; kit: string }[] = [
   { name: 'Spotter', taps: 1, kit: 'Notebook at the ready.' },

@@ -1,3 +1,4 @@
+import { LOCATION_NUDGE } from '../src/tapCopy';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, type ViewModel } from '../src/render';
 import type { BridgeEvent } from '../src/bridge';
@@ -748,6 +749,21 @@ describe('render — the rest of the spot screen', () => {
     expect(order.indexOf('fact-line')).toBe(order.indexOf('footer') - 1);
     root.querySelector<HTMLButtonElement>('.fact-line')!.click();
     expect(onAdvanceFact).toHaveBeenCalledTimes(1);
+  });
+
+  it('location off at a timeable spot: one line below the cards that turns location on', () => {
+    const onEnableWalkingTime = vi.fn();
+    render(root, both({ tap: { ...NEUTRAL_TAP, nudge: true } }), { ...opts, onEnableWalkingTime });
+    const nudge = root.querySelector<HTMLButtonElement>(':scope > button.location-nudge')!;
+    expect(nudge.textContent).toBe(LOCATION_NUDGE);
+    expect(nudge.type).toBe('button');
+    const order = classes();
+    expect(order.indexOf('location-nudge')).toBe(order.indexOf('spot-tools') - 1);
+    expect(order.lastIndexOf('direction-card')).toBeLessThan(order.indexOf('location-nudge'));
+    nudge.click();
+    expect(onEnableWalkingTime).toHaveBeenCalledTimes(1);
+    render(root, both(), opts);
+    expect(root.querySelector('.location-nudge')).toBeNull();
   });
 
   it('walking time, its off control and "Verify on map" sit together after the cards', () => {

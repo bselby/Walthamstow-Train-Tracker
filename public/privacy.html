@@ -107,7 +107,7 @@
               <li><code>berthStepMs</code> — when the signalling step behind the prediction fired, if there was one.</li>
               <li><code>tflExpectedArrivalMs</code> — TfL's expected arrival time for that train, if known.</li>
               <li><code>vehicleId</code> and <code>berthTrainId</code> — TfL's and the signalling system's ids for the train, if known.</li>
-              <li><code>atViewpoint</code> — just <code>yes</code>, <code>no</code> or <code>unknown</code>: whether you were within about 150 metres of the spot. It is <code>unknown</code> unless location is on and your phone has found its location.</li>
+              <li><code>atViewpoint</code> — just <code>yes</code>, <code>no</code> or <code>unknown</code>: whether you were within about 100 metres of the spot. It is <code>unknown</code> unless location is on and your phone has found its location.</li>
               <li><code>deviceId</code> — a random code made on your device and kept in <code>wtt_tap_state</code>, so repeat taps from one phone can be told apart. It isn't linked to you.</li>
             </ul>
             <p>
@@ -127,12 +127,14 @@
             <p>
               On your first visit the home screen asks whether to show walking
               times. If you tap <strong>Yes</strong>, or later
-              <strong>Use my location</strong> on the home screen or
-              <strong>Enable walking time</strong> on a spot, your browser hands
+              <strong>Use my location</strong> on the home screen,
+              <strong>Enable walking time</strong> on a spot or
+              <strong>Turn on location to time trains here</strong>, your browser hands
               your latitude and longitude to this app's JavaScript code. Those
               coordinates are used on your device only, to work out how far you
-              are from each spot, so the list can be sorted nearest first and
-              walking times shown. They are <strong>never transmitted
+              are from each spot, so the list can be sorted nearest first,
+              walking times shown, and the yellow timing button shown only
+              when you are within about 100 metres of the spot. They are <strong>never transmitted
               anywhere</strong>. They are not stored, logged, or sent. A tap sends
               only whether you were near the spot (<code>yes</code> or
               <code>no</code>), never the coordinates.

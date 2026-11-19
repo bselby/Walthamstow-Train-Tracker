@@ -9,7 +9,7 @@ import { escapeHtml } from './escapeHtml';
 import { regionFor, isNewRegionThisSession, type Region } from './freightRegions';
 import type { Direction } from './direction';
 import { renderTapSlot, renderAskCard, type TapView } from './tapUi';
-import { ticketBadgeLabel } from './tapCopy';
+import { LOCATION_NUDGE, ticketBadgeLabel } from './tapCopy';
 
 export interface ViewModel {
   north?: BridgeEvent;
@@ -83,7 +83,7 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
   if (existingCardN) preserved.add(existingCardN);
   if (existingCardS) preserved.add(existingCardS);
   if (ask?.parentElement === root) preserved.add(ask);
-  for (const kept of root.querySelectorAll(':scope > .quiet-card, :scope > .lost-notice, :scope > .spot-tools')) {
+  for (const kept of root.querySelectorAll(':scope > .quiet-card, :scope > .lost-notice, :scope > .spot-tools, :scope > .location-nudge')) {
     preserved.add(kept);
   }
 
@@ -147,6 +147,9 @@ export function render(root: HTMLElement, vm: ViewModel, options: RenderOptions)
   // The ask card sits in the page flow below the cards, never over a
   // countdown, and stays through spells with no trains to show.
   if (ask) out.push(ask);
+
+  // Timing needs location: one line that turns it on, below the cards.
+  if (vm.tap.nudge) out.push(locationNudgeLine(root));
 
   // The walking time (with its off control) and "Verify on map", together
   // under the cards so neither pushes a countdown down.
@@ -280,6 +283,19 @@ function lostNotice(root: HTMLElement): HTMLElement {
   line.textContent = "Can't reach the live times right now. We'll keep trying.";
   notice.append(title, line);
   return notice;
+}
+
+/** "Turn on location to time trains here". Kept across redraws so a focused
+ *  line keeps its focus. */
+function locationNudgeLine(root: HTMLElement): HTMLElement {
+  const existing = root.querySelector<HTMLElement>(':scope > .location-nudge');
+  if (existing) return existing;
+  const line = document.createElement('button');
+  line.type = 'button';
+  line.className = 'location-nudge';
+  line.textContent = LOCATION_NUDGE;
+  line.addEventListener('click', () => currentOptions?.onEnableWalkingTime());
+  return line;
 }
 
 /** The walking time and "Verify on map" on one row under the cards. Kept
