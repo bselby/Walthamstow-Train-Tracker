@@ -33,7 +33,9 @@ const STAR_OUTLINE = `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="${STA
 
 const TICKET_ICON = '<svg class="ticket-badge-icon" viewBox="0 0 18 14" aria-hidden="true"><path d="M1 1 H17 V5 Q15 7 17 9 V13 H1 V9 Q3 7 1 5 Z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';
 
-const PIN = '<svg class="home-pin" viewBox="0 0 22 28" aria-hidden="true"><path d="M11 26 C7 20 1 15 1 10 A10 10 0 0 1 21 10 C21 15 15 20 11 26 Z" fill="var(--pin)" stroke="var(--pin-outline)" stroke-width="2"/><circle cx="11" cy="10" r="3.5" fill="var(--card)"/></svg>';
+/** The app's pin shape, in a 22 × 28 box. The map draws its pins from it too. */
+export const PIN_PATH = 'M11 26 C7 20 1 15 1 10 A10 10 0 0 1 21 10 C21 15 15 20 11 26 Z';
+const PIN = `<svg class="home-pin" viewBox="0 0 22 28" aria-hidden="true"><path d="${PIN_PATH}" fill="var(--pin)" stroke="var(--pin-outline)" stroke-width="2"/><circle cx="11" cy="10" r="3.5" fill="var(--card)"/></svg>`;
 
 const LOCATION_TEXT: Record<'locating' | 'on' | 'denied' | 'no-signal', string> = {
   locating: 'Finding you…',
