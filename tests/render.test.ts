@@ -354,7 +354,7 @@ describe('render — direction cards and the timing slot', () => {
   });
 
   it('after the newcomer visits, each slot is the short one', () => {
-    const tap: TapView = { ...NEUTRAL_TAP, short: true, south: { ...NO_TAP, state: 'cue', msUntilButton: 300_000 } };
+    const tap: TapView = { ...NEUTRAL_TAP, short: true, south: button('ea|south|1') };
     render(root, withRows(tap, EA), opts);
     expect(cards()[1].querySelector('.tap-slot')!.classList.contains('tap-slot-short')).toBe(true);
   });

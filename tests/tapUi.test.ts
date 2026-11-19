@@ -4,7 +4,7 @@ import {
   renderAskCard,
   type TapDirectionView,
 } from '../src/tapUi';
-import { HELP_CUE, NO_SIGNAL_LINE, PLACEHOLDER, progressLine } from '../src/tapCopy';
+import { NO_SIGNAL_LINE, PLACEHOLDER, progressLine } from '../src/tapCopy';
 
 const TAP_MS = 1_800_000_000_000;
 const PREDICTED_MS = TAP_MS + 12_000;
@@ -324,37 +324,6 @@ describe('renderAskCard', () => {
   // The old ticket strip under the panels is gone: its job is the header badge.
   it.each(['ready', 'invite', 'off'] as const)('%s: no strip under the cards', (kind) => {
     expect(renderAskCard(kind, handlers())).toBeNull();
-  });
-});
-
-describe('the short help line', () => {
-  const cueView: TapDirectionView = { ...BASE, state: 'cue', msUntilButton: 120_000 };
-
-  it('is one line saying where the button will appear, with no full box', () => {
-    const el = renderTapSlot(null, cueView, handlers())!;
-    expect(el.classList.contains('tap-slot')).toBe(true);
-    expect(el.querySelector('.tap-cue')!.textContent).toBe(HELP_CUE);
-    expect(el.querySelector('.tap-placeholder')).toBeNull();
-    expect(el.getAttribute('aria-hidden')).toBeNull();
-  });
-
-  it('opens How it works', () => {
-    const onOpenHow = vi.fn();
-    const el = renderTapSlot(null, cueView, handlers({ onOpenHow }))!;
-    const cue = el.querySelector<HTMLButtonElement>('button.tap-cue')!;
-    expect(cue.type).toBe('button');
-    cue.click();
-    expect(onOpenHow).toHaveBeenCalledTimes(1);
-  });
-
-  it('swaps with the full box in the same slot', () => {
-    const slot = renderTapSlot(null, placeholderView(60_000), handlers())!;
-    expect(renderTapSlot(slot, cueView, handlers())).toBe(slot);
-    expect(slot.querySelector('.tap-placeholder')).toBeNull();
-    expect(slot.querySelector('.tap-cue')).not.toBeNull();
-    renderTapSlot(slot, placeholderView(60_000), handlers());
-    expect(slot.querySelector('.tap-cue')).toBeNull();
-    expect(slot.querySelector('.tap-placeholder')).not.toBeNull();
   });
 });
 

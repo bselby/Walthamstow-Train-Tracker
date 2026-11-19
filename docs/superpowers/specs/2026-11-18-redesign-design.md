@@ -133,9 +133,11 @@ The logic stays; the presentation is replaced. Map from boards to code:
   compact layout (smaller numbers and button, diagram under the "then"
   times). While timing is on at a spot, each card's timing slot keeps one
   fixed height whether it holds the placeholder, the button or the "Got it"
-  message, so nothing below it jumps. That height is set once per visit
-  (2026-11-19): 120 px (100 px compact) on the newcomer visits that show
-  the full help box, 80 px (72 px compact) after. In the short slot the
+  message, so nothing below it jumps. On the newcomer visits that show the
+  full help box (2026-11-19) that is still so, at 120 px (100 px compact).
+  After them the slot is drawn only for the button and the thank-you, at
+  80 px (72 px compact), so the card below moves down while it shows
+  (Ben's call, 2026-11-19). In the short slot the
   rank-up drops its "See my ticket" link (the header badge opens the
   ticket) and the no-signal line stands in for the progress line.
 - The text on boards (sample freight route, sample fact, times) is
@@ -166,10 +168,13 @@ Driver 30, Station Master 60) stay. New presentation:
 - Waiting state (changed 2026-11-19 after Ben found the spot screen too
   busy): on someone's first two visits, until they time a train, the full
   dashed box ("Help make this time spot-on", one sentence, "What's this?")
-  shows in one card only, the one whose button opens first. The other card,
-  and both cards after that, show one short line: "A yellow button shows
-  here before the train". Both open How it works. Shown to anyone who has
-  not said no, at spots with a timing button.
+  shows in one card only, the one whose button opens first, and opens How
+  it works. The other card keeps an empty slot of the same height. After
+  those visits there is nothing in the cards while waiting: the space
+  closes up, and the button opens it when it is due, pushing the card below
+  it down (Ben chose this over a short "A yellow button shows here" line,
+  which said what the button says anyway). Shown to anyone who has not said
+  no, at spots with a timing button.
 - The button (board 4): big yellow "Tap as the train passes / when the front
   reaches you", inside the direction card, during today's window (30 s
   before to 45 s after).

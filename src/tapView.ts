@@ -65,22 +65,24 @@ export function tapDirectionView(input: {
 
 /**
  * Who sees the full help box. A newcomer sees it once, in the card whose
- * button opens first, and the short line in the other; everyone else sees the
- * short line in both. Other states pass through untouched. The box may move
- * to the other card when the next train changes, but the slot keeps its
- * height, so nothing on the page moves.
+ * button opens first; the other card's slot stays, empty, at the same fixed
+ * height, so nothing on the page moves on those visits. Everyone else gets no
+ * slot at all while waiting: the space closes up, and the button opens it
+ * when it is due, pushing what is below it down (Ben, 2026-11-19).
  */
 export function settleHelpBoxes(
   views: Record<Direction, TapDirectionView>,
   fullBox: boolean,
 ): Record<Direction, TapDirectionView> {
-  const toCue = (v: TapDirectionView): TapDirectionView =>
-    v.state === 'placeholder' ? { ...v, state: 'cue' } : v;
+  const empty = (v: TapDirectionView): TapDirectionView =>
+    v.state === 'placeholder' ? { ...v, state: 'reserved', msUntilButton: null } : v;
+  const closed = (v: TapDirectionView): TapDirectionView =>
+    v.state === 'placeholder' || v.state === 'reserved' ? { ...v, state: 'none', msUntilButton: null } : v;
   const { north, south } = views;
-  if (!fullBox) return { north: toCue(north), south: toCue(south) };
+  if (!fullBox) return { north: closed(north), south: closed(south) };
   if (north.state === 'placeholder' && south.state === 'placeholder') {
     const southFirst = (south.msUntilButton ?? Infinity) < (north.msUntilButton ?? Infinity);
-    return southFirst ? { north: toCue(north), south } : { north, south: toCue(south) };
+    return southFirst ? { north: empty(north), south } : { north, south: empty(south) };
   }
   return { north, south };
 }
