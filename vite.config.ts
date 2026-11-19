@@ -27,6 +27,10 @@ export default defineConfig({
       },
       workbox: {
         navigateFallback: '/index.html',
+        // MapLibre's chunk and CSS (about 300 kB gzipped) aren't precached:
+        // an install shouldn't download them for a page that needs a signal
+        // anyway. Offline, the map page says it can't load.
+        globIgnores: ['**/maplibre-gl-*'],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.origin === 'https://api.tfl.gov.uk',

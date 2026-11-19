@@ -22,7 +22,7 @@ import { atViewpoint, canTuneViewpoint, passKey, updatePass, type TapPass } from
 import { chooseHelp, loadTapState, noteFullBoxShown, recordTap, saveTapState, showsFullBox } from './tapStore';
 import { buildTapPayload, sendTap, shouldSendTaps } from './tapClient';
 import { msUntilButton, newDeviceId, settleHelpBoxes, tapAsk, tapDirectionView, tflExpectedArrivalMs } from './tapView';
-import { parseRoute, viewpointPath, HOME_PATH, TICKET_PATH, HOW_PATH } from './routes';
+import { parseRoute, viewpointPath, HOME_PATH, TICKET_PATH, HOW_PATH, MAP_PATH } from './routes';
 import { loadFavourites, saveFavourites, toggleFavourite } from './favourites';
 import { landingFor } from './landing';
 import { renderHome } from './home';
@@ -30,6 +30,11 @@ import { renderTicketPage } from './ticketPage';
 import { renderHowItWorks } from './howItWorks';
 import { buildHomeModel, homeRowOrder } from './homeModel';
 import { pollHome, HOME_POLL_INTERVAL_MS, HOME_STALE_MS, type HomeSnapshots } from './homeArrivals';
+import { renderMapPage, updateMapPage, leaveMapPage, type MapPageModel } from './mapPage';
+import { mapPins, firstView, parseCamera, type Camera } from './mapModel';
+// MapLibre itself is loaded inside the engine with import(), so it stays
+// out of the main bundle.
+import { createMapLibreEngine } from './mapEngine';
 
 // A small hello for anyone peeking at devtools. One console log, no overhead.
 console.log(
@@ -170,7 +175,7 @@ function replaceAddress(path: string): void {
 // This rule is for opening the app only. Going to home from a countdown
 // shows home whatever the favourites are.
 const landing = landingFor(parseRoute(window.location.pathname), favouriteIds);
-let screen: 'home' | 'countdown' | 'ticket' | 'how' =
+let screen: 'home' | 'countdown' | 'ticket' | 'how' | 'map' =
   landing.screen === 'viewpoint' ? 'countdown' : landing.screen;
 // The viewpoint the countdown screen shows. Kept while home is showing, so
 // the countdown code never has to handle there being none.
@@ -181,6 +186,7 @@ replaceAddress(
   screen === 'countdown' ? viewpointPath(activeViewpoint)
   : screen === 'ticket' ? TICKET_PATH
   : screen === 'how' ? HOW_PATH
+  : screen === 'map' ? MAP_PATH
   : HOME_PATH,
 );
 
@@ -277,6 +283,7 @@ let keptForViewpointId: string | null = null;
 function showCountdown(viewpoint: Viewpoint): void {
   const resume = (screen === 'ticket' || screen === 'how') && keptForViewpointId === viewpoint.id;
   keptForViewpointId = null;
+  leaveMapPage();
   stopHomePoller();
   stopCountdownPollers();
   screen = 'countdown';
@@ -309,6 +316,7 @@ function showCountdown(viewpoint: Viewpoint): void {
 
 function showHome(): void {
   keptForViewpointId = null;
+  leaveMapPage();
   stopCountdownPollers();
   screen = 'home';
   resetCountdownState();
@@ -320,12 +328,16 @@ function showHome(): void {
   startHomePoller();
 }
 
-/** Open a viewpoint from home: a new history entry, so back returns to home. */
+/** Open a viewpoint from home or the map: a new history entry, so back
+ *  returns there. From the map, the entry says so, for the way back. */
 function openViewpoint(id: string): void {
   const viewpoint = getViewpointById(id);
   if (!viewpoint) return;
+  const state = screen === 'map' ? { from: MAP_PATH } : {};
+  // Before the address changes, so a last map move can't land on the spot's entry.
+  leaveMapPage();
   try {
-    window.history.pushState({}, '', viewpointPath(viewpoint));
+    window.history.pushState(state, '', viewpointPath(viewpoint));
   } catch {
     /* no-op: the screen still changes */
   }
@@ -334,6 +346,7 @@ function openViewpoint(id: string): void {
 }
 
 function goHome(): void {
+  leaveMapPage();
   try {
     window.history.pushState({}, '', HOME_PATH);
   } catch {
@@ -350,6 +363,7 @@ const HOW_TITLE = 'E17 Trains — How it works';
  *  Opened from a spot (or from the other info screen over one), that spot's
  *  countdown state is kept for the way back; otherwise it is cleared. */
 function showInfoScreen(which: 'ticket' | 'how'): void {
+  leaveMapPage();
   stopHomePoller();
   stopCountdownPollers();
   if (screen === 'countdown') keptForViewpointId = activeViewpoint.id;
@@ -370,6 +384,7 @@ function backFromInfo(): void {
 }
 
 function openInfo(which: 'ticket' | 'how'): void {
+  leaveMapPage();
   try {
     window.history.pushState({ from: window.location.pathname }, '', which === 'ticket' ? TICKET_PATH : HOW_PATH);
   } catch {
@@ -383,12 +398,79 @@ function openInfo(which: 'ticket' | 'how'): void {
 export function openTicket(): void { openInfo('ticket'); }
 export function openHow(): void { openInfo('how'); }
 
+const MAP_TITLE = 'E17 Trains — Map';
+
+/** The spot on screen was opened from the map, so its back link goes there. */
+function openedFromMap(): boolean {
+  return (window.history.state as { from?: string } | null)?.from === MAP_PATH;
+}
+
+/** The spot's back link: one step back to the map it was opened from, as
+ *  that entry holds where the map was left; otherwise home. */
+function backFromSpot(): void {
+  if (openedFromMap()) window.history.back();
+  else goHome();
+}
+
+/** Show the map. It doesn't poll, so both pollers stop, and it is painted
+ *  afresh on each visit. */
+function showMap(): void {
+  keptForViewpointId = null;
+  stopHomePoller();
+  stopCountdownPollers();
+  screen = 'map';
+  resetCountdownState();
+  delete root.dataset.info;
+  document.title = MAP_TITLE;
+  document.documentElement.style.removeProperty('--line-color');
+  rerender();
+}
+
+function openMap(): void {
+  try {
+    window.history.pushState({ from: window.location.pathname }, '', MAP_PATH);
+  } catch {
+    /* no-op: the screen still changes */
+  }
+  showMap();
+  window.scrollTo(0, 0);
+}
+
+/** Back from the map works as from the ticket: one step back when this app
+ *  put it there (home or a spot), else home. */
+const backFromMap = backFromInfo;
+
+/** Where the map was left, kept in its own history entry so coming back to
+ *  it (from a spot, or with forward) finds it there. The engine reports
+ *  this once a move has ended, not on every frame. */
+function saveMapCamera(camera: Camera): void {
+  if (screen !== 'map' || window.location.pathname !== MAP_PATH) return;
+  try {
+    window.history.replaceState({ ...(window.history.state ?? {}), camera }, '');
+  } catch {
+    /* no-op: the map just opens on its first view next time */
+  }
+}
+
+function buildMapModel(): MapPageModel {
+  // The held fix counts only while location is on, as on home.
+  const position = locationEnabled ? getLocationState().position : null;
+  return {
+    pins: mapPins(VIEWPOINTS, position),
+    firstView: firstView(VIEWPOINTS, position),
+    camera: parseCamera((window.history.state as { camera?: unknown } | null)?.camera),
+    you: position,
+    locationOff: !locationEnabled,
+  };
+}
+
 // Back and forward: show whatever the address bar now names.
 window.addEventListener('popstate', () => {
   const route = parseRoute(window.location.pathname);
   if (route.kind === 'viewpoint') showCountdown(route.viewpoint);
   else if (route.kind === 'ticket') showInfoScreen('ticket');
   else if (route.kind === 'how') showInfoScreen('how');
+  else if (route.kind === 'map') showMap();
   else showHome();
 });
 
@@ -524,7 +606,7 @@ function buildViewModel(): ViewModel {
     fact: factAt(factIndex),
     viewpoint: activeViewpoint,
     favouriteIds,
-    backTo: 'home',
+    backTo: openedFromMap() ? 'map' : 'home',
     tap: buildTapView(heroes, now),
   };
 }
@@ -656,6 +738,24 @@ function rerender(): void {
     }
     return;
   }
+  if (screen === 'map') {
+    // Painted once per visit; after that only what can change is updated,
+    // since the one-second loop calls rerender.
+    if (root.dataset.info !== 'map') {
+      root.dataset.info = 'map';
+      renderMapPage(root, buildMapModel(), {
+        onBack: backFromMap,
+        onSeeList: goHome,
+        onOpen: openViewpoint,
+        onUseLocation: enableLocation,
+        onMove: saveMapCamera,
+        createEngine: createMapLibreEngine,
+      });
+    } else {
+      updateMapPage(root, buildMapModel());
+    }
+    return;
+  }
   delete root.dataset.info;
   if (screen === 'home') {
     renderHome(
@@ -679,7 +779,7 @@ function rerender(): void {
         onLocationNotNow: declineLocationAsk,
         taps: tapState.taps,
         onOpenTicket: openTicket,
-        onOpenMap: () => {},
+        onOpenMap: openMap,
       },
     );
     return;
@@ -694,13 +794,13 @@ function rerender(): void {
       advanceFact();
       rerender();
     },
-    onHome: goHome,
+    onHome: backFromSpot,
     onToggleFavourite: toggleFavouriteViewpoint,
     onTap: (dir, pressedAtMs) => { void onTap(dir, pressedAtMs); },
     onHelpChoice,
     onOpenTicket: openTicket,
     onOpenHow: openHow,
-    onOpenMap: () => {},
+    onOpenMap: openMap,
   });
 }
 
@@ -862,6 +962,8 @@ if (screen === 'countdown') {
   document.title = TICKET_TITLE;
 } else if (screen === 'how') {
   document.title = HOW_TITLE;
+} else if (screen === 'map') {
+  document.title = MAP_TITLE;
 }
 
 // ── TD berth integration ──────────────────────────────────────────────────────
