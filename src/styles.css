@@ -1828,6 +1828,10 @@ html, body {
   from { transform: translateY(24px); opacity: 0; }
   to { transform: none; opacity: 1; }
 }
+/* Keep MapLibre's credit visible: lift it above the open card. */
+.map-wrap.card-open .maplibregl-ctrl-bottom-right {
+  bottom: calc(var(--map-card-h, 0px) + 12px);
+}
 .map-card-close {
   position: absolute; top: 4px; right: 4px;
   display: flex; align-items: center; justify-content: center;
