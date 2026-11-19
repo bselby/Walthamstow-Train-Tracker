@@ -31,6 +31,8 @@ export interface MapPageModel {
 
 export interface MapPageOptions {
   onBack: () => void;
+  /** "See the list" on the failure message: the home list, wherever the map was opened from. */
+  onSeeList: () => void;
   onOpen: (id: string) => void;
   onUseLocation: () => void;
   onMove: (c: Camera) => void;
@@ -52,6 +54,8 @@ interface PageState {
   /** Set by leaveMapPage, so an engine that arrives late is destroyed at once. */
   left: boolean;
   cleanups: Array<() => void>;
+  /** Watches the open card's height, to keep the map credit above it. */
+  cardObserver: ResizeObserver | null;
 }
 
 let state: PageState | null = null;
@@ -71,15 +75,36 @@ function darkQuery(): MediaQueryList | null {
   return typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 }
 
+/** A plain left click, not one asking for a new tab or window. */
+function plainClick(e: MouseEvent): boolean {
+  return e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey;
+}
+
 function closeCard(s: PageState): void {
   s.openId = null;
+  s.cardObserver?.disconnect();
+  s.cardObserver = null;
+  s.wrap.classList.remove('card-open');
+  s.wrap.style.removeProperty('--map-card-h');
   s.wrap.querySelector('.map-card')?.remove();
+}
+
+/** The card sits over the bottom of the map, so the map credit (bottom
+    right) is lifted above it by the card's height. */
+function liftCredit(s: PageState, card: HTMLElement): void {
+  const set = () => s.wrap.style.setProperty('--map-card-h', `${card.offsetHeight}px`);
+  s.wrap.classList.add('card-open');
+  set();
+  if (typeof ResizeObserver === 'function') {
+    s.cardObserver = new ResizeObserver(set);
+    s.cardObserver.observe(card);
+  }
 }
 
 function openCard(s: PageState, id: string): void {
   const pin = s.pins.find((p) => p.id === id);
   if (!pin) return;
-  s.wrap.querySelector('.map-card')?.remove();
+  closeCard(s);
   s.openId = id;
 
   const card = el('section', `map-card ${pin.lineClass}`);
@@ -97,6 +122,7 @@ function openCard(s: PageState, id: string): void {
   open.addEventListener('click', () => s.options.onOpen(pin.id));
   card.append(close, text, open);
   s.wrap.append(card);
+  liftCredit(s, card);
 }
 
 function showFail(s: PageState): void {
@@ -106,12 +132,14 @@ function showFail(s: PageState): void {
   s.engine?.destroy();
   s.engine = null;
   s.wrap.querySelector('.map-canvas')?.setAttribute('hidden', '');
+  s.wrap.querySelector('.map-locate')?.remove();
   const fail = el('div', 'map-fail');
   const link = el('a', 'info-link', 'See the list');
   link.href = '/';
   link.addEventListener('click', (e) => {
+    if (!plainClick(e)) return;
     e.preventDefault();
-    s.options.onBack();
+    s.options.onSeeList();
   });
   fail.append(el('p', undefined, "The map can't load right now."), link);
   s.wrap.append(fail);
@@ -156,6 +184,7 @@ export function renderMapPage(root: HTMLElement, model: MapPageModel, options: M
     const a = el('a', undefined, pin.name);
     a.href = pin.href;
     a.addEventListener('click', (e) => {
+      if (!plainClick(e)) return;
       e.preventDefault();
       options.onOpen(pin.id);
     });
@@ -176,6 +205,7 @@ export function renderMapPage(root: HTMLElement, model: MapPageModel, options: M
     failed: false,
     left: false,
     cleanups: [],
+    cardObserver: null,
   };
   state = s;
 
@@ -252,6 +282,8 @@ export function leaveMapPage(): void {
   state = null;
   s.left = true;
   s.cleanups.forEach((fn) => fn());
+  s.cardObserver?.disconnect();
+  s.cardObserver = null;
   s.engine?.destroy();
   s.engine = null;
 }

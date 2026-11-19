@@ -74,6 +74,7 @@ function options(o: Partial<MapPageOptions> = {}): MapPageOptions {
   });
   return {
     onBack: vi.fn(),
+    onSeeList: vi.fn(),
     onOpen: vi.fn(),
     onUseLocation: vi.fn(),
     onMove: vi.fn(),
@@ -147,6 +148,8 @@ describe('renderMapPage', () => {
     expect(root.querySelector('.map-card')).toBeNull();
 
     engine.pick('east-avenue');
+    const wrap = root.querySelector('.map-wrap')!;
+    expect(wrap.classList.contains('card-open')).toBe(true);
     let card = root.querySelector('.map-card')!;
     expect(card.textContent).toContain('East Avenue Bridge');
     expect(card.textContent).toContain('Weaver line');
@@ -166,6 +169,7 @@ describe('renderMapPage', () => {
     expect(close.classList.contains('map-card-close')).toBe(true);
     close.click();
     expect(root.querySelector('.map-card')).toBeNull();
+    expect(wrap.classList.contains('card-open')).toBe(false);
 
     engine.pick('northcote');
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
@@ -200,8 +204,12 @@ describe('renderMapPage', () => {
       const fail = root.querySelector('.map-fail')!;
       expect(fail.querySelector('p')!.textContent).toBe("The map can't load right now.");
       const link = [...fail.querySelectorAll('a')].find((a) => a.textContent === 'See the list')!;
+      expect(link.getAttribute('href')).toBe('/');
+      link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, metaKey: true }));
+      expect(opts.onSeeList).not.toHaveBeenCalled();
       link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-      expect(opts.onBack).toHaveBeenCalled();
+      expect(opts.onSeeList).toHaveBeenCalled();
+      expect(opts.onBack).not.toHaveBeenCalled();
     };
 
     const rejecting = options({ createEngine: vi.fn(() => Promise.reject(new Error('no webgl'))) });
@@ -216,6 +224,16 @@ describe('renderMapPage', () => {
     expect(root.querySelector('.map-fail')).toBeNull();
     onFail();
     check(failing);
+  });
+
+  it('hides Use my location once the map has failed', async () => {
+    renderMapPage(root, model({ locationOff: true }), options());
+    await flush();
+    expect(root.querySelector('.map-locate')).not.toBeNull();
+    onFail();
+    expect(root.querySelector('.map-locate')).toBeNull();
+    updateMapPage(root, model({ locationOff: true }));
+    expect(root.querySelector('.map-locate')).toBeNull();
   });
 
   it('no exclamation marks on the map page', async () => {
