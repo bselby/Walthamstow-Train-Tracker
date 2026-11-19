@@ -78,7 +78,7 @@ describe('ticket badge', () => {
 });
 
 describe('compact layout', () => {
-  const compact = css.match(/@media \(max-height: 600px\)\s*\{([\s\S]*?)\n\}/);
+  const compact = css.match(/@media \(max-height: 700px\)\s*\{([\s\S]*?)\n\}/);
   it('has a short-screen block that shrinks the countdown, button and slot', () => {
     expect(compact).not.toBeNull();
     const block = compact![1];

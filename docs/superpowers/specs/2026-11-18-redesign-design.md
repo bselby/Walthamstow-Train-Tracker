@@ -129,7 +129,7 @@ The logic stays; the presentation is replaced. Map from boards to code:
   About, Privacy and Terms links at the foot of the page.
 - Fitting on small phones (author's call, to check on the preview): both
   directions' countdown numbers are visible without scrolling in a
-  320 × 460 px visible area. Below about 600 px of height the cards use a
+  320 × 460 px visible area. Below 700 px of height (Ben, 2026-11-19) the cards use a
   compact layout (smaller numbers and button, diagram under the "then"
   times). While timing is on at a spot, each card's timing slot keeps one
   fixed height whether it holds the placeholder, the button or the "Got it"

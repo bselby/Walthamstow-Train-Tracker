@@ -1468,12 +1468,12 @@ html, body {
 }
 
 /* ───── Compact layout (short screens) ─────
-   Below 600 px of height both directions' countdowns must show without
+   Below 700 px of height both directions' countdowns must show without
    scrolling, down to a 320 × 460 visible area, with the yellow button in
    view. The countdown moves up beside "To <destination>" and the "then"
    times, with the diagram under them; numbers, button and spacing shrink.
    The timing slot is still one fixed height in every state. */
-@media (max-height: 600px) {
+@media (max-height: 700px) {
   #app:has(> .spot-header) {
     gap: 8px;
     padding-top: calc(6px + env(safe-area-inset-top));
