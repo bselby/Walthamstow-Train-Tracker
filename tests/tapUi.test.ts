@@ -357,3 +357,39 @@ describe('the short help line', () => {
     expect(slot.querySelector('.tap-placeholder')).not.toBeNull();
   });
 });
+
+describe('the short slot', () => {
+  it('is marked short only when asked', () => {
+    expect(renderTapSlot(null, buttonView(), handlers(), true)!.classList.contains('tap-slot-short')).toBe(true);
+    expect(renderTapSlot(null, buttonView(), handlers())!.classList.contains('tap-slot-short')).toBe(false);
+  });
+
+  it('rank-up: keeps the title and next rank, drops the ticket link (the header badge opens the ticket)', () => {
+    const el = renderTapSlot(null, thanksView(4), handlers(), true)!;
+    expect(el.querySelector('.tap-rankup .tap-heading')).not.toBeNull();
+    expect(el.querySelector('.tap-next')).not.toBeNull();
+    expect(el.querySelector('.tap-see-ticket')).toBeNull();
+    expect(renderTapSlot(null, thanksView(4), handlers())!.querySelector('.tap-see-ticket')).not.toBeNull();
+  });
+
+  it('thank-you with no signal: the no-signal line takes the progress line\'s place', () => {
+    const el = renderTapSlot(null, thanksView(2, true), handlers(), true)!;
+    expect(el.querySelector('.tap-offline')!.textContent).toBe(NO_SIGNAL_LINE);
+    expect(el.querySelector<HTMLElement>('.tap-thanks > .tap-line')!.hidden).toBe(true);
+  });
+
+  it('thank-you: the progress line comes back if the send result clears', () => {
+    const slot = renderTapSlot(null, thanksView(2), handlers(), true)!;
+    const line = slot.querySelector<HTMLElement>('.tap-thanks > .tap-line')!;
+    expect(line.hidden).toBe(false);
+    renderTapSlot(slot, thanksView(2, true), handlers(), true);
+    expect(line.hidden).toBe(true);
+    renderTapSlot(slot, thanksView(2, false), handlers(), true);
+    expect(line.hidden).toBe(false);
+  });
+
+  it('full slot thank-you with no signal keeps the progress line', () => {
+    const el = renderTapSlot(null, thanksView(2, true), handlers())!;
+    expect(el.querySelector<HTMLElement>('.tap-thanks > .tap-line')!.hidden).toBe(false);
+  });
+});

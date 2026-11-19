@@ -26,6 +26,9 @@ export interface TapDirectionView {
 export interface TapView {
   ask: AskKind;
   taps: number;
+  /** After someone's newcomer visits the slots are shorter (styles.css), and
+   *  the thank-you and rank-up drop a line to fit. Fixed for the visit. */
+  short?: boolean;
   north: TapDirectionView;
   south: TapDirectionView;
 }
@@ -61,11 +64,13 @@ export function renderTapSlot(
   existing: HTMLElement | null,
   view: TapDirectionView,
   handlers: TapSlotHandlers,
+  short = false,
 ): HTMLElement | null {
   if (view.state === 'none') return null;
   if ((view.state === 'button' || view.state === 'thanks') && view.passKey === null) return null;
 
   const slot = existing ?? el('div', 'tap-slot');
+  slot.classList.toggle('tap-slot-short', short);
   const key = view.passKey ?? '';
   // A thank-you is drawn from its own tap, never from the global count.
   const entryKey = view.state === 'thanks' && view.entry ? String(view.entry.tapsBefore) : '';
@@ -84,9 +89,9 @@ export function renderTapSlot(
   } else if (same) {
     // The send result can arrive after the thank-you is drawn: add or drop
     // the no-signal line in place, so the status is not announced twice.
-    setOffline(slot.querySelector<HTMLElement>('.tap-thanks')!, view.offline);
+    setOffline(slot.querySelector<HTMLElement>('.tap-thanks')!, view.offline, short);
   } else {
-    slot.replaceChildren(renderThanks(view, handlers));
+    slot.replaceChildren(renderThanks(view, handlers, short));
   }
 
   if (view.state === 'reserved') slot.setAttribute('aria-hidden', 'true');
@@ -183,7 +188,7 @@ function renderTapButton(handlers: TapSlotHandlers): HTMLElement {
 const TICK_SVG =
   '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10 L8.5 14.5 L16 6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-function renderThanks(view: TapDirectionView, handlers: TapSlotHandlers): HTMLElement {
+function renderThanks(view: TapDirectionView, handlers: TapSlotHandlers, short: boolean): HTMLElement {
   const box = el('div', 'tap-thanks');
   box.setAttribute('role', 'status');
   const before = view.entry?.tapsBefore ?? 0;
@@ -193,20 +198,13 @@ function renderThanks(view: TapDirectionView, handlers: TapSlotHandlers): HTMLEl
   if (promoted) {
     // A rank-up takes the place of "Got it", inside the card, so it never
     // covers a countdown. Trimmed to fit the slot: the title, the next rank
-    // (or the kit at the top rank), and a link to the ticket.
+    // (or the kit at the top rank), and a link to the ticket. The short slot
+    // has no room for the link; the header's ticket badge opens it there.
     box.classList.add('tap-rankup');
     const lines = rankUpLines(after);
     box.appendChild(el('p', 'tap-heading', lines.title));
     box.appendChild(el('p', 'tap-line tap-next', lines.next ?? lines.body));
-    const see = el('a', 'tap-see-ticket', 'See my ticket');
-    see.href = TICKET_PATH;
-    see.addEventListener('click', (e) => {
-      // A new tab or window is the browser's to handle.
-      if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
-      e.preventDefault();
-      handlers.onOpenTicket();
-    });
-    box.appendChild(see);
+    if (!short) box.appendChild(seeTicketLink(handlers));
   } else {
     const head = el('div', 'tap-thanks-head');
     const tick = el('span', 'tap-tick');
@@ -217,13 +215,26 @@ function renderThanks(view: TapDirectionView, handlers: TapSlotHandlers): HTMLEl
     box.appendChild(el('p', 'tap-line', progressLine(after)));
   }
 
-  setOffline(box, view.offline);
+  setOffline(box, view.offline, short);
   return box;
 }
 
+function seeTicketLink(handlers: TapSlotHandlers): HTMLElement {
+  const see = el('a', 'tap-see-ticket', 'See my ticket');
+  see.href = TICKET_PATH;
+  see.addEventListener('click', (e) => {
+    // A new tab or window is the browser's to handle.
+    if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    handlers.onOpenTicket();
+  });
+  return see;
+}
+
 /** Add or drop the no-signal line. In a rank-up it stands in for the next
- *  rank line, so the message still fits the slot. */
-function setOffline(box: HTMLElement, offline: boolean): void {
+ *  rank line, and in the short slot for the progress line too, so the
+ *  message still fits the slot. */
+function setOffline(box: HTMLElement, offline: boolean, short: boolean): void {
   const line = box.querySelector('.tap-offline');
   if (offline && !line) {
     box.insertBefore(el('p', 'tap-offline', NO_SIGNAL_LINE), box.querySelector('.tap-see-ticket'));
@@ -233,6 +244,9 @@ function setOffline(box: HTMLElement, offline: boolean): void {
   if (box.classList.contains('tap-rankup')) {
     const next = box.querySelector<HTMLElement>('.tap-next');
     if (next) next.hidden = offline;
+  } else if (short) {
+    const progress = box.querySelector<HTMLElement>(':scope > .tap-line');
+    if (progress) progress.hidden = offline;
   }
 }
 

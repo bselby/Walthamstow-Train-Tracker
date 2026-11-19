@@ -610,6 +610,7 @@ function renderCard(existing: HTMLElement | null, vm: ViewModel, dir: Direction)
       onOpenTicket: () => currentOptions?.onOpenTicket(),
       onOpenHow: () => currentOptions?.onOpenHow(),
     },
+    vm.tap.short === true,
   );
   if (slot) {
     slot.dataset.direction = dir;
