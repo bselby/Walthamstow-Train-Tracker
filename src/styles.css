@@ -1523,6 +1523,31 @@ html, body {
   }
 }
 
+/* "See them on a map": the same card as "Use my location". */
+.home-map {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--radius-card);
+  background: var(--card);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 800;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.home-map:focus-visible {
+  outline: 3px solid var(--line-color);
+  outline-offset: 2px;
+}
+
 /* Push the site links to the foot of a short list. */
 #app:has(> .home-header) > .doc-links { margin-top: auto; }
 

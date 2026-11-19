@@ -20,8 +20,13 @@ function row(id: string, overrides: Partial<HomeRow> = {}): HomeRow {
   };
 }
 
-function model(overrides: Partial<HomeModel> = {}): HomeModel {
-  return { favourites: [], others: [], othersTitle: 'All spots', location: 'off', notice: null, ...overrides };
+/** `others` is shorthand for one group, "All spots" unless `othersTitle` says otherwise. */
+function model(
+  overrides: Partial<HomeModel> & { others?: HomeRow[]; othersTitle?: string } = {},
+): HomeModel {
+  const { others = [], othersTitle = 'All spots', ...rest } = overrides;
+  const groups = others.length > 0 ? [{ key: 'all', title: othersTitle, rows: others }] : [];
+  return { favourites: [], groups, location: 'off', notice: null, ...rest };
 }
 
 function options() {
@@ -33,6 +38,7 @@ function options() {
     onLocationNotNow: vi.fn<() => void>(),
     taps: 0,
     onOpenTicket: vi.fn<() => void>(),
+    onOpenMap: vi.fn<() => void>(),
   } satisfies HomeOptions;
 }
 
@@ -55,7 +61,7 @@ describe('renderHome', () => {
     expect(root.querySelector('.home-locate')?.textContent).toBe('Use my location');
     const order = Array.from(root.children).map((c) => c.className.split(' ')[0]);
     expect(order.indexOf('home-favourites')).toBeLessThan(order.indexOf('home-locate'));
-    expect(order.indexOf('home-locate')).toBeLessThan(order.indexOf('home-others'));
+    expect(order.indexOf('home-locate')).toBeLessThan(order.indexOf('home-group-all'));
     expect(root.querySelector('h1')?.textContent).toBe('E17 Trains');
   });
 
@@ -92,7 +98,7 @@ describe('renderHome', () => {
 
   it('hides the other-spots section when every spot is a favourite', () => {
     renderHome(root, model({ favourites: [row('queens-road', { favourite: true })] }), opts);
-    expect(root.querySelector('.home-others')).toBeNull();
+    expect(root.querySelector('.home-group-all')).toBeNull();
   });
 
   it('titles the list "Near you" when the model says so', () => {
@@ -205,7 +211,7 @@ describe('renderHome', () => {
     expect(Array.from(ask.querySelectorAll('button')).map((b) => b.textContent)).toEqual(['Yes', 'Not now']);
     const order = Array.from(root.children).map((c) => c.className.split(' ')[0]);
     expect(order.indexOf('home-favourites')).toBeLessThan(order.indexOf('home-ask'));
-    expect(order.indexOf('home-ask')).toBeLessThan(order.indexOf('home-others'));
+    expect(order.indexOf('home-ask')).toBeLessThan(order.indexOf('home-group-all'));
     expect(opts.onUseLocation).not.toHaveBeenCalled();
   });
 
@@ -249,7 +255,7 @@ describe('renderHome', () => {
     const after = root.querySelector('[data-id="queens-road"]');
     expect(after).toBe(before);
     expect(after!.querySelector('.home-star')).toBe(starBefore);
-    expect(ids('.home-others .home-row')).toEqual(['queens-road', 'east-ave']);
+    expect(ids('.home-group-all .home-row')).toEqual(['queens-road', 'east-ave']);
     const countdown = after!.querySelector('.home-row-countdown')!;
     expect(countdown.querySelector('.home-count-num')!.textContent).toBe('40');
     expect(countdown.classList.contains('seconds')).toBe(true);
@@ -258,7 +264,7 @@ describe('renderHome', () => {
 
   it('does not move a row that is already in place', () => {
     renderHome(root, model({ others: [row('east-ave'), row('queens-road')] }), opts);
-    const list = root.querySelector('.home-others .home-list')!;
+    const list = root.querySelector('.home-group-all .home-list')!;
     const moved: Node[] = [];
     new MutationObserver((records) => records.forEach((r) => moved.push(...Array.from(r.addedNodes))))
       .observe(list, { childList: true });
@@ -310,7 +316,7 @@ describe('renderHome', () => {
     const last = root.lastElementChild!;
     expect(last.classList.contains('doc-links')).toBe(true);
     expect(Array.from(last.querySelectorAll('a')).map((a) => a.getAttribute('href')))
-      .toEqual(['/about.html', '/feedback.html', '/privacy.html', '/terms.html']);
+      .toEqual(['/map', '/about.html', '/feedback.html', '/privacy.html', '/terms.html']);
   });
 
   it('asks for new spots after the list, just before the site links', () => {
@@ -320,5 +326,95 @@ describe('renderHome', () => {
     const link = suggest.querySelector('a')!;
     expect(link.getAttribute('href')).toBe('/feedback.html?about=spot');
     expect(link.textContent).toBe('Suggest a spot');
+  });
+
+  it('draws one section per group, in order, with its title', () => {
+    renderHome(root, model({
+      favourites: [row('east-ave', { favourite: true })],
+      groups: [
+        { key: 'near', title: 'Near you', rows: [row('queens-road')] },
+        { key: 'walthamstow', title: 'Walthamstow', rows: [row('northcote-rd')] },
+      ],
+    }), opts);
+    expect(texts('h2')).toEqual(['Your favourites', 'Near you', 'Walthamstow']);
+    expect(root.querySelector('.home-group-near.home-section [data-id="queens-road"]')).not.toBeNull();
+    expect(root.querySelector('.home-group-walthamstow.home-section [data-id="northcote-rd"]')).not.toBeNull();
+  });
+
+  it('draws no group section when there are no groups', () => {
+    renderHome(root, model({ favourites: [row('east-ave', { favourite: true })] }), opts);
+    expect(texts('h2')).toEqual(['Your favourites']);
+    expect(root.querySelectorAll('.home-section').length).toBe(1);
+  });
+
+  it('a row moving from Near you to an area keeps its element', () => {
+    const near = { key: 'near', title: 'Near you', rows: [row('queens-road')] };
+    renderHome(root, model({ groups: [near, { key: 'walthamstow', title: 'Walthamstow', rows: [row('east-ave')] }] }), opts);
+    const before = root.querySelector('[data-id="queens-road"]');
+    renderHome(root, model({
+      groups: [{ key: 'walthamstow', title: 'Walthamstow', rows: [row('east-ave'), row('queens-road')] }],
+    }), opts);
+    expect(root.querySelector('.home-group-walthamstow [data-id="queens-road"]')).toBe(before);
+    expect(root.querySelector('.home-group-near')).toBeNull();
+  });
+
+  it('the location control sits after favourites, before the first group', () => {
+    renderHome(root, model({
+      favourites: [row('east-ave', { favourite: true })],
+      groups: [{ key: 'walthamstow', title: 'Walthamstow', rows: [row('queens-road')] }],
+    }), opts);
+    const order = Array.from(root.children).map((c) => c.className.split(' ')[0]);
+    expect(order.indexOf('home-favourites')).toBeLessThan(order.indexOf('home-locate'));
+    expect(order.indexOf('home-locate')).toBeLessThan(order.indexOf('home-group-walthamstow'));
+  });
+
+  it('a row with no countdown has no countdown element text', () => {
+    renderHome(root, model({ others: [row('queens-road', { countdown: null })] }), opts);
+    const el = root.querySelector('.home-row-countdown')!;
+    expect(el.textContent).toBe('');
+    expect(el.classList.contains('loading')).toBe(false);
+  });
+
+  it('a row can gain and lose its countdown', () => {
+    renderHome(root, model({ others: [row('queens-road', { countdown: null })] }), opts);
+    renderHome(root, model({ others: [row('queens-road')] }), opts);
+    expect(root.querySelector('.home-count-num')!.textContent).toBe('2');
+    renderHome(root, model({ others: [row('queens-road', { countdown: null })] }), opts);
+    expect(root.querySelector('.home-row-countdown')!.textContent).toBe('');
+  });
+
+  it('See them on a map comes after the groups and calls onOpenMap', () => {
+    renderHome(root, model({ others: [row('queens-road')], notice: 'x' }), opts);
+    const order = Array.from(root.children).map((c) => c.className.split(' ')[0]);
+    expect(order.indexOf('home-group-all')).toBeLessThan(order.indexOf('home-map'));
+    expect(order.indexOf('home-map')).toBeLessThan(order.indexOf('home-notice'));
+    const button = root.querySelector<HTMLElement>('button.home-map')!;
+    expect(button.textContent).toBe('See them on a map');
+    button.click();
+    expect(opts.onOpenMap).toHaveBeenCalledTimes(1);
+  });
+
+  it('the footer lists Map, About, Feedback, Privacy, Terms', () => {
+    renderHome(root, model({ others: [row('queens-road')] }), opts);
+    const links = Array.from(root.querySelectorAll<HTMLAnchorElement>('.doc-links a'));
+    expect(links.map((a) => a.getAttribute('href'))).toEqual(['/map', '/about.html', '/feedback.html', '/privacy.html', '/terms.html']);
+    expect(links.map((a) => a.textContent)).toEqual(['Map', 'About', 'Feedback', 'Privacy', 'Terms']);
+    expect(links[0].classList.contains('doc-map')).toBe(true);
+    expect(root.querySelectorAll('.doc-links span[aria-hidden="true"]').length).toBe(4);
+  });
+
+  it('a plain click on the footer Map calls onOpenMap and prevents the default; ctrl-click does not', () => {
+    renderHome(root, model({ others: [row('queens-road')] }), opts);
+    const link = root.querySelector<HTMLAnchorElement>('a.doc-map')!;
+    const plain = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
+    link.dispatchEvent(plain);
+    expect(plain.defaultPrevented).toBe(true);
+    expect(opts.onOpenMap).toHaveBeenCalledTimes(1);
+    link.addEventListener('click', (e) => e.preventDefault());
+    let preventedByHome = false;
+    root.addEventListener('click', (e) => { preventedByHome = e.defaultPrevented; }, { capture: true });
+    link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0, ctrlKey: true }));
+    expect(preventedByHome).toBe(false);
+    expect(opts.onOpenMap).toHaveBeenCalledTimes(1);
   });
 });
