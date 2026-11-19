@@ -29,7 +29,7 @@ export interface HomeRow {
 export type HomeLocation = 'ask' | 'off' | 'locating' | 'on' | 'denied' | 'no-signal' | 'unavailable';
 
 export interface HomeGroup {
-  /** 'near', 'all', or a place. */
+  /** 'near', 'all', or 'area-' and a place (so a place can't be mistaken for the others). */
   key: string;
   title: string;
   rows: HomeRow[];
@@ -101,7 +101,7 @@ function arrange(
   const places = [...new Set(remaining.map((v) => v.place))];
   const areaGroups = places.map((place) => {
     const spots = remaining.filter((v) => v.place === place);
-    return { key: place, title: title(place), spots: spots.sort(position ? byDistance : byName) };
+    return { key: `area-${place}`, title: title(place), spots: spots.sort(position ? byDistance : byName) };
   });
   if (position) {
     areaGroups.sort((a, b) => dist(a.spots[0]) - dist(b.spots[0]));

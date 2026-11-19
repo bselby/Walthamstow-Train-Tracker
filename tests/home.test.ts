@@ -333,12 +333,12 @@ describe('renderHome', () => {
       favourites: [row('east-ave', { favourite: true })],
       groups: [
         { key: 'near', title: 'Near you', rows: [row('queens-road')] },
-        { key: 'walthamstow', title: 'Walthamstow', rows: [row('northcote-rd')] },
+        { key: 'area-walthamstow', title: 'Walthamstow', rows: [row('northcote-rd')] },
       ],
     }), opts);
     expect(texts('h2')).toEqual(['Your favourites', 'Near you', 'Walthamstow']);
     expect(root.querySelector('.home-group-near.home-section [data-id="queens-road"]')).not.toBeNull();
-    expect(root.querySelector('.home-group-walthamstow.home-section [data-id="northcote-rd"]')).not.toBeNull();
+    expect(root.querySelector('.home-group-area-walthamstow.home-section [data-id="northcote-rd"]')).not.toBeNull();
   });
 
   it('draws no group section when there are no groups', () => {
@@ -349,23 +349,23 @@ describe('renderHome', () => {
 
   it('a row moving from Near you to an area keeps its element', () => {
     const near = { key: 'near', title: 'Near you', rows: [row('queens-road')] };
-    renderHome(root, model({ groups: [near, { key: 'walthamstow', title: 'Walthamstow', rows: [row('east-ave')] }] }), opts);
+    renderHome(root, model({ groups: [near, { key: 'area-walthamstow', title: 'Walthamstow', rows: [row('east-ave')] }] }), opts);
     const before = root.querySelector('[data-id="queens-road"]');
     renderHome(root, model({
-      groups: [{ key: 'walthamstow', title: 'Walthamstow', rows: [row('east-ave'), row('queens-road')] }],
+      groups: [{ key: 'area-walthamstow', title: 'Walthamstow', rows: [row('east-ave'), row('queens-road')] }],
     }), opts);
-    expect(root.querySelector('.home-group-walthamstow [data-id="queens-road"]')).toBe(before);
+    expect(root.querySelector('.home-group-area-walthamstow [data-id="queens-road"]')).toBe(before);
     expect(root.querySelector('.home-group-near')).toBeNull();
   });
 
   it('the location control sits after favourites, before the first group', () => {
     renderHome(root, model({
       favourites: [row('east-ave', { favourite: true })],
-      groups: [{ key: 'walthamstow', title: 'Walthamstow', rows: [row('queens-road')] }],
+      groups: [{ key: 'area-walthamstow', title: 'Walthamstow', rows: [row('queens-road')] }],
     }), opts);
     const order = Array.from(root.children).map((c) => c.className.split(' ')[0]);
     expect(order.indexOf('home-favourites')).toBeLessThan(order.indexOf('home-locate'));
-    expect(order.indexOf('home-locate')).toBeLessThan(order.indexOf('home-group-walthamstow'));
+    expect(order.indexOf('home-locate')).toBeLessThan(order.indexOf('home-group-area-walthamstow'));
   });
 
   it('a row with no countdown has no countdown element text', () => {
