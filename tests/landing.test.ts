@@ -37,4 +37,9 @@ describe('landingFor', () => {
     expect(landingFor({ kind: 'ticket' }, [])).toEqual({ screen: 'ticket' });
     expect(landingFor({ kind: 'how' }, ['east-ave'])).toEqual({ screen: 'how' });
   });
+
+  it('the map address lands on the map, even with one favourite', () => {
+    expect(landingFor(parseRoute('/map'), ['east-ave'])).toEqual({ screen: 'map' });
+    expect(landingFor({ kind: 'map' }, [])).toEqual({ screen: 'map' });
+  });
 });
