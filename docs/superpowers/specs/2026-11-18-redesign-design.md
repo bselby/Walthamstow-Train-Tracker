@@ -175,6 +175,10 @@ Driver 30, Station Master 60) stay. New presentation:
   it down (Ben chose this over a short "A yellow button shows here" line,
   which said what the button says anyway). Shown to anyone who has not said
   no, at spots with a timing button.
+- Only at the spot (2026-11-19, see `2026-11-19-button-at-spot-design.md`):
+  the help box and the button show only with location on and the phone
+  within 100 m of the spot. With location off, one line below the cards,
+  "Turn on location to time trains here", turns it on.
 - The button (board 4): big yellow "Tap as the train passes / when the front
   reaches you", inside the direction card, during today's window (30 s
   before to 45 s after).

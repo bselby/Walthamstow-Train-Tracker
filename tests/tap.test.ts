@@ -188,10 +188,13 @@ describe('atViewpoint', () => {
   it('is unknown without a position', () => {
     expect(atViewpoint(null, coords)).toBe('unknown');
   });
-  it('is yes within 150 m', () => {
+  it('is no just past 100 m', () => {
+    expect(atViewpoint({ lat: coords.lat + 0.0011, lng: coords.lng }, coords)).toBe('no'); // ~122 m
+  });
+  it('is yes within 100 m', () => {
     expect(atViewpoint({ lat: coords.lat + 0.00045, lng: coords.lng }, coords)).toBe('yes'); // ~50 m
   });
-  it('is no beyond 150 m', () => {
+  it('is no well beyond 100 m', () => {
     expect(atViewpoint({ lat: coords.lat + 0.0036, lng: coords.lng }, coords)).toBe('no'); // ~400 m
   });
 });

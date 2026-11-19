@@ -135,6 +135,17 @@ describe('back from the ticket to the same spot', () => {
     // Someone already helping, so the south train's button is open (it is
     // 18 s from the bridge at East Avenue).
     localStorage.setItem('wtt_tap_state', JSON.stringify({ choice: 'helping', taps: 2, deviceId: 'abcdefgh-1234' }));
+    // The button only shows at the spot: location on, and the phone on the bridge.
+    localStorage.setItem('wtt_walking_enabled', '1');
+    vi.stubGlobal('navigator', Object.assign(Object.create(navigator), {
+      geolocation: {
+        watchPosition: (ok: PositionCallback) => {
+          ok({ coords: { latitude: 51.583486, longitude: -0.014564 } } as GeolocationPosition);
+          return 1;
+        },
+        clearWatch: () => {},
+      },
+    }));
     fetchArrivals.mockResolvedValueOnce([
       arrival('Chingford', 300, 'n1'),
       arrival('Liverpool Street', 40, 's1'),
@@ -175,6 +186,47 @@ describe('back from the ticket to the same spot', () => {
     await flush();
 
     expect(root.textContent).toContain('Getting the live times');
+  });
+});
+
+describe('the yellow button only at the spot', () => {
+  const trains = () => fetchArrivals.mockResolvedValue([
+    arrival('Chingford', 300, 'n1'),
+    arrival('Liverpool Street', 40, 's1'),
+  ]);
+  const phoneAt = (latitude: number, longitude: number) => vi.stubGlobal('navigator', Object.assign(Object.create(navigator), {
+    geolocation: {
+      watchPosition: (ok: PositionCallback) => {
+        ok({ coords: { latitude, longitude } } as GeolocationPosition);
+        return 1;
+      },
+      clearWatch: () => {},
+    },
+  }));
+
+  it('location on but 400 m away: no button and no location line', async () => {
+    localStorage.setItem('wtt_tap_state', JSON.stringify({ choice: 'helping', taps: 2, deviceId: 'abcdefgh-1234' }));
+    localStorage.setItem('wtt_walking_enabled', '1');
+    phoneAt(51.583486 + 0.0036, -0.014564);
+    trains();
+    const root = await boot('/walthamstow/east-avenue-bridge');
+    expect(root.querySelectorAll('.direction-card')).toHaveLength(2);
+    expect(root.querySelector('.tap-button')).toBeNull();
+    expect(root.querySelector('.location-nudge')).toBeNull();
+  });
+
+  it('location off: no button, and the line that turns location on', async () => {
+    localStorage.setItem('wtt_tap_state', JSON.stringify({ choice: 'helping', taps: 2, deviceId: 'abcdefgh-1234' }));
+    phoneAt(51.583486, -0.014564);
+    trains();
+    const root = await boot('/walthamstow/east-avenue-bridge');
+    expect(root.querySelector('.tap-button')).toBeNull();
+    const nudge = root.querySelector<HTMLButtonElement>('.location-nudge')!;
+    expect(nudge.textContent).toBe('Turn on location to time trains here');
+    nudge.click();
+    await flush();
+    expect(root.querySelector('.location-nudge')).toBeNull();
+    expect(root.querySelector('.tap-button')).not.toBeNull();
   });
 });
 

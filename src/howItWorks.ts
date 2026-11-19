@@ -88,7 +88,7 @@ function pageOne(go: (p: 1 | 2) => void, handlers: HowHandlers, helping: boolean
     step(
       1,
       'Watch for the yellow button',
-      el('span', 'how-step-text', 'It pops up about 30 seconds before a train arrives.'),
+      el('span', 'how-step-text', "It pops up about 30 seconds before a train arrives, when you're at the spot with location on."),
       el('span', 'how-demo', 'Tap as the train passes'),
     ),
     step(
