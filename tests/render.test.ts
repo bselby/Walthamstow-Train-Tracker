@@ -353,6 +353,18 @@ describe('render — direction cards and the timing slot', () => {
     expect(south.querySelector('.tap-placeholder-title')!.textContent).toBe('Help make this time spot-on');
   });
 
+  it('after the newcomer visits, each slot is the short one', () => {
+    const tap: TapView = { ...NEUTRAL_TAP, short: true, south: { ...NO_TAP, state: 'cue', msUntilButton: 300_000 } };
+    render(root, withRows(tap, EA), opts);
+    expect(cards()[1].querySelector('.tap-slot')!.classList.contains('tap-slot-short')).toBe(true);
+  });
+
+  it('on a newcomer visit, the slot keeps its full height', () => {
+    const tap: TapView = { ...NEUTRAL_TAP, south: { ...NO_TAP, state: 'placeholder', msUntilButton: 300_000 } };
+    render(root, withRows(tap, EA), opts);
+    expect(cards()[1].querySelector('.tap-slot')!.classList.contains('tap-slot-short')).toBe(false);
+  });
+
   it('a pass due for someone who has not answered: the yellow button in the card', () => {
     const tap: TapView = { ...NEUTRAL_TAP, ask: 'first', north: button() };
     render(root, withRows(tap, EA), opts);

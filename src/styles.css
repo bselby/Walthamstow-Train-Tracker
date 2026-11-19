@@ -949,6 +949,13 @@ html, body {
   overflow: hidden;
 }
 
+/* After someone's newcomer visits the full help box is gone, so the slot can
+   be shorter: still one fixed height for the whole visit. The thank-you and
+   rank-up drop a line to fit (tapUi.ts). */
+.tap-slot-short {
+  height: 5rem;
+}
+
 /* A freight hero's "Coming from X, off to Y." in the slot it leaves empty. */
 .tap-slot > .freight-journey { margin: auto 0; }
 
@@ -1115,6 +1122,8 @@ html, body {
 }
 @media (max-width: 359px) {
   .tap-rankup .tap-heading { font-size: 1.0625rem; }
+  /* "Tap as the train passes" on one line, to fit the short slot. */
+  .tap-slot-short .tap-button-main { font-size: 1.25rem; }
   .tap-offline { font-size: 0.75rem; }
 }
 .tap-see-ticket:focus-visible {
@@ -1603,6 +1612,7 @@ html, body {
     height: 6.25rem;
     margin-top: 2px;
   }
+  .tap-slot-short { height: 4.5rem; }
   .tap-button { padding: 0.25rem 1rem; border-radius: 32px; }
   .tap-button-main { font-size: 1.25rem; }
   .tap-button-sub { font-size: 0.8125rem; }

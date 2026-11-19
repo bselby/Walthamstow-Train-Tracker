@@ -133,7 +133,11 @@ The logic stays; the presentation is replaced. Map from boards to code:
   compact layout (smaller numbers and button, diagram under the "then"
   times). While timing is on at a spot, each card's timing slot keeps one
   fixed height whether it holds the placeholder, the button or the "Got it"
-  message, so nothing below it jumps.
+  message, so nothing below it jumps. That height is set once per visit
+  (2026-11-19): 120 px (100 px compact) on the newcomer visits that show
+  the full help box, 80 px (72 px compact) after. In the short slot the
+  rank-up drops its "See my ticket" link (the header badge opens the
+  ticket) and the no-signal line stands in for the progress line.
 - The text on boards (sample freight route, sample fact, times) is
   illustrative; real values come from the existing data.
 

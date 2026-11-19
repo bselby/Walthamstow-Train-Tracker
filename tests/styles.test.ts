@@ -64,6 +64,17 @@ describe('timing slot', () => {
     expect(css).not.toMatch(/\.tap-slot[.\[][^{]*\{[^}]*height/);
   });
 
+  it('keeps the button words on one line in the short slot on narrow phones', () => {
+    const narrow = [...css.matchAll(/@media \(max-width: 359px\)\s*\{([\s\S]*?)\n\}/g)].map((m) => m[1]).join('\n');
+    expect(narrow).toMatch(/\.tap-slot-short \.tap-button-main\s*\{[^}]*font-size:\s*1\.25rem/);
+  });
+
+  it('has a shorter fixed height for visits after the newcomer ones', () => {
+    const short = rule('.tap-slot-short');
+    expect(short).toMatch(/(^|[;\s])height:\s*5rem/);
+    expect(short).not.toMatch(/min-height/);
+  });
+
   it('has no rules for the old ticket strip, register or holes', () => {
     expect(css).not.toMatch(/\.ask-strip|\.tap-register|\.ticket-hole|\.tap-notice|\.tap-hole/);
   });
@@ -87,6 +98,7 @@ describe('compact layout', () => {
     // One fixed height in every state there too.
     expect(block).toMatch(/\.tap-slot\s*\{[^}]*(^|[;\s])height:\s*[\d.]+rem/);
     expect(block).not.toMatch(/\.tap-slot[.\[][^{]*\{[^}]*height/);
+    expect(block).toMatch(/\.tap-slot-short\s*\{[^}]*(^|[;\s])height:\s*4\.5rem/);
   });
 
   it('keeps the card head short at 320 × 460: number from the top, "then" on its own line', () => {
