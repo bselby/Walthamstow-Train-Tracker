@@ -1,4 +1,4 @@
-// The top of the countdown screen: a way back to all spots, the ticket badge
+// The top of the countdown screen: a way back to all spots or the map, the ticket badge
 // and the star on one row, then the spot name and its line. Built once and
 // updated in place, so it survives the countdown screen's one-second redraw.
 import type { Viewpoint } from './viewpoints';
@@ -6,6 +6,8 @@ import type { Viewpoint } from './viewpoints';
 export interface SpotHeaderModel {
   viewpoint: Viewpoint;
   favourite: boolean;
+  /** Where the back link goes: the list of all spots, or the map. */
+  backTo: 'home' | 'map';
   onHome: () => void;
   onToggleFavourite: (id: string) => void;
   /** From ticketBadgeLabel: "Your ticket", or "Spotter · 4 trains". */
@@ -35,6 +37,13 @@ export function renderSpotHeader(existing: HTMLElement | null, model: SpotHeader
   if (line.textContent !== lineText) line.textContent = lineText;
   const name = el.querySelector<HTMLElement>('.spot-header-name')!;
   if (name.textContent !== model.viewpoint.name) name.textContent = model.viewpoint.name;
+
+  const back = el.querySelector<HTMLElement>('.spot-header-home')!;
+  const backHref = model.backTo === 'map' ? '/map' : '/';
+  if (back.getAttribute('href') !== backHref) back.setAttribute('href', backHref);
+  const backText = model.backTo === 'map' ? 'Map' : 'All spots';
+  const backLabel = back.querySelector<HTMLElement>('.spot-header-home-label')!;
+  if (backLabel.textContent !== backText) backLabel.textContent = backText;
 
   const badge = el.querySelector<HTMLElement>('.ticket-badge')!;
   const badgeText = badge.querySelector<HTMLElement>('.ticket-badge-text')!;
@@ -76,7 +85,7 @@ function build(): HTMLElement {
   el.className = 'spot-header';
   el.innerHTML = `
     <div class="spot-header-bar">
-      <a class="spot-header-home" href="/">${CHEVRON}All spots</a>
+      <a class="spot-header-home" href="/">${CHEVRON}<span class="spot-header-home-label">All spots</span></a>
       <button type="button" class="ticket-badge">${TICKET_ICON}<span class="ticket-badge-text"></span></button>
       <button type="button" class="spot-header-star"></button>
     </div>

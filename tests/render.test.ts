@@ -64,6 +64,7 @@ function vm(overrides: Partial<ViewModel> = {}): ViewModel {
     fact: { text: '', category: 'default' },
     viewpoint: QR,
     favouriteIds: [QR.id],
+    backTo: 'home',
     tap: NEUTRAL_TAP,
     ...overrides,
   };
@@ -79,6 +80,7 @@ const opts = {
   onTap: noop,
   onHelpChoice: noop,
   onOpenTicket: noop,
+  onOpenMap: noop,
   onOpenHow: noop,
 };
 
@@ -604,6 +606,16 @@ describe('render — header', () => {
     expect(onToggleFavourite).toHaveBeenCalledWith(QR.id);
   });
 
+  it('the footer Map link calls onOpenMap', () => {
+    const onOpenMap = vi.fn();
+    render(root, vm(), { ...opts, onOpenMap });
+    const link = root.querySelector<HTMLAnchorElement>('.doc-links a.doc-map')!;
+    const ev = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
+    link.dispatchEvent(ev);
+    expect(onOpenMap).toHaveBeenCalledTimes(1);
+    expect(ev.defaultPrevented).toBe(true);
+  });
+
   it('clears whatever the home screen left behind', () => {
     root.innerHTML = '<header class="home-header"></header><section class="home-others"></section>';
     render(root, vm(), opts);
@@ -791,10 +803,10 @@ describe('render — the rest of the spot screen', () => {
     ['while connecting', () => vm({ freshness: { state: 'no-data' } })],
     ['after an error', () => vm({ freshness: { state: 'no-data' }, error: 'x' })],
     ['with live times lost', () => both({ freshness: { state: 'stale', ageMs: 90_000 } })],
-  ])('keeps About, Feedback, Privacy, Terms and the map link %s', (_name, model) => {
+  ])('keeps Map, About, Feedback, Privacy, Terms and the Verify on map link %s', (_name, model) => {
     render(root, model(), opts);
     const hrefs = Array.from(root.querySelectorAll<HTMLAnchorElement>('.doc-links a')).map((a) => a.getAttribute('href'));
-    expect(hrefs).toEqual(['/about.html', '/feedback.html', '/privacy.html', '/terms.html']);
+    expect(hrefs).toEqual(['/map', '/about.html', '/feedback.html', '/privacy.html', '/terms.html']);
     expect(root.querySelector('a.map-link')).not.toBeNull();
   });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { VIEWPOINTS, getViewpointById, getViewpointBySlug, defineViewpoint, LINES, DEFAULT_VIEWPOINT_ID, type ViewpointRecord } from '../src/viewpoints';
+import { VIEWPOINTS, getViewpointById, getViewpointBySlug, defineViewpoint, AREAS, areaName, LINES, DEFAULT_VIEWPOINT_ID, type ViewpointRecord } from '../src/viewpoints';
 
 describe('VIEWPOINTS', () => {
   it('contains at least two viewpoints (East Ave + Queens Road)', () => {
@@ -163,5 +163,17 @@ describe('viewpoint URLs and records', () => {
       ['queens-road', 'suffragette', 'Suffragette', '910GWLTHQRD', 6, 'station', 13, 12, false, 'WMW', 0, 0, 0, 0],
       ['northcote-rd', 'suffragette', 'Suffragette', '910GWLTHQRD', 6, 'station', 13, 12, false, 'WMW', -87, 87, 1, 1],
     ]);
+  });
+
+  it("every live spot's place is a known area", () => {
+    for (const v of VIEWPOINTS) expect(Object.keys(AREAS)).toContain(v.place);
+  });
+
+  it('areaName gives the display name', () => {
+    expect(areaName('walthamstow')).toBe('Walthamstow');
+  });
+
+  it('an unknown place throws', () => {
+    expect(() => defineViewpoint({ ...record, id: 'x', place: 'nowhere' })).toThrow(/not in AREAS/);
   });
 });
